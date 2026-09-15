@@ -32,6 +32,11 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+!.env.example
+
+# database files
+*.db
 
 # typescript
 *.tsbuildinfo
@@ -41,3 +46,4 @@ example
 # generated native folders
 /ios
 /android
+.neon

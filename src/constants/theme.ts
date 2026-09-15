@@ -1,65 +1,127 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
-import '@/global.css';
-
-import { Platform } from 'react-native';
-
 export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    background: '#0A0E1A',
+    surface: '#141824',
+    surfaceElevated: '#1C2133',
+    surfaceHighlight: '#242A3D',
+    primary: '#6C63FF',
+    primaryLight: '#8B85FF',
+    primaryDark: '#4F46E5',
+    secondary: '#38BDF8',
+    accent: '#F472B6',
+    success: '#34D399',
+    successLight: '#1B4332',
+    warning: '#FBBF24',
+    warningLight: '#422006',
+    danger: '#F87171',
+    dangerLight: '#3B1111',
+    text: '#F1F5F9',
+    textSecondary: '#94A3B8',
+    textTertiary: '#64748B',
+    border: '#1E293B',
+    borderLight: '#334155',
+    income: '#34D399',
+    expense: '#F87171',
+    cardGradientStart: '#1C2133',
+    cardGradientEnd: '#141824',
+    tabBar: '#0F1320',
+    tabBarBorder: '#1E293B',
+    overlay: 'rgba(0, 0, 0, 0.6)',
+    shimmer: '#242A3D',
   },
-} as const;
-
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
-
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
+  light: {
+    background: '#F8FAFC',
+    surface: '#FFFFFF',
+    surfaceElevated: '#FFFFFF',
+    surfaceHighlight: '#F1F5F9',
+    primary: '#6C63FF',
+    primaryLight: '#EDE9FE',
+    primaryDark: '#4F46E5',
+    secondary: '#0EA5E9',
+    accent: '#EC4899',
+    success: '#10B981',
+    successLight: '#D1FAE5',
+    warning: '#F59E0B',
+    warningLight: '#FEF3C7',
+    danger: '#EF4444',
+    dangerLight: '#FEE2E2',
+    text: '#0F172A',
+    textSecondary: '#475569',
+    textTertiary: '#94A3B8',
+    border: '#E2E8F0',
+    borderLight: '#F1F5F9',
+    income: '#10B981',
+    expense: '#EF4444',
+    cardGradientStart: '#FFFFFF',
+    cardGradientEnd: '#F8FAFC',
+    tabBar: '#FFFFFF',
+    tabBarBorder: '#E2E8F0',
+    overlay: 'rgba(0, 0, 0, 0.4)',
+    shimmer: '#E2E8F0',
   },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
+};
 
 export const Spacing = {
-  half: 2,
-  one: 4,
-  two: 8,
-  three: 16,
-  four: 24,
-  five: 32,
-  six: 64,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  xxxl: 32,
+  huge: 48,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+export const BorderRadius = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  full: 9999,
+} as const;
+
+export const FontSize = {
+  xs: 11,
+  sm: 13,
+  md: 15,
+  lg: 17,
+  xl: 20,
+  xxl: 24,
+  xxxl: 32,
+  hero: 40,
+} as const;
+
+export const FontWeight = {
+  regular: '400' as const,
+  medium: '500' as const,
+  semibold: '600' as const,
+  bold: '700' as const,
+  extrabold: '800' as const,
+};
+
+export const Shadow = {
+  sm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  lg: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+};
+
+export type ThemeColors = typeof Colors.dark;
