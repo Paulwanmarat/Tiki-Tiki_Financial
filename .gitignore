@@ -33,7 +33,7 @@ yarn-error.*
 # local env files
 .env*.local
 .env
-!.env.example
+.env.example
 
 # database files
 *.db
@@ -47,3 +47,7 @@ example
 /ios
 /android
 .neon
+
+# Local scratch and test scripts
+server/test-*.js
+test-*.js
