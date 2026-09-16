@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { getDb } from '../services/db';
-import { sendVerificationEmail } from '../services/email';
+import { sendVerificationEmail, sendPasswordResetEmail } from '../services/email';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
@@ -99,7 +99,7 @@ router.post('/register', async (req, res) => {
     res.status(201).json({
       message: 'Registration successful',
       token,
-      user: { id, email, email_verified: false }
+      user: { id, email, email_verified: false, username: null, avatar_url: null }
     });
   } catch (error: any) {
     console.error('Register Error:', error);
@@ -139,7 +139,7 @@ router.post('/login', async (req, res) => {
     res.json({
       message: 'Login successful',
       token,
-      user: { id: user.id, email: user.email, email_verified: user.email_verified || false }
+      user: { id: user.id, email: user.email, email_verified: user.email_verified || false, username: user.username, avatar_url: user.avatar_url }
     });
   } catch (error: any) {
     console.error('Login Error:', error);
@@ -228,7 +228,7 @@ router.get('/me', requireAuth, async (req, res) => {
   try {
     const userId = req.user?.id;
     const db = getDb();
-    const result = await db.query('SELECT id, email, email_verified FROM users WHERE id = $1', [userId]);
+    const result = await db.query('SELECT id, email, email_verified, username, avatar_url FROM users WHERE id = $1', [userId]);
     const user = result.rows[0];
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -237,6 +237,98 @@ router.get('/me', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Get Me Error:', error);
     res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+const forgotPasswordRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 3,
+  message: { message: 'If an account exists for this email, a password reset email has been sent.' }
+});
+
+router.post('/forgot-password', forgotPasswordRateLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(200).json({ message: 'If an account exists for this email, a password reset email has been sent.' });
+    }
+
+    const db = getDb();
+    const result = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.status(200).json({ message: 'If an account exists for this email, a password reset email has been sent.' });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await db.query(
+      'UPDATE users SET password_reset_token_hash = $1, password_reset_token_expires_at = $2 WHERE id = $3',
+      [resetTokenHash, expiresAt, user.id]
+    );
+
+    try {
+      await sendPasswordResetEmail(email, resetToken);
+    } catch (err) {
+      console.error('Failed to send password reset email:', err);
+    }
+
+    res.status(200).json({ message: 'If an account exists for this email, a password reset email has been sent.' });
+  } catch (error) {
+    console.error('Forgot Password Error:', error);
+    res.status(500).json({ error: 'Failed to process request' });
+  }
+});
+
+const resetPasswordRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many attempts, please try again later.' }
+});
+
+router.post('/reset-password', resetPasswordRateLimiter, async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+    
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+
+    const db = getDb();
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const result = await db.query(
+      'SELECT id, password_reset_token_expires_at FROM users WHERE password_reset_token_hash = $1',
+      [tokenHash]
+    );
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired password reset token' });
+    }
+
+    if (new Date() > new Date(user.password_reset_token_expires_at)) {
+      return res.status(400).json({ error: 'Password reset token has expired' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await db.query(
+      'UPDATE users SET "passwordHash" = $1, password_reset_token_hash = NULL, password_reset_token_expires_at = NULL WHERE id = $2',
+      [passwordHash, user.id]
+    );
+
+    res.json({ message: 'Password has been successfully reset' });
+  } catch (error) {
+    console.error('Reset Password Error:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
   }
 });
 

@@ -157,6 +157,12 @@ export default function SettingsScreen() {
         {/* Account */}
         <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>ACCOUNT</Text>
         <Card style={styles.statsCard}>
+          <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/profile' as any)}>
+            <Ionicons name="person-outline" size={20} color={colors.text} />
+            <Text style={[styles.actionText, { color: colors.text }]}>Profile & Account</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          </TouchableOpacity>
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <TouchableOpacity style={styles.actionRow} onPress={handleLogout}>
             <Ionicons name="log-out-outline" size={20} color={colors.danger} />
             <Text style={[styles.actionText, { color: colors.danger }]}>Log Out</Text>

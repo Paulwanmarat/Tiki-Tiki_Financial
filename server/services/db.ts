@@ -77,6 +77,13 @@ export async function initDb(): Promise<Pool> {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS "verification_token_hash" TEXT;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS "verification_token_expires_at" TIMESTAMP WITH TIME ZONE;
       
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS "password_reset_token_hash" TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS "password_reset_token_expires_at" TIMESTAMP WITH TIME ZONE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS "username" TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS "avatar_url" TEXT;
+      
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_lower ON users(LOWER(username)) WHERE username IS NOT NULL;
+      
       CREATE TABLE IF NOT EXISTS feedback (
         id TEXT PRIMARY KEY,
         user_id TEXT REFERENCES users(id) ON DELETE CASCADE,

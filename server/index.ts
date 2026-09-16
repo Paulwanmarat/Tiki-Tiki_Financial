@@ -9,6 +9,7 @@ import goalsRoutes from './routes/goals';
 import settingsRoutes from './routes/settings';
 import historyRoutes from './routes/history';
 import feedbackRoutes from './routes/feedback';
+import profileRoutes from './routes/profile';
 import { initDb } from './services/db';
 
 // Load environment variables
@@ -55,10 +56,11 @@ app.use('/api/goals', requireAuth, goalsRoutes);
 app.use('/api/settings', requireAuth, settingsRoutes);
 app.use('/api/history', requireAuth, historyRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/profile', requireAuth, profileRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Tiki Finance AI Proxy Server is running' });
+  res.json({ status: 'ok', message: 'SPR App Server is running' });
 });
 
 // Initialize DB and start server

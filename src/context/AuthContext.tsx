@@ -7,6 +7,8 @@ export interface User {
   id: string;
   email: string;
   email_verified?: boolean;
+  username?: string | null;
+  avatar_url?: string | null;
 }
 
 interface AuthContextType {
@@ -16,6 +18,7 @@ interface AuthContextType {
   login: (token: string, user: User) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  refreshUserProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -42,6 +45,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshUser = async () => {
     if (token) {
       await fetchUser(token);
+    }
+  };
+
+  const refreshUserProfile = async () => {
+    if (token) {
+      try {
+        const response = await fetch(`${LOCAL_API_URL}/api/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+        }
+      } catch (e) {
+        console.error('Failed to fetch user profile', e);
+      }
     }
   };
 
@@ -81,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout, refreshUser, refreshUserProfile }}>
       {children}
     </AuthContext.Provider>
   );
