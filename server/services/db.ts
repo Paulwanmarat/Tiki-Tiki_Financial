@@ -73,6 +73,21 @@ export async function initDb(): Promise<Pool> {
       );
       
       CREATE INDEX IF NOT EXISTS idx_ai_history_userId ON ai_history(user_id);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS "email_verified" BOOLEAN DEFAULT false;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS "verification_token_hash" TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS "verification_token_expires_at" TIMESTAMP WITH TIME ZONE;
+      
+      CREATE TABLE IF NOT EXISTS feedback (
+        id TEXT PRIMARY KEY,
+        user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+        type TEXT NOT NULL,
+        message TEXT NOT NULL,
+        rating INTEGER,
+        platform TEXT,
+        app_version TEXT,
+        contact_email TEXT,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
     `);
   } finally {
     client.release();

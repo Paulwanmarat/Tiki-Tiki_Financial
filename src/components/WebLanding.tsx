@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, Pressable, ScrollView, Platform, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
+import { SurveyResults } from './SurveyResults';
+import { LOCAL_API_URL } from '@/services/ai/client';
 
 export function WebLanding() {
   const windowWidth = Dimensions.get('window').width;
@@ -86,7 +88,115 @@ export function WebLanding() {
           ))}
         </View>
       </View>
+
+      <SurveyResults />
+      <WebFeedback isMobile={isMobile} />
     </ScrollView>
+  );
+}
+
+function WebFeedback({ isMobile }: { isMobile: boolean }) {
+  const [type, setType] = React.useState('feature');
+  const [message, setMessage] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [success, setSuccess] = React.useState(false);
+
+  const handleSubmit = async () => {
+    if (!message.trim()) {
+      alert('Please enter your feedback message.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${LOCAL_API_URL}/api/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          type, 
+          message, 
+          contact_email: email,
+          platform: 'web',
+          app_version: 'landing'
+        }),
+      });
+
+      if (response.ok) {
+        setSuccess(true);
+        setMessage('');
+        setEmail('');
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to submit feedback.');
+      }
+    } catch (error) {
+      alert('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={styles.feedbackSection}>
+      <Text style={styles.sectionTitle}>We'd love to hear from you</Text>
+      <View style={[styles.feedbackForm, isMobile && styles.feedbackFormMobile]}>
+        {success ? (
+          <View style={styles.successContainer}>
+            <Ionicons name="checkmark-circle" size={64} color={Colors.light.success} />
+            <Text style={styles.successTitle}>Thank You!</Text>
+            <Text style={styles.successDesc}>Your feedback helps us make Tiki Finance better for everyone.</Text>
+            <Pressable style={styles.submitButton} onPress={() => setSuccess(false)}>
+              <Text style={styles.submitButtonText}>Send More Feedback</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.inputLabel}>Feedback Type</Text>
+            <View style={styles.typeSelector}>
+              {['feature', 'bug', 'other'].map(t => (
+                <Pressable 
+                  key={t}
+                  style={[styles.typeOption, type === t && styles.typeOptionActive]}
+                  onPress={() => setType(t)}
+                >
+                  <Text style={[styles.typeText, type === t && styles.typeTextActive]}>
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.inputLabel}>Message</Text>
+            {/* @ts-ignore */}
+            <input
+              style={styles.webInputArea}
+              placeholder="Tell us what you think..."
+              value={message}
+              onChange={(e: any) => setMessage(e.target.value)}
+            />
+
+            <Text style={styles.inputLabel}>Email (Optional)</Text>
+            {/* @ts-ignore */}
+            <input
+              style={styles.webInput}
+              placeholder="you@example.com"
+              type="email"
+              value={email}
+              onChange={(e: any) => setEmail(e.target.value)}
+            />
+
+            <Pressable 
+              style={[styles.submitButton, loading && { opacity: 0.7 }]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              <Text style={styles.submitButtonText}>{loading ? 'Submitting...' : 'Submit Feedback'}</Text>
+            </Pressable>
+          </>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -241,5 +351,104 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: '#64748B',
     lineHeight: 24,
+  },
+  feedbackSection: {
+    paddingHorizontal: '10%',
+    paddingVertical: 80,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+  },
+  feedbackForm: {
+    width: '100%',
+    maxWidth: 600,
+    backgroundColor: '#F8FAFC',
+    padding: Spacing.xxl,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  feedbackFormMobile: {
+    padding: Spacing.xl,
+  },
+  inputLabel: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+    color: '#334155',
+    marginBottom: Spacing.xs,
+    marginTop: Spacing.lg,
+  },
+  typeSelector: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  typeOption: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFF',
+  },
+  typeOptionActive: {
+    backgroundColor: Colors.light.primary,
+    borderColor: Colors.light.primary,
+  },
+  typeText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.medium,
+    color: '#475569',
+  },
+  typeTextActive: {
+    color: '#FFF',
+  },
+  webInput: {
+    width: '100%',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderStyle: 'solid',
+    fontSize: 16,
+    outline: 'none',
+  },
+  webInputArea: {
+    width: '100%',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderStyle: 'solid',
+    fontSize: 16,
+    minHeight: 120,
+    fontFamily: 'inherit',
+    outline: 'none',
+  },
+  submitButton: {
+    backgroundColor: Colors.light.primary,
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: Spacing.xxl,
+  },
+  submitButtonText: {
+    color: '#FFF',
+    fontSize: FontSize.lg,
+    fontWeight: 'bold',
+  },
+  successContainer: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xxxl,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#0F172A',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  successDesc: {
+    fontSize: FontSize.md,
+    color: '#64748B',
+    textAlign: 'center',
   },
 });

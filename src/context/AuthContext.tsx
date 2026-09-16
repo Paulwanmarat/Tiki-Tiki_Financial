@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { jwtDecode } from 'jwt-decode';
+import { LOCAL_API_URL } from '@/services/ai/client';
 
-interface User {
+export interface User {
   id: string;
   email: string;
+  email_verified?: boolean;
 }
 
 interface AuthContextType {
@@ -13,6 +15,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (token: string, user: User) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -22,18 +25,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchUser = async (authToken: string) => {
+    try {
+      const response = await fetch(`${LOCAL_API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+      }
+    } catch (e) {
+      console.error('Failed to fetch user', e);
+    }
+  };
+
+  const refreshUser = async () => {
+    if (token) {
+      await fetchUser(token);
+    }
+  };
+
   useEffect(() => {
     const restoreSession = async () => {
       try {
         const storedToken = await SecureStore.getItemAsync('userToken');
         if (storedToken) {
           const decoded = jwtDecode<User & { exp: number }>(storedToken);
-          // Check expiration
           if (decoded.exp * 1000 > Date.now()) {
             setToken(storedToken);
-            setUser({ id: decoded.id, email: decoded.email });
+            setUser({ id: decoded.id, email: decoded.email, email_verified: false }); // initial state
+            await fetchUser(storedToken);
           } else {
-            // Token expired
             await SecureStore.deleteItemAsync('userToken');
           }
         }
@@ -59,7 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

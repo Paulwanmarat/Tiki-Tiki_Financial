@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { getDb } from '../services/db';
+import { sendVerificationEmail } from '../services/email';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
 
@@ -39,6 +41,12 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
   }
 };
 
+const resendRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // Limit each IP to 3 resend requests per windowMs
+  message: { error: 'Too many verification requests, please try again later.' }
+});
+
 router.post('/register', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -47,7 +55,6 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Basic email validation
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: 'Invalid email format' });
     }
@@ -58,7 +65,6 @@ router.post('/register', async (req, res) => {
 
     const db = getDb();
     
-    // Check if user exists
     const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existingUser.rows.length > 0) {
       return res.status(409).json({ error: 'Email already in use' });
@@ -73,17 +79,27 @@ router.post('/register', async (req, res) => {
     const id = crypto.randomUUID();
     const passwordHash = await bcrypt.hash(password, 10);
 
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenHash = crypto.createHash('sha256').update(verificationToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
     await db.query(
-      'INSERT INTO users (id, email, "passwordHash") VALUES ($1, $2, $3)',
-      [id, email, passwordHash]
+      'INSERT INTO users (id, email, "passwordHash", "email_verified", "verification_token_hash", "verification_token_expires_at") VALUES ($1, $2, $3, $4, $5, $6)',
+      [id, email, passwordHash, false, verificationTokenHash, expiresAt]
     );
+
+    try {
+      await sendVerificationEmail(email, verificationToken);
+    } catch (err) {
+      console.error('Failed to send verification email during registration:', err);
+    }
 
     const token = jwt.sign({ id, email }, secret, { expiresIn: '7d' });
 
     res.status(201).json({
       message: 'Registration successful',
       token,
-      user: { id, email }
+      user: { id, email, email_verified: false }
     });
   } catch (error: any) {
     console.error('Register Error:', error);
@@ -123,11 +139,104 @@ router.post('/login', async (req, res) => {
     res.json({
       message: 'Login successful',
       token,
-      user: { id: user.id, email: user.email }
+      user: { id: user.id, email: user.email, email_verified: user.email_verified || false }
     });
   } catch (error: any) {
     console.error('Login Error:', error);
     res.status(500).json({ error: 'Failed to log in' });
+  }
+});
+
+router.get('/verify-email', async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+
+    const db = getDb();
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const result = await db.query(
+      'SELECT id, email_verified, verification_token_expires_at FROM users WHERE verification_token_hash = $1',
+      [tokenHash]
+    );
+
+    const user = result.rows[0];
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid verification token' });
+    }
+
+    if (user.email_verified) {
+      return res.status(200).json({ message: 'Email is already verified' });
+    }
+
+    if (new Date() > new Date(user.verification_token_expires_at)) {
+      return res.status(400).json({ error: 'Verification token has expired' });
+    }
+
+    await db.query(
+      'UPDATE users SET email_verified = true, verification_token_hash = NULL, verification_token_expires_at = NULL WHERE id = $1',
+      [user.id]
+    );
+
+    res.json({ message: 'Email verified successfully' });
+  } catch (error) {
+    console.error('Verify Email Error:', error);
+    res.status(500).json({ error: 'Failed to verify email' });
+  }
+});
+
+router.post('/resend-verification', resendRateLimiter, requireAuth, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const db = getDb();
+    const result = await db.query('SELECT email, email_verified FROM users WHERE id = $1', [userId]);
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.email_verified) {
+      return res.status(400).json({ error: 'Email is already verified' });
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenHash = crypto.createHash('sha256').update(verificationToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await db.query(
+      'UPDATE users SET verification_token_hash = $1, verification_token_expires_at = $2 WHERE id = $3',
+      [verificationTokenHash, expiresAt, userId]
+    );
+
+    await sendVerificationEmail(user.email, verificationToken);
+
+    res.json({ message: 'Verification email resent successfully' });
+  } catch (error) {
+    console.error('Resend Verification Error:', error);
+    res.status(500).json({ error: 'Failed to resend verification email' });
+  }
+});
+
+router.get('/me', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const db = getDb();
+    const result = await db.query('SELECT id, email, email_verified FROM users WHERE id = $1', [userId]);
+    const user = result.rows[0];
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ user });
+  } catch (error) {
+    console.error('Get Me Error:', error);
+    res.status(500).json({ error: 'Failed to fetch user' });
   }
 });
 

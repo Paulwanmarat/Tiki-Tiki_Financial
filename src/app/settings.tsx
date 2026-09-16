@@ -144,6 +144,16 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </Card>
 
+        {/* Help & Feedback */}
+        <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>HELP & FEEDBACK</Text>
+        <Card style={styles.statsCard}>
+          <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/feedback' as any)}>
+            <Ionicons name="megaphone-outline" size={20} color={colors.text} />
+            <Text style={[styles.actionText, { color: colors.text }]}>Send Feedback</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          </TouchableOpacity>
+        </Card>
+
         {/* Account */}
         <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>ACCOUNT</Text>
         <Card style={styles.statsCard}>

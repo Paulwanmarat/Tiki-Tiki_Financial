@@ -8,6 +8,7 @@ import transactionsRoutes from './routes/transactions';
 import goalsRoutes from './routes/goals';
 import settingsRoutes from './routes/settings';
 import historyRoutes from './routes/history';
+import feedbackRoutes from './routes/feedback';
 import { initDb } from './services/db';
 
 // Load environment variables
@@ -53,6 +54,7 @@ app.use('/api/transactions', requireAuth, transactionsRoutes);
 app.use('/api/goals', requireAuth, goalsRoutes);
 app.use('/api/settings', requireAuth, settingsRoutes);
 app.use('/api/history', requireAuth, historyRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

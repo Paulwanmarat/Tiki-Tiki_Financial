@@ -14,13 +14,20 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (isLoading) return;
 
     const inAuthGroup = (segments[0] as string) === '(auth)';
+    const isVerifyEmail = (segments[0] as string) === 'verify-email';
 
-    if (!user && !inAuthGroup) {
-      // Redirect to login
-      router.replace('/(auth)/login' as any);
-    } else if (user && inAuthGroup) {
-      // Redirect away from login to home
-      router.replace('/(tabs)');
+    if (!user) {
+      if (!inAuthGroup) {
+        router.replace('/(auth)/login' as any);
+      }
+    } else {
+      if (!user.email_verified && !isVerifyEmail) {
+        // Redirect unverified users to verify-email
+        router.replace('/verify-email' as any);
+      } else if (user.email_verified && (inAuthGroup || isVerifyEmail)) {
+        // Redirect verified users away from auth and verify-email
+        router.replace('/(tabs)' as any);
+      }
     }
   }, [user, isLoading, segments]);
 
@@ -49,9 +56,17 @@ function AppContent() {
         }}
       >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="verify-email" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="transaction/add"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="feedback"
           options={{
             presentation: 'modal',
             animation: 'slide_from_bottom',
