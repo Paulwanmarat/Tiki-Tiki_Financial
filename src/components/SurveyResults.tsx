@@ -4,163 +4,251 @@ import surveyData from '@/constants/surveyData.json';
 import { Colors, Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
+const C = {
+  bg: '#F8FAFC',
+  white: '#FFFFFF',
+  dark: '#0F172A',
+  slate700: '#334155',
+  slate500: '#64748B',
+  slate400: '#94A3B8',
+  slate200: '#E2E8F0',
+  slate100: '#F1F5F9',
+  primary: Colors.light.primary,
+  success: Colors.light.success,
+  warning: Colors.light.warning,
+};
+
+/* ─── helpers ──────────────────────────────────────────────────── */
+function sortedEntries(obj: Record<string, number>): [string, number][] {
+  return Object.entries(obj).sort((a, b) => (b[1] as number) - (a[1] as number));
+}
+
+function pct(count: number, total: number): number {
+  return total > 0 ? Math.round((count / total) * 100) : 0;
+}
+
+/* ─── chart colours ────────────────────────────────────────────── */
+const BAR_COLORS = [C.primary, '#0EA5E9', '#8B5CF6', '#EC4899', C.success, C.warning, '#F97316'];
+
+/* ─── main component ──────────────────────────────────────────── */
 export function SurveyResults() {
   const windowWidth = Dimensions.get('window').width;
   const isMobile = windowWidth < 768;
 
+  const total = surveyData.totalResponses;
+  const ages = surveyData.distributions.ages as Record<string, number>;
+  const spending = surveyData.distributions.spendMoneyOn as Record<string, number>;
+  const features = surveyData.distributions.mostUsefulFeature as Record<string, number>;
+  const wouldUse = (surveyData.distributions as any).wouldUseApp as Record<string, number> | undefined;
+  const manage = surveyData.distributions.manageOwnMoney as Record<string, number>;
+
+  // Interest rate: Definitely + Probably
+  const interested = wouldUse
+    ? ((wouldUse['Definitely'] || 0) + (wouldUse['Probably'] || 0))
+    : 0;
+  const interestPct = pct(interested, total);
+
+  // Self-managing rate: Yes, mostly by myself + Yes, but parents help
+  const selfManaging = Object.entries(manage)
+    .filter(([k]) => k.toLowerCase().startsWith('yes'))
+    .reduce((sum, [, v]) => sum + (v as number), 0);
+  const selfManagingPct = pct(selfManaging, total);
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.sectionTitle}>User Research & Survey Results</Text>
-      <Text style={styles.subtitle}>
-        Based on a recent survey of {surveyData.totalResponses} students and young adults.
+    <View style={styles.section}>
+      <Text style={styles.label}>RESEARCH</Text>
+      <Text style={[styles.heading, isMobile && { fontSize: 28, lineHeight: 36 }]}>
+        What students told us
+      </Text>
+      <Text style={styles.desc}>
+        Aggregate findings from a survey of {total} students and young adults about their money management habits.
       </Text>
 
-      <View style={[styles.grid, isMobile && styles.gridMobile]}>
-        {/* Ages */}
-        <View style={[styles.card, isMobile && styles.cardMobile]}>
-          <View style={styles.cardHeader}>
-            <Ionicons name="people-outline" size={24} color={Colors.light.primary} />
-            <Text style={styles.cardTitle}>Demographics</Text>
-          </View>
-          {Object.entries(surveyData.distributions.ages)
-            .sort((a, b) => (b[1] as number) - (a[1] as number))
-            .map(([age, count]) => (
-            <View key={age} style={styles.barRow}>
-              <Text style={styles.barLabel}>{age}</Text>
-              <View style={styles.barContainer}>
-                <View style={[styles.bar, { width: `${((count as number) / surveyData.totalResponses) * 100}%` }]} />
-              </View>
-              <Text style={styles.barValue}>{count as number}</Text>
-            </View>
-          ))}
-        </View>
+      {/* Summary stat cards */}
+      <View style={[styles.statsRow, isMobile && styles.statsRowMobile]}>
+        <StatCard value={total.toString()} label="Survey Respondents" icon="people-outline" color={C.primary} />
+        <StatCard value={`${interestPct}%`} label="Would Use the App" icon="thumbs-up-outline" color={C.success} />
+        <StatCard value={`${selfManagingPct}%`} label="Manage Own Money" icon="wallet-outline" color={C.warning} />
+      </View>
 
-        {/* Spending */}
-        <View style={[styles.card, isMobile && styles.cardMobile]}>
-          <View style={styles.cardHeader}>
-            <Ionicons name="cart-outline" size={24} color={Colors.light.primary} />
-            <Text style={styles.cardTitle}>Top Spending Categories</Text>
-          </View>
-          {Object.entries(surveyData.distributions.spendMoneyOn)
-            .sort((a, b) => (b[1] as number) - (a[1] as number))
-            .slice(0, 4)
-            .map(([category, count]) => (
-            <View key={category} style={styles.barRow}>
-              <Text style={styles.barLabel} numberOfLines={1}>{category}</Text>
-              <View style={styles.barContainer}>
-                <View style={[styles.bar, { width: `${((count as number) / surveyData.totalResponses) * 100}%`, backgroundColor: '#F59E0B' }]} />
-              </View>
-              <Text style={styles.barValue}>{count as number}</Text>
-            </View>
-          ))}
-        </View>
+      {/* Charts */}
+      <View style={[styles.chartsGrid, isMobile && styles.chartsGridMobile]}>
+        {/* Age Demographics */}
+        <ChartCard
+          title="Age Demographics"
+          icon="school-outline"
+          entries={sortedEntries(ages)}
+          total={total}
+          colorIndex={0}
+          isMobile={isMobile}
+        />
 
-        {/* Most Useful Features */}
-        <View style={[styles.card, isMobile && styles.cardMobile]}>
-          <View style={styles.cardHeader}>
-            <Ionicons name="star-outline" size={24} color={Colors.light.primary} />
-            <Text style={styles.cardTitle}>Most Requested Features</Text>
-          </View>
-          {Object.entries(surveyData.distributions.mostUsefulFeature)
-            .sort((a, b) => (b[1] as number) - (a[1] as number))
-            .slice(0, 4)
-            .map(([feature, count]) => (
-            <View key={feature} style={styles.barRow}>
-              <Text style={styles.barLabel} numberOfLines={1}>{feature}</Text>
-              <View style={styles.barContainer}>
-                <View style={[styles.bar, { width: `${((count as number) / surveyData.totalResponses) * 100}%`, backgroundColor: '#10B981' }]} />
-              </View>
-              <Text style={styles.barValue}>{count as number}</Text>
-            </View>
-          ))}
-        </View>
+        {/* Top Spending */}
+        <ChartCard
+          title="Top Spending Categories"
+          icon="cart-outline"
+          entries={sortedEntries(spending).slice(0, 5)}
+          total={total}
+          colorIndex={1}
+          isMobile={isMobile}
+          cleanLabel={cleanSpendLabel}
+        />
+
+        {/* Requested Features */}
+        <ChartCard
+          title="Most Requested Features"
+          icon="star-outline"
+          entries={sortedEntries(features)}
+          total={total}
+          colorIndex={2}
+          isMobile={isMobile}
+          cleanLabel={cleanFeatureLabel}
+        />
       </View>
     </View>
   );
 }
 
+/* ─── stat card ────────────────────────────────────────────────── */
+function StatCard({ value, label, icon, color }: { value: string; label: string; icon: string; color: string }) {
+  return (
+    <View style={styles.statCard}>
+      <View style={[styles.statIcon, { backgroundColor: color + '12' }]}>
+        <Ionicons name={icon as any} size={22} color={color} />
+      </View>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+/* ─── chart card ───────────────────────────────────────────────── */
+function ChartCard({
+  title,
+  icon,
+  entries,
+  total,
+  colorIndex,
+  isMobile,
+  cleanLabel,
+}: {
+  title: string;
+  icon: string;
+  entries: [string, number][];
+  total: number;
+  colorIndex: number;
+  isMobile: boolean;
+  cleanLabel?: (s: string) => string;
+}) {
+  const barColor = BAR_COLORS[colorIndex % BAR_COLORS.length];
+  const max = entries.length > 0 ? entries[0][1] : 1;
+
+  return (
+    <View style={[styles.chartCard, isMobile && styles.chartCardMobile]}>
+      <View style={styles.chartHeader}>
+        <Ionicons name={icon as any} size={20} color={C.primary} />
+        <Text style={styles.chartTitle}>{title}</Text>
+      </View>
+
+      {entries.map(([label, count]) => {
+        const display = cleanLabel ? cleanLabel(label) : label;
+        const percent = pct(count as number, total);
+        const widthPct = Math.max(((count as number) / max) * 100, 4);
+        return (
+          <View key={label} style={styles.barRow} accessibilityLabel={`${display}: ${count} responses, ${percent}%`}>
+            <Text style={styles.barLabel} numberOfLines={1}>{display}</Text>
+            <View style={styles.barTrack}>
+              <View style={[styles.barFill, { width: `${widthPct}%`, backgroundColor: barColor }]} />
+            </View>
+            <Text style={styles.barPct}>{percent}%</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+/* ─── label cleaners ───────────────────────────────────────────── */
+function cleanSpendLabel(s: string): string {
+  // Remove leading emoji and whitespace
+  return s.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]\s*/u, '').trim() || s;
+}
+
+function cleanFeatureLabel(s: string): string {
+  return s.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]\s*/u, '').trim() || s;
+}
+
+/* ─── styles ───────────────────────────────────────────────────── */
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: '10%',
+  section: {
+    paddingHorizontal: '8%' as any,
     paddingVertical: 80,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: C.slate100,
+    alignItems: 'center',
   },
-  sectionTitle: {
+  label: {
+    fontSize: 13,
+    fontWeight: '700' as any,
+    letterSpacing: 2,
+    color: C.primary,
+    marginBottom: 12,
+  },
+  heading: {
     fontSize: 36,
-    fontWeight: FontWeight.bold,
-    color: '#0F172A',
+    fontWeight: '800' as any,
+    color: C.dark,
     textAlign: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: 8,
+    lineHeight: 44,
   },
-  subtitle: {
-    fontSize: FontSize.lg,
-    color: '#64748B',
+  desc: {
+    fontSize: 16,
+    color: C.slate500,
     textAlign: 'center',
-    marginBottom: 60,
+    maxWidth: 560,
+    lineHeight: 26,
+    marginBottom: 40,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xxl,
-    justifyContent: 'center',
-  },
-  gridMobile: {
-    flexDirection: 'column',
-  },
-  card: {
-    width: '30%',
-    minWidth: 320,
-    backgroundColor: '#FFFFFF',
-    padding: Spacing.xxl,
-    borderRadius: BorderRadius.xl,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  cardMobile: {
-    width: '100%',
-  },
-  cardHeader: {
-    flexDirection: 'row',
+
+  /* stat cards */
+  statsRow: { flexDirection: 'row', gap: 16, marginBottom: 40, flexWrap: 'wrap', justifyContent: 'center' },
+  statsRowMobile: { flexDirection: 'column', alignItems: 'stretch' },
+  statCard: {
+    backgroundColor: C.white,
+    borderRadius: 16,
+    padding: 24,
     alignItems: 'center',
-    marginBottom: Spacing.xl,
-    gap: Spacing.sm,
-  },
-  cardTitle: {
-    fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold,
-    color: '#0F172A',
-  },
-  barRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  barLabel: {
-    width: 100,
-    fontSize: FontSize.sm,
-    color: '#475569',
-  },
-  barContainer: {
+    minWidth: 180,
     flex: 1,
-    height: 12,
-    backgroundColor: '#E2E8F0',
-    borderRadius: BorderRadius.full,
-    marginHorizontal: Spacing.sm,
-    overflow: 'hidden',
+    maxWidth: 240,
+    borderWidth: 1,
+    borderColor: C.slate200,
   },
-  bar: {
-    height: '100%',
-    backgroundColor: Colors.light.primary,
-    borderRadius: BorderRadius.full,
+  statIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  statValue: { fontSize: 28, fontWeight: '800' as any, color: C.dark, marginBottom: 4 },
+  statLabel: { fontSize: 13, color: C.slate500, textAlign: 'center' },
+
+  /* chart cards */
+  chartsGrid: { flexDirection: 'row', gap: 20, flexWrap: 'wrap', justifyContent: 'center', width: '100%' },
+  chartsGridMobile: { flexDirection: 'column' },
+  chartCard: {
+    flex: 1,
+    minWidth: 300,
+    maxWidth: 380,
+    backgroundColor: C.white,
+    borderRadius: 16,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: C.slate200,
   },
-  barValue: {
-    width: 30,
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
-    color: '#0F172A',
-    textAlign: 'right',
-  },
+  chartCardMobile: { maxWidth: '100%' as any, width: '100%' as any },
+  chartHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 20 },
+  chartTitle: { fontSize: 16, fontWeight: '700' as any, color: C.dark },
+
+  /* bars */
+  barRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  barLabel: { width: 110, fontSize: 13, color: C.slate700 },
+  barTrack: { flex: 1, height: 10, backgroundColor: C.slate100, borderRadius: 5, marginHorizontal: 8, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 5 },
+  barPct: { width: 38, fontSize: 12, fontWeight: '600' as any, color: C.dark, textAlign: 'right' },
 });

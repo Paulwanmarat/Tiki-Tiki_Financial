@@ -1,9 +1,55 @@
 {
   "totalResponses": 75,
   "distributions": {
-    "ages": {},
-    "manageOwnMoney": {},
-    "spendMoneyOn": {},
-    "mostUsefulFeature": {}
+    "ages": {
+      "ม.4-6": 1,
+      "15–17": 32,
+      "18–20": 13,
+      "Under 15": 24,
+      "21–24": 3,
+      "25+": 2
+    },
+    "manageOwnMoney": {
+      "มี": 1,
+      "Yes, but my parents/guardians also help": 35,
+      "Yes, mostly by myself": 32,
+      "No": 7
+    },
+    "spendMoneyOn": {
+      "ค่าใช้จ่ายที่ไม่จำเป็น": 1,
+      "🍔 Food/drinks": 48,
+      "📱 Technology/subscriptions": 4,
+      "🛍️ Shopping": 10,
+      "🎮 Entertainment/games": 4,
+      "School and food": 1,
+      "Asset investment": 1,
+      "buy merchandise related to your fandom, favorite celebrities, or my favorite mascots.": 1,
+      "🚗 Transportation": 2,
+      "New camera🤑": 1,
+      "All of it except transportation": 1,
+      "📚 School/project materials": 1
+    },
+    "mostUsefulFeature": {
+      "🎯 Savings goals and planning": 16,
+      "🤖 AI financial advice": 8,
+      "📊 Spending habit tracking": 16,
+      "🔮 Purchase/spending simulation": 11,
+      "🐷 Piggy Pocket saving game": 12,
+      "🍔 AI recommendations for better-value purchases": 11
+    },
+    "overspentFrequency": {
+      "ช่วยวางแผนการใช้เงิน": 1,
+      "Sometimes": 36,
+      "Rarely": 16,
+      "Frequently": 20,
+      "Never": 2
+    },
+    "wouldUseApp": {
+      "Not sure": 19,
+      "Probably": 30,
+      "No": 4,
+      "Definitely": 14,
+      "Probably not": 7
+    }
   }
 }

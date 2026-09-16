@@ -96,12 +96,11 @@ export default function ProfileScreen() {
       if (!token) throw new Error('Not authenticated');
 
       const formData = new FormData();
-      const filename = asset.uri.split('/').pop() || 'avatar.jpg';
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : `image/jpeg`;
+      const filename = asset.fileName || asset.uri.split('/').pop() || 'avatar.jpg';
+      const type = asset.mimeType || 'image/jpeg';
 
       formData.append('image', {
-        uri: asset.uri,
+        uri: Platform.OS === 'ios' && !asset.uri.startsWith('file://') ? `file://${asset.uri}` : asset.uri,
         name: filename,
         type,
       } as any);

@@ -1,6 +1,16 @@
 const CURRENCY_SYMBOL = '₫';
 const LOCALE = 'vi-VN';
 
+export function getUserDisplayName(user?: { username?: string | null, email?: string } | null): string {
+  if (!user) return 'Student';
+  if (user.username) return user.username;
+  if (user.email) {
+    const localPart = user.email.split('@')[0];
+    return localPart.charAt(0).toUpperCase() + localPart.slice(1);
+  }
+  return 'Student';
+}
+
 export function formatCurrency(amount: number): string {
   if (isNaN(amount)) return `0${CURRENCY_SYMBOL}`;
 

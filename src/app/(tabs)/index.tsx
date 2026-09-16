@@ -20,7 +20,7 @@ import { EmptyState, LoadingState } from '@/components/ui/States';
 import { SavingPig } from '@/components/ui/SavingPig';
 import { DailyLimitCard } from '@/components/ui/DailyLimitCard';
 import { TransactionItem } from '@/components/transactions/TransactionItem';
-import { formatCurrency, formatPercentage } from '@/utils/formatters';
+import { formatCurrency, formatPercentage, getUserDisplayName } from '@/utils/formatters';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
 
 export default function DashboardScreen() {
@@ -65,7 +65,7 @@ export default function DashboardScreen() {
           <View style={{ flex: 1 }}>
             <Text style={[styles.greeting, { color: colors.textSecondary }]}>{greeting} 👋</Text>
             <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
-              {user?.email?.split('@')[0] || 'Student'}
+              {getUserDisplayName(user)}
             </Text>
           </View>
           <TouchableOpacity

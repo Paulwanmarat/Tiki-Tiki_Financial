@@ -270,11 +270,10 @@ router.post('/forgot-password', forgotPasswordRateLimiter, async (req, res) => {
       [resetTokenHash, expiresAt, user.id]
     );
 
-    try {
-      await sendPasswordResetEmail(email, resetToken);
-    } catch (err) {
-      console.error('Failed to send password reset email:', err);
-    }
+    // Send email asynchronously so we don't block the response
+    sendPasswordResetEmail(email, resetToken).catch(err => {
+      console.error('Failed to send password reset email asynchronously:', err);
+    });
 
     res.status(200).json({ message: 'If an account exists for this email, a password reset email has been sent.' });
   } catch (error) {
