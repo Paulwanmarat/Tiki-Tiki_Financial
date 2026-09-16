@@ -41,7 +41,7 @@ router.post('/ask', async (req, res) => {
     }
   } catch (error: any) {
     console.error('AI Proxy Error:', error);
-    res.status(500).json({ error: 'Failed to communicate with AI provider', details: error.message });
+    res.status(500).json({ error: 'AI service is currently unavailable. Please try again later.' });
   }
 });
 

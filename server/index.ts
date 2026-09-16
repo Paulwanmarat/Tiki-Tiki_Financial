@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 import aiRoutes from './routes/ai';
 import ocrRoutes from './routes/ocr';
@@ -28,6 +29,9 @@ for (const envVar of requiredEnvVars) {
 }
 
 // Middleware
+app.use(helmet({
+  contentSecurityPolicy: false, // Disabled to prevent breaking Expo Web assets/API behavior
+}));
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [];
 
 app.use(cors({
