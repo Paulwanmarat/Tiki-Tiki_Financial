@@ -1,8 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import surveyData from '@/constants/surveyData.json';
-import { Colors, Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
 
 const C = {
   bg: '#F8FAFC',

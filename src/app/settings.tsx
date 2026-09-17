@@ -173,11 +173,13 @@ export default function SettingsScreen() {
         {/* About */}
         <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>ABOUT</Text>
         <Card>
-          <Text style={[styles.aboutTitle, { color: colors.text }]}>Tiki Finance</Text>
-          <Text style={[styles.aboutVersion, { color: colors.textTertiary }]}>Version 1.0.0</Text>
-          <Text style={[styles.aboutDescription, { color: colors.textSecondary }]}>
+          <Text style={[styles.aboutTitle, { color: colors.text }]}>SPR App</Text>
+          <Text style={[styles.aboutVersion, { color: colors.textTertiary, marginBottom: 4 }]}>Student Pecuniary Routine App</Text>
+          <Text style={[styles.aboutDescription, { color: colors.textSecondary, marginBottom: 16 }]}>
             A personal finance app built for students and young adults. Track spending, set goals, simulate purchases, and get AI-powered insights.
           </Text>
+          <Text style={[styles.aboutVersion, { color: colors.textTertiary, fontWeight: 'bold', marginBottom: 2 }]}>Piggy Pockets</Text>
+          <Text style={[styles.aboutVersion, { color: colors.textTertiary }]}>Saipanyarangsit School · MEP Students</Text>
         </Card>
       </ScrollView>
     </SafeAreaView>

@@ -10,8 +10,10 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "infoPlist": {
-        "NSLocalNetworkUsageDescription": "SPR App needs local network access to communicate with the backend server during development."
-      }
+        "NSLocalNetworkUsageDescription": "SPR App needs local network access to communicate with the backend server during development.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.spr.sprapp"
     },
     "android": {
       "package": "com.spr.sprapp",
@@ -44,6 +46,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5c0b056a-583f-49a7-8b50-bbf240d3c1c3"
+      }
     }
   }
 }

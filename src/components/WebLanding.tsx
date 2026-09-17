@@ -1,19 +1,17 @@
-import React, { useState, useRef, useCallback } from 'react';
+import { Colors } from '@/constants/theme';
+import { LOCAL_API_URL } from '@/services/ai/client';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useCallback, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
+  ActivityIndicator,
+  Dimensions,
   Pressable,
   ScrollView,
-  Dimensions,
-  TextInput,
-  ActivityIndicator,
-  Platform,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { SurveyResults } from './SurveyResults';
-import { LOCAL_API_URL } from '@/services/ai/client';
 
 /* ───────────────────────── colour tokens ───────────────────────── */
 const C = {
@@ -1079,6 +1077,11 @@ function Footer({ isMobile, scrollTo }: { isMobile: boolean; scrollTo: (k: strin
           <Text style={footStyles.brandDesc}>
             Helping students build better money habits through tracking, simulation, and AI-assisted guidance.
           </Text>
+          <View style={{ marginTop: 24 }}>
+            <Text style={{ fontSize: 12, color: C.slate500, marginBottom: 4 }}>Built by</Text>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFF' }}>Piggy Pockets</Text>
+            <Text style={{ fontSize: 13, color: C.slate400 }}>Saipanyarangsit School · MEP Students</Text>
+          </View>
         </View>
 
         <View style={footStyles.linksCol}>
@@ -1118,5 +1121,5 @@ const footStyles = StyleSheet.create({
 /* ───────────────────────────────────────────────────────────────── */
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  rootContent: { },
+  rootContent: {},
 });

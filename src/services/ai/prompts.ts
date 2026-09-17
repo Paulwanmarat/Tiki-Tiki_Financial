@@ -1,7 +1,7 @@
 import { ChatMessage, AIContext, MenuRecommendation, MenuItem } from '@/types/ai';
 
 export function buildSystemPrompt(): string {
-  return `You are Tiki AI, a friendly, smart, and concise personal finance assistant for students and young adults.
+  return `You are SPR App's AI, a friendly, smart, and concise personal finance assistant for students and young adults.
 Your role is to help users manage their money, build savings habits, evaluate purchases, and reach their financial goals.
 
 Guidelines:
