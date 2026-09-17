@@ -1,7 +1,32 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { jwtDecode } from 'jwt-decode';
 import { LOCAL_API_URL } from '@/services/ai/client';
+
+const setTokenSafe = async (key: string, value: string) => {
+  if (Platform.OS === 'web') {
+    try { localStorage.setItem(key, value); } catch (e) {}
+  } else {
+    await SecureStore.setItemAsync(key, value);
+  }
+};
+
+const getTokenSafe = async (key: string) => {
+  if (Platform.OS === 'web') {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  } else {
+    return await SecureStore.getItemAsync(key);
+  }
+};
+
+const removeTokenSafe = async (key: string) => {
+  if (Platform.OS === 'web') {
+    try { localStorage.removeItem(key); } catch (e) {}
+  } else {
+    await SecureStore.deleteItemAsync(key);
+  }
+};
 
 export interface User {
   id: string;
@@ -67,7 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        const storedToken = await SecureStore.getItemAsync('userToken');
+        const storedToken = await getTokenSafe('userToken');
         if (storedToken) {
           const decoded = jwtDecode<User & { exp: number }>(storedToken);
           if (decoded.exp * 1000 > Date.now()) {
@@ -75,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser({ id: decoded.id, email: decoded.email, email_verified: false }); // initial state
             await fetchUser(storedToken);
           } else {
-            await SecureStore.deleteItemAsync('userToken');
+            await removeTokenSafe('userToken');
           }
         }
       } catch (e) {
@@ -88,13 +113,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (newToken: string, newUser: User) => {
-    await SecureStore.setItemAsync('userToken', newToken);
+    await setTokenSafe('userToken', newToken);
     setToken(newToken);
     setUser(newUser);
   };
 
   const logout = async () => {
-    await SecureStore.deleteItemAsync('userToken');
+    await removeTokenSafe('userToken');
     setToken(null);
     setUser(null);
   };

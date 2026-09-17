@@ -73,7 +73,7 @@ export async function askFinancialQuestion(
     const reply = await askAiApi(formattedMessages, systemInstruction);
     return reply;
   } catch (error: any) {
-    console.error('Failed to ask AI API:', error);
+    console.warn('Failed to ask AI API:', error);
     throw error;
   }
 }

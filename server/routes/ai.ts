@@ -8,7 +8,7 @@ const router = express.Router();
 
 // Initialize Gemini SDK
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
 
 router.post('/ask', async (req, res) => {
   try {
@@ -27,7 +27,7 @@ router.post('/ask', async (req, res) => {
     if (systemInstruction) {
       // Create a specific model instance if system instruction is provided
       const instModel = genAI.getGenerativeModel({ 
-        model: 'gemini-flash-latest',
+        model: 'gemini-1.5-flash-latest',
         systemInstruction: systemInstruction 
       });
       

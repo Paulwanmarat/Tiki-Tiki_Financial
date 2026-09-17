@@ -38,20 +38,6 @@ export function SurveyResults() {
   const ages = surveyData.distributions.ages as Record<string, number>;
   const spending = surveyData.distributions.spendMoneyOn as Record<string, number>;
   const features = surveyData.distributions.mostUsefulFeature as Record<string, number>;
-  const wouldUse = (surveyData.distributions as any).wouldUseApp as Record<string, number> | undefined;
-  const manage = surveyData.distributions.manageOwnMoney as Record<string, number>;
-
-  // Interest rate: Definitely + Probably
-  const interested = wouldUse
-    ? ((wouldUse['Definitely'] || 0) + (wouldUse['Probably'] || 0))
-    : 0;
-  const interestPct = pct(interested, total);
-
-  // Self-managing rate: Yes, mostly by myself + Yes, but parents help
-  const selfManaging = Object.entries(manage)
-    .filter(([k]) => k.toLowerCase().startsWith('yes'))
-    .reduce((sum, [, v]) => sum + (v as number), 0);
-  const selfManagingPct = pct(selfManaging, total);
 
   return (
     <View style={styles.section}>
@@ -60,14 +46,12 @@ export function SurveyResults() {
         What students told us
       </Text>
       <Text style={styles.desc}>
-        Aggregate findings from a survey of {total} students and young adults about their money management habits.
+        The team surveyed classmates and people at school aged 14–21. The survey was shared through school group chats and social media to understand real money management habits.
       </Text>
 
       {/* Summary stat cards */}
       <View style={[styles.statsRow, isMobile && styles.statsRowMobile]}>
         <StatCard value={total.toString()} label="Survey Respondents" icon="people-outline" color={C.primary} />
-        <StatCard value={`${interestPct}%`} label="Would Use the App" icon="thumbs-up-outline" color={C.success} />
-        <StatCard value={`${selfManagingPct}%`} label="Manage Own Money" icon="wallet-outline" color={C.warning} />
       </View>
 
       {/* Charts */}
@@ -169,7 +153,6 @@ function ChartCard({
 
 /* ─── label cleaners ───────────────────────────────────────────── */
 function cleanSpendLabel(s: string): string {
-  // Remove leading emoji and whitespace
   return s.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]\s*/u, '').trim() || s;
 }
 
@@ -182,7 +165,7 @@ const styles = StyleSheet.create({
   section: {
     paddingHorizontal: '8%' as any,
     paddingVertical: 80,
-    backgroundColor: C.slate100,
+    backgroundColor: C.white,
     alignItems: 'center',
   },
   label: {
@@ -197,23 +180,23 @@ const styles = StyleSheet.create({
     fontWeight: '800' as any,
     color: C.dark,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
     lineHeight: 44,
   },
   desc: {
     fontSize: 16,
     color: C.slate500,
     textAlign: 'center',
-    maxWidth: 560,
+    maxWidth: 600,
     lineHeight: 26,
-    marginBottom: 40,
+    marginBottom: 48,
   },
 
   /* stat cards */
   statsRow: { flexDirection: 'row', gap: 16, marginBottom: 40, flexWrap: 'wrap', justifyContent: 'center' },
   statsRowMobile: { flexDirection: 'column', alignItems: 'stretch' },
   statCard: {
-    backgroundColor: C.white,
+    backgroundColor: C.bg,
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
@@ -234,7 +217,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 300,
     maxWidth: 380,
-    backgroundColor: C.white,
+    backgroundColor: C.bg,
     borderRadius: 16,
     padding: 24,
     borderWidth: 1,
@@ -247,7 +230,7 @@ const styles = StyleSheet.create({
   /* bars */
   barRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   barLabel: { width: 110, fontSize: 13, color: C.slate700 },
-  barTrack: { flex: 1, height: 10, backgroundColor: C.slate100, borderRadius: 5, marginHorizontal: 8, overflow: 'hidden' },
+  barTrack: { flex: 1, height: 10, backgroundColor: C.slate200, borderRadius: 5, marginHorizontal: 8, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 5 },
   barPct: { width: 38, fontSize: 12, fontWeight: '600' as any, color: C.dark, textAlign: 'right' },
 });
