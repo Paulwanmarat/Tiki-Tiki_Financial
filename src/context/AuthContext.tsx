@@ -1,32 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
-import { jwtDecode } from 'jwt-decode';
 import { LOCAL_API_URL } from '@/services/ai/client';
-
-const setTokenSafe = async (key: string, value: string) => {
-  if (Platform.OS === 'web') {
-    try { localStorage.setItem(key, value); } catch (e) {}
-  } else {
-    await SecureStore.setItemAsync(key, value);
-  }
-};
-
-const getTokenSafe = async (key: string) => {
-  if (Platform.OS === 'web') {
-    try { return localStorage.getItem(key); } catch (e) { return null; }
-  } else {
-    return await SecureStore.getItemAsync(key);
-  }
-};
-
-const removeTokenSafe = async (key: string) => {
-  if (Platform.OS === 'web') {
-    try { localStorage.removeItem(key); } catch (e) {}
-  } else {
-    await SecureStore.deleteItemAsync(key);
-  }
-};
+import { getTokenSafe, setTokenSafe, removeTokenSafe } from '@/utils/storage';
+import { jwtDecode } from 'jwt-decode';
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
 export interface User {
   id: string;

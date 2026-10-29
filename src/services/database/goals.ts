@@ -1,34 +1,5 @@
 import { Goal, GoalStatus } from '@/types/goal';
-import * as SecureStore from 'expo-secure-store';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.41:3000';
-
-async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-  const token = await SecureStore.getItemAsync('userToken');
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
-  };
-
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    let errorMsg = 'An error occurred';
-    try {
-      const errorData = await response.json();
-      errorMsg = errorData.error || errorMsg;
-    } catch (e) {
-      // Ignore parsing errors
-    }
-    throw new Error(errorMsg);
-  }
-
-  return response.json();
-}
+import { fetchWithAuth } from '@/services/ai/client';
 
 export async function insertGoal(
   db: any,
@@ -90,7 +61,7 @@ export async function getGoals(
   // Query strings can be added if backend supports it. For now, fetch all and filter locally if needed,
   // or rely on backend returning all active goals since there are rarely more than a few.
   const goals = await fetchWithAuth('/api/goals');
-  
+
   if (options?.status) {
     return goals.filter((g: Goal) => g.status === options.status);
   }
@@ -114,10 +85,10 @@ export async function updateGoalProgress(
 ): Promise<void> {
   const goal = await getGoalById(db, userId, id);
   if (!goal) throw new Error('Goal not found');
-  
+
   const newAmount = Math.max(0, goal.currentAmount + amountToAdd);
   const newStatus = newAmount >= goal.targetAmount ? 'completed' : goal.status;
-  
+
   await updateGoal(db, userId, id, {
     currentAmount: newAmount,
     status: newStatus

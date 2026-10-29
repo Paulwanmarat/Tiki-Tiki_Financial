@@ -72,4 +72,20 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// DELETE /api/history (Clear all history for authenticated user)
+router.delete('/', async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const db = getDb();
+    await db.query('DELETE FROM ai_history WHERE user_id = $1', [userId]);
+
+    res.json({ message: 'All history cleared successfully' });
+  } catch (error) {
+    console.error('Error clearing AI history:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

@@ -1,14 +1,14 @@
-import express from 'express';
-import multer from 'multer';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import express from 'express';
+import multer from 'multer';
 
 dotenv.config();
 
 const router = express.Router();
 // Set limits for image upload
-const upload = multer({ 
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
@@ -27,9 +27,9 @@ router.post('/scan', upload.single('image'), async (req, res) => {
   try {
     // 1. Validate GEMINI_API_KEY
     if (!process.env.GEMINI_API_KEY) {
-      return res.status(503).json({ 
+      return res.status(503).json({
         error: 'Service Unavailable',
-        message: 'OCR service is not configured (GEMINI_API_KEY missing).' 
+        message: 'OCR service is not configured (GEMINI_API_KEY missing).'
       });
     }
 
@@ -39,9 +39,9 @@ router.post('/scan', upload.single('image'), async (req, res) => {
     }
 
     if (!SUPPORTED_MIME_TYPES.includes(req.file.mimetype)) {
-      return res.status(415).json({ 
+      return res.status(415).json({
         error: 'Unsupported Media Type',
-        message: `Image format ${req.file.mimetype} is not supported.` 
+        message: `Image format ${req.file.mimetype} is not supported.`
       });
     }
 
@@ -110,7 +110,7 @@ Return JSON only in the following format:
 
     // Validate items and generate IDs
     const validatedItems: MenuItem[] = [];
-    
+
     for (const item of parsedItems) {
       if (
         typeof item === 'object' &&

@@ -19,7 +19,7 @@ export default function VerifyEmailScreen() {
     await refreshUser();
     setLoading(false);
     if (user?.email_verified) {
-      router.replace('/(tabs)');
+      router.replace('/app' as any);
     }
   };
 
@@ -45,7 +45,7 @@ export default function VerifyEmailScreen() {
 
   if (user?.email_verified) {
     // If somehow verified but still on this screen
-    router.replace('/(tabs)');
+    router.replace('/app' as any);
     return null;
   }
 

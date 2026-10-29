@@ -46,22 +46,31 @@ function groupTransactionsByDate(transactions: Transaction[]): TransactionGroup[
 }
 
 export default function TransactionsScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
   const { transactions, loading } = useTransactions();
   const [filterType, setFilterType] = useState<TransactionType | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Calculate high-level ledger stats
+  const stats = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const t of transactions) {
+      if (t.type === 'income') income += t.amount;
+      else expense += t.amount;
+    }
+    return { income, expense, net: income - expense };
+  }, [transactions]);
+
   const filtered = useMemo(() => {
     let result = transactions;
     if (filterType !== 'all') {
-      result = result.filter(t => t.type === filterType);
+      result = result.filter((t) => t.type === filterType);
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(
-        t => t.description.toLowerCase().includes(q)
-      );
+      result = result.filter((t) => t.description.toLowerCase().includes(q));
     }
     return result;
   }, [transactions, filterType, searchQuery]);
@@ -71,30 +80,58 @@ export default function TransactionsScreen() {
   if (loading && transactions.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <LoadingState message="Loading transactions..." />
+        <LoadingState message="Loading studio ledger..." />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* Header */}
+      {/* Studio Header */}
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Transactions</Text>
+        <View>
+          <View style={styles.eyebrowRow}>
+            <View style={[styles.statusDot, { backgroundColor: colors.primary }]} />
+            <Text style={[styles.eyebrow, { color: colors.primary }]}>STUDIO LEDGER</Text>
+          </View>
+          <Text style={[styles.title, { color: colors.text }]}>Transactions</Text>
+        </View>
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: colors.primary }]}
           onPress={() => router.push('/transaction/add')}
+          accessibilityRole="button"
+          accessibilityLabel="Add Transaction"
         >
           <Ionicons name="add" size={24} color="#FFF" />
         </TouchableOpacity>
       </View>
 
-      {/* Search */}
+      {/* Mini Ledger Stats Strip */}
+      <View style={[styles.statsStrip, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.statCell}>
+          <Text style={[styles.statLabel, { color: colors.textTertiary }]}>INFLOW</Text>
+          <Text style={[styles.statVal, { color: colors.income }]}>+{formatCurrency(stats.income)}</Text>
+        </View>
+        <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+        <View style={styles.statCell}>
+          <Text style={[styles.statLabel, { color: colors.textTertiary }]}>OUTFLOW</Text>
+          <Text style={[styles.statVal, { color: colors.expense }]}>-{formatCurrency(stats.expense)}</Text>
+        </View>
+        <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+        <View style={styles.statCell}>
+          <Text style={[styles.statLabel, { color: colors.textTertiary }]}>NET BALANCE</Text>
+          <Text style={[styles.statVal, { color: stats.net >= 0 ? colors.income : colors.danger }]}>
+            {formatCurrency(stats.net)}
+          </Text>
+        </View>
+      </View>
+
+      {/* Search Bar */}
       <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Ionicons name="search" size={18} color={colors.textTertiary} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Search transactions..."
+          placeholder="Search items, notes, places..."
           placeholderTextColor={colors.textTertiary}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -108,43 +145,49 @@ export default function TransactionsScreen() {
 
       {/* Filter Tabs */}
       <View style={styles.filterRow}>
-        {(['all', 'income', 'expense'] as const).map(type => (
-          <TouchableOpacity
-            key={type}
-            style={[
-              styles.filterTab,
-              {
-                backgroundColor: filterType === type ? colors.primary : colors.surface,
-                borderColor: filterType === type ? colors.primary : colors.border,
-              },
-            ]}
-            onPress={() => setFilterType(type)}
-          >
-            <Text
+        {(['all', 'income', 'expense'] as const).map((type) => {
+          const isSelected = filterType === type;
+          return (
+            <TouchableOpacity
+              key={type}
               style={[
-                styles.filterText,
-                { color: filterType === type ? '#FFF' : colors.textSecondary },
+                styles.filterTab,
+                {
+                  backgroundColor: isSelected ? colors.primary : colors.surface,
+                  borderColor: isSelected ? colors.primary : colors.border,
+                },
               ]}
+              onPress={() => setFilterType(type)}
             >
-              {type === 'all' ? 'All' : type === 'income' ? 'Income' : 'Expenses'}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.filterText,
+                  { color: isSelected ? '#FFF' : colors.textSecondary },
+                ]}
+              >
+                {type === 'all' ? 'All Entries' : type === 'income' ? 'Income (+)' : 'Expenses (-)'}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Transaction List */}
       {groups.length > 0 ? (
         <FlatList
           data={groups}
-          keyExtractor={item => item.date}
+          keyExtractor={(item) => item.date}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
           renderItem={({ item: group }) => (
             <View style={styles.group}>
               <View style={styles.groupHeader}>
-                <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>
-                  {group.label}
-                </Text>
+                <View style={styles.dateTag}>
+                  <Ionicons name="calendar-outline" size={13} color={colors.textTertiary} />
+                  <Text style={[styles.groupLabel, { color: colors.textSecondary }]}>
+                    {group.label}
+                  </Text>
+                </View>
                 <Text
                   style={[
                     styles.groupTotal,
@@ -155,7 +198,7 @@ export default function TransactionsScreen() {
                 </Text>
               </View>
               <View style={[styles.groupCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                {group.transactions.map(txn => (
+                {group.transactions.map((txn) => (
                   <TransactionItem
                     key={txn.id}
                     transaction={txn}
@@ -169,11 +212,11 @@ export default function TransactionsScreen() {
       ) : (
         <EmptyState
           icon="receipt-outline"
-          title={searchQuery ? 'No matches found' : 'No transactions yet'}
+          title={searchQuery ? 'No matching entries' : 'No transactions recorded'}
           message={
             searchQuery
-              ? 'Try a different search term.'
-              : 'Tap the + button to add your first transaction.'
+              ? 'Try adjusting your search keywords or filter tab.'
+              : 'Tap the + button to log your first income or expense.'
           }
         />
       )}
@@ -188,19 +231,69 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  eyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  eyebrow: {
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 1.5,
   },
   title: {
     fontSize: FontSize.xxl,
     fontWeight: FontWeight.bold,
   },
   addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.full,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#F96A98',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  statsStrip: {
+    flexDirection: 'row',
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+  },
+  statCell: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: '80%',
+    alignSelf: 'center',
+  },
+  statLabel: {
+    fontSize: 9,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  statVal: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
   },
   searchBar: {
     flexDirection: 'row',
@@ -210,12 +303,12 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
     gap: Spacing.sm,
   },
   searchInput: {
     flex: 1,
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     paddingVertical: Spacing.xs,
   },
   filterRow: {
@@ -225,14 +318,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   filterTab: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
+    paddingVertical: 6,
+    paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
   },
   filterText: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
   },
   listContent: {
     paddingHorizontal: Spacing.lg,
@@ -244,19 +337,28 @@ const styles = StyleSheet.create({
   groupHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+    paddingHorizontal: 2,
+  },
+  dateTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   groupLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   groupTotal: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
   },
   groupCard: {
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.md,
     borderWidth: 1,
   },
 });

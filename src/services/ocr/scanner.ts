@@ -1,5 +1,6 @@
+import { getTokenSafe } from '@/utils/storage';
+import { Platform } from 'react-native';
 import { LOCAL_API_URL } from '../ai/client';
-import * as SecureStore from 'expo-secure-store';
 
 export interface MenuItem {
   id: string;
@@ -22,19 +23,25 @@ export class OCRError extends Error {
 export async function scanMenuImage(imageUri: string): Promise<MenuItem[]> {
   try {
     const formData = new FormData();
-    
+
     // We append the file to the form data
     const filename = imageUri.split('/').pop() || 'menu.jpg';
     const match = /\.(\w+)$/.exec(filename);
     const type = match ? `image/${match[1]}` : `image`;
 
-    formData.append('image', {
-      uri: imageUri,
-      name: filename,
-      type,
-    } as any);
+    if (Platform.OS === 'web') {
+      const res = await fetch(imageUri);
+      const blob = await res.blob();
+      formData.append('image', blob, filename);
+    } else {
+      formData.append('image', {
+        uri: Platform.OS === 'ios' && !imageUri.startsWith('file://') ? `file://${imageUri}` : imageUri,
+        name: filename,
+        type,
+      } as any);
+    }
 
-    const token = await SecureStore.getItemAsync('userToken');
+    const token = await getTokenSafe('userToken');
 
     const response = await fetch(`${LOCAL_API_URL}/api/ocr/scan`, {
       method: 'POST',

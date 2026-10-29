@@ -7,6 +7,15 @@ function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
 }
 
+function formatTransaction(row: any) {
+  if (!row) return row;
+  return {
+    ...row,
+    userId: row.user_id,
+    amount: typeof row.amount === 'string' ? parseFloat(row.amount) : row.amount,
+  };
+}
+
 // GET /api/transactions
 router.get('/', async (req, res) => {
   try {
@@ -14,16 +23,16 @@ router.get('/', async (req, res) => {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const db = getDb();
-    
+
     // Parse query options
     const type = req.query.type as string;
     const categoryId = req.query.categoryId as string;
     const startDate = req.query.startDate as string;
     const endDate = req.query.endDate as string;
-    
+
     let queryStr = 'SELECT * FROM transactions WHERE user_id = $1';
     const params: any[] = [userId];
-    
+
     if (type) {
       params.push(type);
       queryStr += ` AND type = $${params.length}`;
@@ -44,9 +53,33 @@ router.get('/', async (req, res) => {
     queryStr += ` ORDER BY date DESC`;
 
     const result = await db.query(queryStr, params);
-    res.json(result.rows);
+    res.json(result.rows.map(formatTransaction));
   } catch (error) {
     console.error('Error fetching transactions:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/transactions/:id
+router.get('/:id', async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const db = getDb();
+    const result = await db.query(
+      'SELECT * FROM transactions WHERE id = $1 AND user_id = $2',
+      [id, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Transaction not found or not owned by user' });
+    }
+
+    res.json(formatTransaction(result.rows[0]));
+  } catch (error) {
+    console.error('Error fetching transaction by id:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -73,7 +106,7 @@ router.post('/', async (req, res) => {
     );
 
     const result = await db.query('SELECT * FROM transactions WHERE id = $1 AND user_id = $2', [id, userId]);
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(formatTransaction(result.rows[0]));
   } catch (error) {
     console.error('Error creating transaction:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -104,17 +137,17 @@ router.put('/:id', async (req, res) => {
 
     fields.push(`"updatedAt" = $${paramIndex++}`);
     values.push(new Date().toISOString());
-    
+
     values.push(id, userId);
-    
+
     const query = `UPDATE transactions SET ${fields.join(', ')} WHERE id = $${paramIndex++} AND user_id = $${paramIndex}`;
-    
+
     const result = await db.query(query, values);
-    
+
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Transaction not found or not owned by user' });
     }
-    
+
     res.json({ message: 'Updated successfully' });
   } catch (error) {
     console.error('Error updating transaction:', error);

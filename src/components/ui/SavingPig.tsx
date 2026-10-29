@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Image } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { GoalProgress } from '@/types/goal';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
 import { formatCurrency } from '@/utils/formatters';
+import { PIGGY_LOGO } from '@/constants/assets';
 
 interface SavingPigProps {
   progress: GoalProgress;
@@ -16,25 +17,28 @@ export function SavingPig({ progress }: SavingPigProps) {
   const pct = Math.min(100, Math.max(0, progress.percentage));
   
   let scaleTarget = 1;
-  let text = "Just starting!";
-  let emoji = "🐷";
+  let text = "Just starting your savings!";
+  let badgeLabel = "SEED STAGE";
   
   if (pct === 100) {
-    scaleTarget = 1.5;
-    text = "Goal reached!";
-    emoji = "🎉🐷🎉";
+    scaleTarget = 1.25;
+    text = "Goal fully unlocked. Milestone secured.";
+    badgeLabel = "GOAL ACHIEVED";
   } else if (pct >= 75) {
-    scaleTarget = 1.35;
-    text = "Almost there!";
+    scaleTarget = 1.18;
+    text = "Final sprint! Almost there!";
+    badgeLabel = "FINAL SPRINT";
   } else if (pct >= 50) {
-    scaleTarget = 1.2;
-    text = "Halfway there!";
+    scaleTarget = 1.12;
+    text = "Halfway to your target!";
+    badgeLabel = "HALFWAY";
   } else if (pct >= 25) {
-    scaleTarget = 1.1;
-    text = "Making progress!";
+    scaleTarget = 1.06;
+    text = "Making steady progress!";
+    badgeLabel = "BUILDING UP";
   }
   
-  const scaleAnim = useRef(new Animated.Value(0.5)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
   
   useEffect(() => {
     Animated.spring(scaleAnim, {
@@ -47,11 +51,26 @@ export function SavingPig({ progress }: SavingPigProps) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Text style={[styles.goalName, { color: colors.text }]}>{progress.goal.name}</Text>
+      <View style={styles.topRow}>
+        <View style={[styles.badge, { backgroundColor: colors.primary + '18' }]}>
+          <Text style={[styles.badgeText, { color: colors.primary }]}>{badgeLabel}</Text>
+        </View>
+        <Text style={[styles.progressPct, { color: colors.primary }]}>{pct.toFixed(0)}%</Text>
+      </View>
+
+      <Text style={[styles.goalName, { color: colors.text }]} numberOfLines={1}>
+        {progress.goal.name}
+      </Text>
       
       <View style={styles.pigArea}>
         <Animated.View style={[styles.pigContainer, { transform: [{ scale: scaleAnim }] }]}>
-          <Text style={styles.pigEmoji}>{emoji}</Text>
+          <View style={[styles.mascotRing, { borderColor: colors.primary }]}>
+            <Image
+              source={PIGGY_LOGO}
+              style={styles.mascotImage}
+              alt="Piggy Mascot"
+            />
+          </View>
         </Animated.View>
       </View>
       
@@ -59,7 +78,7 @@ export function SavingPig({ progress }: SavingPigProps) {
       
       <View style={styles.statsRow}>
         <View style={styles.stat}>
-          <Text style={[styles.statLabel, { color: colors.textTertiary }]}>Saved</Text>
+          <Text style={[styles.statLabel, { color: colors.textTertiary }]}>Saved in Vault</Text>
           <Text style={[styles.statValue, { color: colors.text }]}>{formatCurrency(progress.goal.currentAmount)}</Text>
         </View>
         <View style={styles.statRight}>
@@ -71,10 +90,6 @@ export function SavingPig({ progress }: SavingPigProps) {
       <View style={[styles.progressBar, { backgroundColor: colors.surfaceHighlight }]}>
         <View style={[styles.progressFill, { backgroundColor: colors.primary, width: `${pct}%` }]} />
       </View>
-      
-      <Text style={[styles.progressText, { color: colors.textSecondary }]}>
-        {pct.toFixed(0)}% Complete
-      </Text>
     </View>
   );
 }
@@ -85,37 +100,73 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     borderWidth: 1,
     ...Shadow.sm,
-    alignItems: 'center',
     marginBottom: Spacing.lg,
+  },
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: Spacing.xs,
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.xs,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.8,
+  },
+  progressPct: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.extrabold,
   },
   goalName: {
     fontSize: FontSize.lg,
-    fontWeight: FontWeight.bold,
-    marginBottom: Spacing.lg,
-  },
-  pigArea: {
-    height: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
+    fontWeight: FontWeight.extrabold,
     marginBottom: Spacing.md,
   },
-  pigContainer: {
+  pigArea: {
+    height: 90,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: Spacing.sm,
   },
-  pigEmoji: {
-    fontSize: 56,
+  pigContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mascotRing: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    overflow: 'hidden',
+    borderWidth: 2.5,
+    backgroundColor: '#000',
+    shadowColor: '#F96A98',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  mascotImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   statusText: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.bold,
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
     marginBottom: Spacing.lg,
+    textAlign: 'center',
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   stat: {
     alignItems: 'flex-start',
@@ -125,24 +176,21 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: FontSize.xs,
-    marginBottom: 4,
+    marginBottom: 2,
+    fontWeight: FontWeight.medium,
   },
   statValue: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
   },
   progressBar: {
-    height: 8,
-    borderRadius: 4,
     width: '100%',
+    height: 8,
+    borderRadius: BorderRadius.full,
     overflow: 'hidden',
-    marginBottom: Spacing.sm,
   },
   progressFill: {
-    height: 8,
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: FontSize.xs,
+    height: '100%',
+    borderRadius: BorderRadius.full,
   },
 });

@@ -6,6 +6,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
+  Image,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,9 +24,10 @@ import { DailyLimitCard } from '@/components/ui/DailyLimitCard';
 import { TransactionItem } from '@/components/transactions/TransactionItem';
 import { formatCurrency, formatPercentage, getUserDisplayName } from '@/utils/formatters';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
+import { PIGGY_LOGO } from '@/constants/assets';
 
 export default function DashboardScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { user } = useAuth();
   const router = useRouter();
   const { transactions, loading: txnLoading, refresh: refreshTxns } = useTransactions();
@@ -43,7 +46,7 @@ export default function DashboardScreen() {
   if (loading && transactions.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <LoadingState message="Loading your finances..." />
+        <LoadingState message="Loading your financial studio..." />
       </SafeAreaView>
     );
   }
@@ -60,105 +63,160 @@ export default function DashboardScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        {/* Header */}
+        {/* Studio Header */}
         <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.greeting, { color: colors.textSecondary }]}>{greeting} 👋</Text>
+          <TouchableOpacity
+            style={[styles.profileBtn, { borderColor: colors.primary }]}
+            onPress={() => router.push('/profile' as any)}
+            activeOpacity={0.8}
+          >
+            {user?.avatar_url ? (
+              <Image source={{ uri: user.avatar_url }} style={styles.avatarImg} />
+            ) : (
+              <View style={[styles.avatarFallback, { backgroundColor: colors.primary + '20' }]}>
+                <Text style={[styles.avatarInitial, { color: colors.primary }]}>
+                  {(user?.username || user?.email || 'U').charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          <View style={{ flex: 1, marginLeft: Spacing.sm }}>
+            <View style={styles.badgeRow}>
+              <Text style={[styles.greeting, { color: colors.textSecondary }]}>{greeting}</Text>
+              <View style={[styles.studioTag, { backgroundColor: colors.primary + '18' }]}>
+                <Text style={[styles.studioTagText, { color: colors.primary }]}>STUDIO</Text>
+              </View>
+            </View>
             <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
               {getUserDisplayName(user)}
             </Text>
           </View>
+
+          {Platform.OS === 'web' && (
+            <TouchableOpacity
+              style={[styles.webBackBtn, { borderColor: colors.border, backgroundColor: colors.surface }]}
+              onPress={() => router.push('/' as any)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="globe-outline" size={14} color={colors.primary} />
+              <Text style={[styles.webBackBtnText, { color: colors.textSecondary }]}>Website</Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
-            style={[styles.settingsButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            style={[styles.settingsButton, { backgroundColor: colors.surface, borderColor: colors.border, marginLeft: Spacing.xs }]}
             onPress={() => router.push('/settings')}
+            activeOpacity={0.7}
           >
             <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* Balance Card */}
-        <View style={[styles.balanceCard, { backgroundColor: colors.primary }]}>
+        {/* Studio Balance Card */}
+        <View style={[styles.balanceCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
           <View style={styles.balanceTop}>
-            <Text style={styles.balanceLabel}>Total Balance</Text>
-            <View style={[styles.balanceBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <Text style={styles.balanceBadgeText}>SPR</Text>
+            <View style={styles.brandEmblemRow}>
+              <View style={[styles.logoCircle, { borderColor: colors.primary }]}>
+                <Image
+                  source={PIGGY_LOGO}
+                  style={styles.logoImg}
+                  alt="SPR Logo"
+                />
+              </View>
+              <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>TOTAL NET LIQUIDITY</Text>
+            </View>
+            <View style={[styles.balanceBadge, { backgroundColor: colors.primary + '18' }]}>
+              <Text style={[styles.balanceBadgeText, { color: colors.primary }]}>SPR ACTIVE</Text>
             </View>
           </View>
-          <Text style={styles.balanceAmount}>
+
+          <Text style={[styles.balanceAmount, { color: colors.text }]}>
             {hasData ? formatCurrency(summary.balance) : formatCurrency(0)}
           </Text>
-          <View style={styles.balanceRow}>
+
+          {/* Income & Expense Split */}
+          <View style={[styles.balanceRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.balanceStat}>
-              <View style={[styles.balanceStatIcon, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-                <Ionicons name="trending-up" size={16} color="#fff" />
+              <View style={[styles.balanceStatIcon, { backgroundColor: colors.income + '18' }]}>
+                <Ionicons name="trending-up" size={16} color={colors.income} />
               </View>
               <View>
-                <Text style={styles.balanceStatLabel}>Income</Text>
-                <Text style={styles.balanceStatValue}>{formatCurrency(summary.totalIncome)}</Text>
+                <Text style={[styles.balanceStatLabel, { color: colors.textTertiary }]}>Income Inflow</Text>
+                <Text style={[styles.balanceStatValue, { color: colors.income }]}>{formatCurrency(summary.totalIncome)}</Text>
               </View>
             </View>
-            <View style={[styles.balanceDivider, { backgroundColor: 'rgba(255,255,255,0.15)' }]} />
+
+            <View style={[styles.balanceDivider, { backgroundColor: colors.border }]} />
+
             <View style={styles.balanceStat}>
-              <View style={[styles.balanceStatIcon, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-                <Ionicons name="trending-down" size={16} color="#fff" />
+              <View style={[styles.balanceStatIcon, { backgroundColor: colors.expense + '18' }]}>
+                <Ionicons name="trending-down" size={16} color={colors.expense} />
               </View>
               <View>
-                <Text style={styles.balanceStatLabel}>Expenses</Text>
-                <Text style={styles.balanceStatValue}>{formatCurrency(summary.totalExpenses)}</Text>
+                <Text style={[styles.balanceStatLabel, { color: colors.textTertiary }]}>Spent Outflow</Text>
+                <Text style={[styles.balanceStatValue, { color: colors.expense }]}>{formatCurrency(summary.totalExpenses)}</Text>
               </View>
             </View>
           </View>
         </View>
 
-        {/* Gamified Saving Pig */}
-        {activeGoals.length > 0 && (
-          <SavingPig progress={activeGoals[0]} />
-        )}
-        
-        {/* Daily Spending Limit */}
-        <DailyLimitCard limit={dailyLimit} />
-
-        {/* Quick Actions */}
+        {/* Quick Studio Action Buttons */}
         <View style={styles.quickActions}>
           <TouchableOpacity
             style={[styles.quickAction, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => router.push({ pathname: '/transaction/add', params: { type: 'income' } })}
+            activeOpacity={0.7}
           >
-            <View style={[styles.quickActionIcon, { backgroundColor: colors.income + '15' }]}>
-              <Ionicons name="add-circle" size={22} color={colors.income} />
+            <View style={[styles.quickActionIcon, { backgroundColor: colors.income + '18' }]}>
+              <Ionicons name="add" size={20} color={colors.income} />
             </View>
             <Text style={[styles.quickActionText, { color: colors.text }]}>Income</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.quickAction, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => router.push({ pathname: '/transaction/add', params: { type: 'expense' } })}
+            activeOpacity={0.7}
           >
-            <View style={[styles.quickActionIcon, { backgroundColor: colors.expense + '15' }]}>
-              <Ionicons name="remove-circle" size={22} color={colors.expense} />
+            <View style={[styles.quickActionIcon, { backgroundColor: colors.expense + '18' }]}>
+              <Ionicons name="remove" size={20} color={colors.expense} />
             </View>
             <Text style={[styles.quickActionText, { color: colors.text }]}>Expense</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.quickAction, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => router.push('/simulator')}
+            activeOpacity={0.7}
           >
-            <View style={[styles.quickActionIcon, { backgroundColor: colors.secondary + '15' }]}>
-              <Ionicons name="calculator" size={22} color={colors.secondary} />
+            <View style={[styles.quickActionIcon, { backgroundColor: colors.secondary + '18' }]}>
+              <Ionicons name="calculator-outline" size={18} color={colors.secondary} />
             </View>
             <Text style={[styles.quickActionText, { color: colors.text }]}>Simulate</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.quickAction, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => router.push('/scanner')}
+            activeOpacity={0.7}
           >
-            <View style={[styles.quickActionIcon, { backgroundColor: colors.accent + '15' }]}>
-              <Ionicons name="scan" size={22} color={colors.accent} />
+            <View style={[styles.quickActionIcon, { backgroundColor: '#3B82F6' + '18' }]}>
+              <Ionicons name="camera-outline" size={18} color="#3B82F6" />
             </View>
-            <Text style={[styles.quickActionText, { color: colors.text }]}>Scan</Text>
+            <Text style={[styles.quickActionText, { color: colors.text }]}>Scan Menu</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Spending Overview */}
+        {/* Gamified Saving Pig Mascot Widget */}
+        {activeGoals.length > 0 && (
+          <SavingPig progress={activeGoals[0]} />
+        )}
+        
+        {/* Daily Spending Limit Guardrail */}
+        <DailyLimitCard limit={dailyLimit} />
+
+        {/* Weekly & Monthly Spending Overview */}
         <View style={styles.overviewRow}>
           <Card style={styles.overviewCard}>
             <Text style={[styles.overviewLabel, { color: colors.textTertiary }]}>This Week</Text>
@@ -169,17 +227,17 @@ export default function DashboardScreen() {
             <Text style={[styles.overviewValue, { color: colors.text }]}>{formatCurrency(summary.monthlySpending)}</Text>
           </Card>
           <Card style={styles.overviewCard}>
-            <Text style={[styles.overviewLabel, { color: colors.textTertiary }]}>Savings</Text>
+            <Text style={[styles.overviewLabel, { color: colors.textTertiary }]}>Savings Rate</Text>
             <Text style={[styles.overviewValue, { color: colors.income }]}>
               {hasData ? formatPercentage(summary.savingsRate, 0) : '0%'}
             </Text>
           </Card>
         </View>
 
-        {/* Category Spending */}
+        {/* Category Spending Breakdown */}
         {summary.categorySpending.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Top Spending</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Top Spending Categories</Text>
             <Card>
               {summary.categorySpending.slice(0, 4).map((cat) => (
                 <View key={cat.categoryId} style={styles.categoryRow}>
@@ -208,17 +266,17 @@ export default function DashboardScreen() {
         {activeGoals.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Goals</Text>
-              <TouchableOpacity onPress={() => router.push('/(tabs)/goals')}>
-                <Text style={[styles.seeAll, { color: colors.primary }]}>See All</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Active Goals</Text>
+              <TouchableOpacity onPress={() => router.push('/app/goals' as any)}>
+                <Text style={[styles.seeAll, { color: colors.primary }]}>View All →</Text>
               </TouchableOpacity>
             </View>
             {activeGoals.slice(0, 2).map(gp => (
-              <TouchableOpacity key={gp.goal.id} onPress={() => router.push(`/goal/${gp.goal.id}`)}>
+              <TouchableOpacity key={gp.goal.id} onPress={() => router.push(`/goal/${gp.goal.id}`)} activeOpacity={0.8}>
                 <Card style={styles.goalCard}>
                   <View style={styles.goalHeader}>
-                    <View style={[styles.goalIcon, { backgroundColor: colors.primary + '15' }]}>
-                      <Ionicons name="flag" size={18} color={colors.primary} />
+                    <View style={[styles.goalIcon, { backgroundColor: colors.primary + '18' }]}>
+                      <Ionicons name="flag" size={16} color={colors.primary} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.goalName, { color: colors.text }]}>{gp.goal.name}</Text>
@@ -247,7 +305,7 @@ export default function DashboardScreen() {
         {/* Spending Alerts */}
         {analysis.unusualSpending.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Spending Alerts</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Pecuniary Alerts</Text>
             {analysis.unusualSpending.slice(0, 3).map((unusual, index) => (
               <Card key={index} style={[styles.alertCard, { borderLeftColor: unusual.direction === 'increase' ? colors.danger : colors.success, borderLeftWidth: 3 }]}>
                 <View style={styles.alertContent}>
@@ -274,10 +332,10 @@ export default function DashboardScreen() {
         {/* Recent Transactions */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Transactions</Text>
             {recentTransactions.length > 0 && (
-              <TouchableOpacity onPress={() => router.push('/(tabs)/transactions')}>
-                <Text style={[styles.seeAll, { color: colors.primary }]}>See All</Text>
+              <TouchableOpacity onPress={() => router.push('/app/transactions' as any)}>
+                <Text style={[styles.seeAll, { color: colors.primary }]}>View Ledger →</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -295,7 +353,7 @@ export default function DashboardScreen() {
             <EmptyState
               icon="receipt-outline"
               title="No transactions yet"
-              message="Add your first income or expense to start tracking."
+              message="Add your first income or expense to start tracking your student finances."
             />
           )}
         </View>
@@ -323,21 +381,73 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.md,
   },
-  greeting: { fontSize: FontSize.sm, fontWeight: FontWeight.medium },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: FontWeight.bold, marginTop: 2 },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  greeting: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold },
+  studioTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  studioTagText: {
+    fontSize: 9,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 1,
+  },
+  headerTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, marginTop: 2 },
   settingsButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: BorderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
   },
+  profileBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+  },
+  avatarImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: BorderRadius.full,
+  },
+  avatarFallback: {
+    width: '100%',
+    height: '100%',
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+  },
+  webBackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+  },
+  webBackBtnText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+  },
   balanceCard: {
     borderRadius: BorderRadius.xl,
-    padding: Spacing.xxl,
+    padding: Spacing.xl,
     marginBottom: Spacing.lg,
-    ...Shadow.lg,
+    borderWidth: 1,
+    ...Shadow.md,
   },
   balanceTop: {
     flexDirection: 'row',
@@ -345,32 +455,51 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.xs,
   },
+  brandEmblemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  logoCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+  },
+  logoImg: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
   balanceLabel: {
-    fontSize: FontSize.sm,
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: FontWeight.medium,
-  },
-  balanceBadge: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.full,
-  },
-  balanceBadgeText: {
-    fontSize: FontSize.xs,
-    color: '#fff',
+    fontSize: 10,
     fontWeight: FontWeight.bold,
     letterSpacing: 1,
   },
+  balanceBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.xs,
+  },
+  balanceBadgeText: {
+    fontSize: 10,
+    fontWeight: FontWeight.extrabold,
+    letterSpacing: 0.8,
+  },
   balanceAmount: {
-    fontSize: 36,
-    color: '#FFFFFF',
+    fontSize: 34,
     fontWeight: FontWeight.extrabold,
     marginVertical: Spacing.sm,
+    letterSpacing: -0.5,
   },
   balanceRow: {
     flexDirection: 'row',
     marginTop: Spacing.md,
     alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
   },
   balanceStat: {
     flex: 1,
@@ -381,26 +510,25 @@ const styles = StyleSheet.create({
   balanceStatIcon: {
     width: 32,
     height: 32,
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   balanceStatLabel: {
     fontSize: FontSize.xs,
-    color: 'rgba(255,255,255,0.6)',
   },
   balanceStatValue: {
     fontSize: FontSize.sm,
-    color: '#FFFFFF',
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.bold,
   },
   balanceDivider: {
     width: 1,
-    height: 32,
-    marginHorizontal: Spacing.md,
+    height: 28,
+    marginHorizontal: Spacing.xs,
   },
   quickActions: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     gap: Spacing.sm,
     marginBottom: Spacing.lg,
   },
@@ -410,18 +538,18 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    gap: Spacing.xs,
   },
   quickActionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.full,
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 4,
   },
   quickActionText: {
     fontSize: FontSize.xs,
-    fontWeight: FontWeight.medium,
+    fontWeight: FontWeight.bold,
   },
   overviewRow: {
     flexDirection: 'row',
@@ -430,18 +558,21 @@ const styles = StyleSheet.create({
   },
   overviewCard: {
     flex: 1,
-    alignItems: 'center',
     padding: Spacing.md,
+    alignItems: 'center',
   },
   overviewLabel: {
     fontSize: FontSize.xs,
     marginBottom: Spacing.xs,
+    fontWeight: FontWeight.medium,
   },
   overviewValue: {
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
   },
-  section: { marginBottom: Spacing.lg },
+  section: {
+    marginBottom: Spacing.lg,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -449,14 +580,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.semibold,
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
     marginBottom: Spacing.sm,
   },
   seeAll: {
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
-    marginBottom: Spacing.sm,
+    fontWeight: FontWeight.semibold,
   },
   categoryRow: {
     flexDirection: 'row',
@@ -464,87 +594,85 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   categoryDot: {
-    width: 10,
-    height: 10,
+    width: 8,
+    height: 8,
     borderRadius: BorderRadius.full,
     marginRight: Spacing.sm,
   },
   categoryName: {
+    width: 80,
     fontSize: FontSize.sm,
     fontWeight: FontWeight.medium,
-    width: 80,
   },
   categoryBarContainer: {
     flex: 1,
     height: 6,
-    borderRadius: 3,
     marginHorizontal: Spacing.sm,
-    overflow: 'hidden',
-    position: 'relative',
+    justifyContent: 'center',
   },
   categoryBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
     height: 6,
-    borderRadius: 3,
+    borderRadius: BorderRadius.full,
+    position: 'absolute',
   },
   categoryBarFill: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
     height: 6,
-    borderRadius: 3,
+    borderRadius: BorderRadius.full,
+    position: 'absolute',
   },
   categoryAmount: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     fontWeight: FontWeight.medium,
-    width: 90,
+    width: 70,
     textAlign: 'right',
   },
-  goalCard: { marginBottom: Spacing.sm },
+  goalCard: {
+    marginBottom: Spacing.sm,
+  },
   goalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
-    gap: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   goalIcon: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: Spacing.sm,
   },
   goalName: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     fontWeight: FontWeight.semibold,
-  },
-  goalPercentage: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.bold,
-  },
-  goalProgressBg: {
-    height: 6,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  goalProgressFill: {
-    height: 6,
-    borderRadius: 3,
   },
   goalSubtext: {
     fontSize: FontSize.xs,
     marginTop: 2,
   },
-  alertCard: { marginBottom: Spacing.sm },
+  goalPercentage: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+  },
+  goalProgressBg: {
+    height: 6,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+  },
+  goalProgressFill: {
+    height: '100%',
+    borderRadius: BorderRadius.full,
+  },
+  alertCard: {
+    marginBottom: Spacing.sm,
+  },
   alertContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.sm,
   },
   alertText: {
     flex: 1,
-    marginLeft: Spacing.md,
   },
   alertTitle: {
     fontSize: FontSize.sm,

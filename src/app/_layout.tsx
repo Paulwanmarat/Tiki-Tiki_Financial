@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ThemeProvider, useTheme } from '@/context/ThemeContext';
-import { AuthProvider, useAuth } from '@/context/AuthContext';
-import { View, ActivityIndicator } from 'react-native';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, Platform, View } from 'react-native';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -13,8 +13,15 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = (segments[0] as string) === '(auth)';
-    const isVerifyEmail = (segments[0] as string) === 'verify-email';
+    const topSegment = segments[0] as string | undefined;
+    const isRoot = !topSegment || topSegment === 'index';
+    const inAuthGroup = topSegment === '(auth)';
+    const isVerifyEmail = topSegment === 'verify-email';
+
+    // On Web, '/' is the public marketing landing page, which is always accessible
+    if (Platform.OS === 'web' && isRoot) {
+      return;
+    }
 
     if (!user) {
       if (!inAuthGroup) {
@@ -25,8 +32,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         // Redirect unverified users to verify-email
         router.replace('/verify-email' as any);
       } else if (user.email_verified && (inAuthGroup || isVerifyEmail)) {
-        // Redirect verified users away from auth and verify-email
-        router.replace('/(tabs)' as any);
+        // Redirect verified users away from auth and verify-email to /app
+        router.replace('/app' as any);
       }
     }
   }, [user, isLoading, segments]);
@@ -55,9 +62,10 @@ function AppContent() {
           animation: 'slide_from_right',
         }}
       >
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="verify-email" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="app" options={{ headerShown: false }} />
         <Stack.Screen
           name="transaction/add"
           options={{
@@ -105,6 +113,12 @@ function AppContent() {
         />
         <Stack.Screen
           name="settings"
+          options={{
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="profile"
           options={{
             presentation: 'card',
           }}

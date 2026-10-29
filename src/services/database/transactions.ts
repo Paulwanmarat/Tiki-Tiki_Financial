@@ -1,34 +1,5 @@
 import { Transaction, TransactionType } from '@/types/transaction';
-import * as SecureStore from 'expo-secure-store';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.41:3000';
-
-async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-  const token = await SecureStore.getItemAsync('userToken');
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
-  };
-
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    let errorMsg = 'An error occurred';
-    try {
-      const errorData = await response.json();
-      errorMsg = errorData.error || errorMsg;
-    } catch (e) {
-      // Ignore parsing errors
-    }
-    throw new Error(errorMsg);
-  }
-
-  return response.json();
-}
+import { fetchWithAuth } from '@/services/ai/client';
 
 export async function insertTransaction(
   db: any, // db parameter retained for backwards compatibility with hooks, but unused
@@ -96,7 +67,7 @@ export async function getTransactions(
     if (options.categoryId) params.append('categoryId', options.categoryId);
     if (options.startDate) params.append('startDate', options.startDate);
     if (options.endDate) params.append('endDate', options.endDate);
-    
+
     const stringParams = params.toString();
     if (stringParams) queryStr = `?${stringParams}`;
   }
@@ -109,10 +80,22 @@ export async function getTransactionById(
   userId: string,
   id: string
 ): Promise<(Transaction & { userId: string }) | null> {
-  // Ideally, there would be a specific GET /:id route, 
-  // but for simplicity and backward compat, we can fetch all and filter or add route later.
-  // We'll just fetch all for this specific ID if needed, though getTransactionById isn't heavily used outside tests.
-  throw new Error("getTransactionById is not currently implemented in REST. Use getTransactions()");
+  if (!id) return null;
+  try {
+    const data = await fetchWithAuth(`/api/transactions/${id}`);
+    return data;
+  } catch (error: any) {
+    if (error?.status === 404 || error?.message?.includes('not found')) {
+      return null;
+    }
+    // Fallback: search within getTransactions()
+    try {
+      const all = await getTransactions(db, userId);
+      return all.find(t => t.id === id) || null;
+    } catch {
+      return null;
+    }
+  }
 }
 
 export async function getTransactionCount(db: any, userId: string): Promise<number> {

@@ -47,7 +47,19 @@ const resendRateLimiter = rateLimit({
   message: { error: 'Too many verification requests, please try again later.' }
 });
 
-router.post('/register', async (req, res) => {
+const registerRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20,
+  message: { error: 'Too many registration attempts. Please try again later.' }
+});
+
+const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 15,
+  message: { error: 'Too many login attempts. Please try again later.' }
+});
+
+router.post('/register', registerRateLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -107,7 +119,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginRateLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 

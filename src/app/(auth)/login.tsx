@@ -11,6 +11,7 @@ import {
   Platform,
   ScrollView,
   Animated,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
@@ -19,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LOCAL_API_URL } from '@/services/ai/client';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
+import { PIGGY_LOGO } from '@/constants/assets';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -27,15 +29,15 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+  const slideAnim = useRef(new Animated.Value(24)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
     ]).start();
   }, []);
 
@@ -60,9 +62,12 @@ export default function LoginScreen() {
       }
 
       await login(data.token, data.user);
-      router.replace('/(tabs)');
+      router.replace('/app' as any);
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Unable to connect to the server. Check your connection and try again.');
+      Alert.alert(
+        'Login Failed',
+        error.message || 'Unable to connect to the server. Check your connection and try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -79,15 +84,33 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View style={[styles.heroSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-            {/* Logo */}
-            <View style={[styles.logoContainer, { backgroundColor: colors.primary + '15' }]}>
-              <Ionicons name="wallet" size={36} color={colors.primary} />
+          {/* Header Return Link */}
+          <View style={styles.topBar}>
+            <TouchableOpacity
+              style={[styles.backPill, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}
+              onPress={() => router.push('/' as any)}
+            >
+              <Ionicons name="arrow-back" size={16} color={colors.text} />
+              <Text style={[styles.backPillText, { color: colors.text }]}>Back to Website</Text>
+            </TouchableOpacity>
+            <View style={[styles.badgePill, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}>
+              <Text style={[styles.badgePillText, { color: colors.primary }]}>STUDIO APP</Text>
             </View>
-            <Text style={[styles.brandName, { color: colors.primary }]}>SPR</Text>
-            <Text style={[styles.title, { color: colors.text }]}>Welcome back</Text>
+          </View>
+
+          <Animated.View style={[styles.heroSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            {/* Mascot Avatar */}
+            <View style={[styles.mascotRing, { borderColor: colors.primary + '35' }]}>
+              <Image
+                source={PIGGY_LOGO}
+                style={styles.mascotImage}
+                resizeMode="cover"
+              />
+            </View>
+            <Text style={[styles.brandPre, { color: colors.primary }]}>SPR MONEY STUDIO</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Sign in to continue managing your finances
+              Sign in to manage your daily student allowance & goals
             </Text>
           </Animated.View>
 
@@ -99,7 +122,7 @@ export default function LoginScreen() {
                 <Ionicons name="mail-outline" size={20} color={colors.textTertiary} />
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
-                  placeholder="you@example.com"
+                  placeholder="student@example.com"
                   placeholderTextColor={colors.textTertiary}
                   value={email}
                   onChangeText={setEmail}
@@ -123,38 +146,52 @@ export default function LoginScreen() {
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                 />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.textTertiary} />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={colors.textTertiary}
+                  />
                 </TouchableOpacity>
               </View>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={{ alignSelf: 'flex-end', marginTop: Spacing.sm }}
                 onPress={() => router.push('/(auth)/forgot-password' as any)}
               >
-                <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: FontWeight.medium }}>Forgot Password?</Text>
+                <Text style={{ color: colors.primary, fontSize: FontSize.sm, fontWeight: FontWeight.semibold }}>
+                  Forgot Password?
+                </Text>
               </TouchableOpacity>
             </View>
 
             {/* Login Button */}
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.primary, opacity: loading ? 0.7 : 1 }]}
+              style={[styles.button, { backgroundColor: colors.primary, opacity: loading ? 0.75 : 1 }]}
               onPress={handleLogin}
               disabled={loading}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.buttonText}>Sign In</Text>
+                <View style={styles.buttonInner}>
+                  <Text style={styles.buttonText}>Sign In to Studio</Text>
+                  <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                </View>
               )}
             </TouchableOpacity>
           </Animated.View>
 
-          {/* Footer */}
+          {/* Footer Register Link */}
           <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: colors.textSecondary }]}>Don't have an account?</Text>
+            <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+              New to SPR Money Studio?
+            </Text>
             <TouchableOpacity onPress={() => router.push('/(auth)/register' as any)}>
-              <Text style={[styles.footerLink, { color: colors.primary }]}> Create one</Text>
+              <Text style={[styles.footerLink, { color: colors.primary }]}> Create Account</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -168,56 +205,101 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: Spacing.xxl,
+    paddingBottom: Spacing.xxl,
     justifyContent: 'center',
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  backPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  backPillText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+  },
+  badgePill: {
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  badgePillText: {
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 1,
   },
   heroSection: {
     alignItems: 'center',
-    marginBottom: Spacing.xxxl,
+    marginBottom: Spacing.xxl,
   },
-  logoContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: BorderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.lg,
-  },
-  brandName: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
-    letterSpacing: 3,
+  mascotRing: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 2,
+    padding: 3,
     marginBottom: Spacing.md,
+    shadowColor: '#F96A98',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  mascotImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
+  },
+  brandPre: {
+    fontSize: 11,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 2.5,
+    marginBottom: 4,
   },
   title: {
     fontSize: 28,
     fontWeight: FontWeight.bold,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
+    paddingHorizontal: Spacing.md,
   },
   formSection: {
-    marginBottom: Spacing.xxl,
+    marginBottom: Spacing.xl,
   },
   inputGroup: {
     marginBottom: Spacing.lg,
   },
   inputLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
-    marginBottom: Spacing.sm,
-    marginLeft: Spacing.xs,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: Spacing.xs,
+    marginLeft: 2,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.lg,
-    height: 56,
+    height: 54,
     gap: Spacing.md,
   },
   input: {
@@ -226,28 +308,38 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   button: {
-    height: 56,
+    height: 54,
     borderRadius: BorderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: Spacing.md,
+    shadowColor: '#F96A98',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  buttonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.semibold,
+    color: '#FFFFFF',
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingBottom: Spacing.xxl,
+    paddingVertical: Spacing.md,
   },
   footerText: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
   },
   footerLink: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
   },
 });

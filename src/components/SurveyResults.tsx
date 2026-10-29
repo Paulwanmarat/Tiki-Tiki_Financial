@@ -1,20 +1,20 @@
 import surveyData from '@/constants/surveyData.json';
-import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Dimensions, StyleSheet, Text, View } from 'react-native';
 
 const C = {
-  bg: '#F8FAFC',
-  white: '#FFFFFF',
-  dark: '#0F172A',
-  slate700: '#334155',
-  slate500: '#64748B',
-  slate400: '#94A3B8',
-  slate200: '#E2E8F0',
-  slate100: '#F1F5F9',
-  primary: Colors.light.primary,
-  success: Colors.light.success,
-  warning: Colors.light.warning,
+  bg: '#140E1B',
+  white: '#0D0912',
+  dark: '#FDF8F4',
+  slate700: '#E8DFEC',
+  slate500: '#B9ABC1',
+  slate400: '#7D6E86',
+  slate200: 'rgba(255,255,255,0.08)',
+  slate100: '#1C1525',
+  primary: '#F96A98',
+  cyan: '#FBBF24',
+  success: '#10B981',
+  warning: '#F59E0B',
 };
 
 /* ─── helpers ──────────────────────────────────────────────────── */
@@ -27,7 +27,7 @@ function pct(count: number, total: number): number {
 }
 
 /* ─── chart colours ────────────────────────────────────────────── */
-const BAR_COLORS = [C.primary, '#0EA5E9', '#8B5CF6', '#EC4899', C.success, C.warning, '#F97316'];
+const BAR_COLORS = [C.primary, '#FBBF24', '#EC4899', '#A855F7', C.success, C.warning, '#F97316'];
 
 /* ─── main component ──────────────────────────────────────────── */
 export function SurveyResults() {
@@ -163,10 +163,11 @@ function cleanFeatureLabel(s: string): string {
 /* ─── styles ───────────────────────────────────────────────────── */
 const styles = StyleSheet.create({
   section: {
-    paddingHorizontal: '8%' as any,
-    paddingVertical: 80,
-    backgroundColor: C.white,
+    paddingHorizontal: 0,
+    paddingVertical: 20,
+    backgroundColor: 'transparent',
     alignItems: 'center',
+    width: '100%',
   },
   label: {
     fontSize: 13,

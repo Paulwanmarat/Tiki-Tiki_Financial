@@ -96,7 +96,17 @@ router.put('/', async (req, res) => {
   }
 });
 
-router.post('/avatar', upload.single('image'), async (req, res) => {
+router.post('/avatar', (req, res, next) => {
+  upload.single('image')(req, res, (err: any) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'Image size exceeds the 5MB limit' });
+      }
+      return res.status(400).json({ error: err.message || 'Failed to process image' });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
@@ -153,6 +163,22 @@ router.delete('/avatar', async (req, res) => {
   } catch (error) {
     console.error('Avatar Remove Error:', error);
     res.status(500).json({ error: 'Failed to remove profile picture' });
+  }
+});
+
+// DELETE /api/profile (Account Deletion & Personal Data Erasure)
+router.delete('/', async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const db = getDb();
+    await db.query('DELETE FROM users WHERE id = $1', [userId]);
+
+    res.json({ message: 'Account and all associated personal data deleted successfully' });
+  } catch (error) {
+    console.error('Delete Account Error:', error);
+    res.status(500).json({ error: 'Failed to delete account' });
   }
 });
 

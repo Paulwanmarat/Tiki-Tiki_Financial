@@ -1,5 +1,5 @@
+import { getTokenSafe } from '@/utils/storage';
 import { Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
 
 const isAndroid = Platform.OS === 'android';
 // Prefer EXPO_PUBLIC_API_URL from .env. If not set, use 10.0.2.2 for Android Emulator, localhost for iOS/Web.
@@ -9,13 +9,42 @@ export const LOCAL_API_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_URL;
 
 export const AI_CONFIG = {
   baseUrl: `${LOCAL_API_URL}/api`,
-  timeout: 15000, // 15 seconds
+  timeout: 20000, // 20 seconds
 };
+
+export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
+  const token = await getTokenSafe('userToken');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...options.headers,
+  };
+
+  const response = await fetch(`${LOCAL_API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    let errorMsg = 'An error occurred';
+    try {
+      const errorData = await response.json();
+      errorMsg = errorData.error || errorData.message || errorMsg;
+    } catch {
+      // Ignore parsing errors
+    }
+    const err = new Error(errorMsg) as any;
+    err.status = response.status;
+    throw err;
+  }
+
+  return response.json();
+}
 
 export async function askAiApi(messages: { role: string; content: string }[], systemInstruction?: string): Promise<string> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), AI_CONFIG.timeout);
-  const token = await SecureStore.getItemAsync('userToken');
+  const token = await getTokenSafe('userToken');
 
   try {
     const response = await fetch(`${AI_CONFIG.baseUrl}/ai/ask`, {
@@ -35,7 +64,7 @@ export async function askAiApi(messages: { role: string; content: string }[], sy
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to connect to AI service');
+      throw new Error(errorData.error || errorData.message || 'Failed to connect to AI service');
     }
 
     const data = await response.json();
