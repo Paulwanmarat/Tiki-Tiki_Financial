@@ -46,6 +46,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "deploy": "eas deploy",
+    "deploy:prod": "eas deploy --prod",
     "lint": "expo lint"
   },
   "private": true
