@@ -31,25 +31,69 @@ for (const envVar of requiredEnvVars) {
 // Middleware
 app.use(helmet({
   contentSecurityPolicy: false, // Disabled to prevent breaking Expo Web assets/API behavior
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
-const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [];
 
-app.use(cors({
+// Allowed origins setup
+const rawEnvOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+const allowedOriginsSet = new Set<string>([
+  'https://spr-app.expo.app',
+  'http://localhost:8081',
+  'http://localhost:19006',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:8081',
+  'http://127.0.0.1:19006',
+  'http://127.0.0.1:3000',
+  ...rawEnvOrigins,
+]);
+
+export const isOriginAllowed = (origin: string): boolean => {
+  // Allow all origins in non-production environments
+  if (process.env.NODE_ENV !== 'production') return true;
+
+  // Allow explicitly listed origins
+  if (allowedOriginsSet.has(origin)) return true;
+
+  // Allow any Expo deployment or preview subdomain (e.g. https://spr-app.expo.app, https://spr-app--*.expo.app)
+  if (/^https:\/\/([a-zA-Z0-9-]+\.)*expo\.app$/.test(origin)) return true;
+
+  // Allow local development ports
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+
+  // Allow Render internal / preview domains if any
+  if (/^https:\/\/([a-zA-Z0-9-]+\.)*onrender\.com$/.test(origin)) return true;
+
+  return false;
+};
+
+const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. native mobile apps, curl)
+    // Allow non-browser requests (e.g. native mobile apps, curl) with no origin header
     if (!origin) return callback(null, true);
-    
-    // In development, allow all origins
-    if (process.env.NODE_ENV !== 'production') return callback(null, true);
-    
-    // In production, check against explicitly allowed origins
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    
-    // If not allowed, reject
-    callback(new Error('Not allowed by CORS'));
-  }
-}));
-app.use(express.json());
+
+    if (isOriginAllowed(origin)) {
+      return callback(null, true);
+    }
+
+    // Safely reject disallowed origins without throwing an unhandled Error
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -65,6 +109,24 @@ app.use('/api/profile', requireAuth, profileRoutes);
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'SPR App Server is running' });
+});
+
+// Catch-all 404 handler for unknown routes
+app.use((req, res) => {
+  res.status(404).json({ error: 'NotFound', message: `Route ${req.method} ${req.originalUrl} not found` });
+});
+
+// Centralized error handling middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled server error:', err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  const statusCode = typeof err.status === 'number' ? err.status : (typeof err.statusCode === 'number' ? err.statusCode : 500);
+  res.status(statusCode).json({
+    error: err.name || 'InternalServerError',
+    message: err.message || 'An unexpected error occurred on the server',
+  });
 });
 
 // Initialize DB and start server

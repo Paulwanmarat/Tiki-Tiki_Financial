@@ -59,7 +59,7 @@ export async function sendPasswordResetEmail(email: string, resetToken: string):
   const sender = process.env.RESEND_FROM_EMAIL || 'SPR App <onboarding@resend.dev>';
   
   // URL to the frontend reset password screen
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
+  const frontendUrl = process.env.FRONTEND_URL || 'https://spr-app.expo.app';
   const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
   const htmlContent = `

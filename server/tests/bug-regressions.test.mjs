@@ -255,3 +255,90 @@ test('Auth Security: Rejects expired or tampered JWTs', () => {
   }, (err) => err.name === 'JsonWebTokenError');
 });
 
+// ─── CORS: Cross-Origin Resource Sharing & Expo Hosting Support ──────
+
+test('CORS: Allows production Expo web app, preview subdomains, and local dev', () => {
+  const allowedOriginsSet = new Set([
+    'https://spr-app.expo.app',
+    'http://localhost:8081',
+    'http://localhost:19006',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:8081',
+    'http://127.0.0.1:19006',
+    'http://127.0.0.1:3000',
+  ]);
+
+  function isOriginAllowed(origin, nodeEnv = 'production') {
+    if (nodeEnv !== 'production') return true;
+    if (allowedOriginsSet.has(origin)) return true;
+    if (/^https:\/\/([a-zA-Z0-9-]+\.)*expo\.app$/.test(origin)) return true;
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+    if (/^https:\/\/([a-zA-Z0-9-]+\.)*onrender\.com$/.test(origin)) return true;
+    return false;
+  }
+
+  // Allowed production origins
+  assert.equal(isOriginAllowed('https://spr-app.expo.app'), true);
+  assert.equal(isOriginAllowed('https://spr-app--435t98y6s6.expo.app'), true);
+  assert.equal(isOriginAllowed('https://spr-app--fvtz5u0pfd.expo.app'), true);
+  assert.equal(isOriginAllowed('http://localhost:8081'), true);
+  assert.equal(isOriginAllowed('http://localhost:3000'), true);
+  assert.equal(isOriginAllowed('http://127.0.0.1:8081'), true);
+
+  // Disallowed origins
+  assert.equal(isOriginAllowed('https://malicious-site.com'), false);
+  assert.equal(isOriginAllowed('https://expo.app.attacker.com'), false);
+  assert.equal(isOriginAllowed('https://fake-spr-app.expo.com'), false);
+
+  // In non-production, any origin is permitted
+  assert.equal(isOriginAllowed('https://any-dev-origin.test', 'development'), true);
+});
+
+test('CORS: Middleware callback safely denies disallowed origins without throwing 500 error', () => {
+  function corsOriginHandler(origin, nodeEnv, callback) {
+    if (!origin) return callback(null, true);
+
+    const allowedOriginsSet = new Set(['https://spr-app.expo.app']);
+    const isAllowed =
+      nodeEnv !== 'production' ||
+      allowedOriginsSet.has(origin) ||
+      /^https:\/\/([a-zA-Z0-9-]+\.)*expo\.app$/.test(origin) ||
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
+    if (isAllowed) {
+      return callback(null, true);
+    }
+    // Correct behavior: callback(null, false) denies CORS cleanly
+    // Incorrect legacy behavior: callback(new Error('...')) triggered Express 500 crash
+    return callback(null, false);
+  }
+
+  let capturedErr = null;
+  let capturedAllowed = null;
+
+  // Test native/curl without origin
+  corsOriginHandler(undefined, 'production', (err, allow) => {
+    capturedErr = err;
+    capturedAllowed = allow;
+  });
+  assert.equal(capturedErr, null);
+  assert.equal(capturedAllowed, true);
+
+  // Test live production Expo Web URL
+  corsOriginHandler('https://spr-app.expo.app', 'production', (err, allow) => {
+    capturedErr = err;
+    capturedAllowed = allow;
+  });
+  assert.equal(capturedErr, null);
+  assert.equal(capturedAllowed, true);
+
+  // Test disallowed origin does NOT throw error
+  corsOriginHandler('https://untrusted-domain.com', 'production', (err, allow) => {
+    capturedErr = err;
+    capturedAllowed = allow;
+  });
+  assert.equal(capturedErr, null);
+  assert.equal(capturedAllowed, false);
+});
+

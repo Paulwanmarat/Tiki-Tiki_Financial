@@ -1,9 +1,10 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { Spacing, FontSize } from '@/constants/theme';
+import { PIGGY_LOGO } from '@/constants/assets';
 
 export default function TabLayout() {
   const { colors } = useTheme();
@@ -32,8 +33,24 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="grid" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View
+              style={{
+                width: size + 4,
+                height: size + 4,
+                borderRadius: (size + 4) / 2,
+                overflow: 'hidden',
+                borderWidth: focused ? 2 : 1,
+                borderColor: focused ? colors.primary : colors.textTertiary,
+                opacity: focused ? 1 : 0.75,
+              }}
+            >
+              <Image
+                source={PIGGY_LOGO}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="cover"
+              />
+            </View>
           ),
         }}
       />
