@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LOCAL_API_URL } from '@/services/ai/client';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { PIGGY_LOGO } from '@/constants/assets';
+import GoogleSignInButton from '@/components/GoogleSignInButton';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -183,6 +184,16 @@ export default function LoginScreen() {
                 </View>
               )}
             </TouchableOpacity>
+
+            {/* Divider */}
+            <View style={styles.dividerRow}>
+              <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+              <Text style={[styles.dividerText, { color: colors.textTertiary }]}>OR CONTINUE WITH</Text>
+              <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            </View>
+
+            {/* Google Sign In */}
+            <GoogleSignInButton mode="signin" />
           </Animated.View>
 
           {/* Footer Register Link */}
@@ -341,5 +352,20 @@ const styles = StyleSheet.create({
   footerLink: {
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.xl,
+    gap: Spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    fontSize: 11,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 1.2,
   },
 });

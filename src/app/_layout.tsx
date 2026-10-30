@@ -17,6 +17,12 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     const isRoot = !topSegment || topSegment === 'index';
     const inAuthGroup = topSegment === '(auth)';
     const isVerifyEmail = topSegment === 'verify-email';
+    const isAuthCallback = topSegment === 'auth-callback';
+
+    // Allow auth-callback to process tokens before redirecting
+    if (isAuthCallback) {
+      return;
+    }
 
     // On Web, '/' is the public marketing landing page, which is always accessible
     if (Platform.OS === 'web' && isRoot) {
@@ -64,6 +70,7 @@ function AppContent() {
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="auth-callback" options={{ headerShown: false }} />
         <Stack.Screen name="verify-email" options={{ headerShown: false }} />
         <Stack.Screen name="app" options={{ headerShown: false }} />
         <Stack.Screen

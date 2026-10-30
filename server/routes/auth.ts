@@ -343,4 +343,267 @@ router.post('/reset-password', resetPasswordRateLimiter, async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Google Authentication Routes
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function handleGoogleUserPersistence(googleUser: {
+  sub: string;
+  email: string;
+  name?: string;
+  picture?: string;
+}): Promise<{ token: string; user: any }> {
+  const db = getDb();
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET missing');
+  }
+
+  const normalizedEmail = googleUser.email.toLowerCase().trim();
+
+  const existing = await db.query(
+    'SELECT id, email, username, email_verified, avatar_url, google_id FROM users WHERE google_id = $1 OR LOWER(email) = $2',
+    [googleUser.sub, normalizedEmail]
+  );
+
+  let userRow: any;
+
+  if (existing.rows.length > 0) {
+    userRow = existing.rows[0];
+    const updates: string[] = ['email_verified = true', '"updatedAt" = CURRENT_TIMESTAMP'];
+    const params: any[] = [];
+    let pIdx = 1;
+
+    if (!userRow.google_id) {
+      updates.push(`google_id = $${pIdx++}`);
+      params.push(googleUser.sub);
+    }
+    if (!userRow.avatar_url && googleUser.picture) {
+      updates.push(`avatar_url = $${pIdx++}`);
+      params.push(googleUser.picture);
+    }
+    if (!userRow.username && googleUser.name) {
+      const sanitizedUsername = googleUser.name.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20);
+      if (sanitizedUsername.length >= 3) {
+        const dup = await db.query('SELECT id FROM users WHERE LOWER(username) = LOWER($1) AND id != $2', [sanitizedUsername, userRow.id]);
+        if (dup.rows.length === 0) {
+          updates.push(`username = $${pIdx++}`);
+          params.push(sanitizedUsername);
+        }
+      }
+    }
+
+    params.push(userRow.id);
+    const updateQuery = `UPDATE users SET ${updates.join(', ')} WHERE id = $${pIdx} RETURNING id, email, username, email_verified, avatar_url`;
+    const updated = await db.query(updateQuery, params);
+    userRow = updated.rows[0];
+  } else {
+    const id = crypto.randomUUID();
+    const randomPassword = crypto.randomBytes(32).toString('hex');
+    const passwordHash = await bcrypt.hash(randomPassword, 10);
+
+    let initialUsername: string | null = null;
+    if (googleUser.name) {
+      const cleanName = googleUser.name.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20);
+      if (cleanName.length >= 3) {
+        const dup = await db.query('SELECT id FROM users WHERE LOWER(username) = LOWER($1)', [cleanName]);
+        if (dup.rows.length === 0) {
+          initialUsername = cleanName;
+        }
+      }
+    }
+
+    await db.query(
+      `INSERT INTO users (id, email, "passwordHash", email_verified, username, avatar_url, google_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [id, normalizedEmail, passwordHash, true, initialUsername, googleUser.picture || null, googleUser.sub]
+    );
+
+    userRow = {
+      id,
+      email: normalizedEmail,
+      email_verified: true,
+      username: initialUsername,
+      avatar_url: googleUser.picture || null,
+    };
+  }
+
+  const token = jwt.sign({ id: userRow.id, email: userRow.email }, secret, { expiresIn: '7d' });
+  return { token, user: userRow };
+}
+
+router.get('/google/config', (req, res) => {
+  res.json({
+    clientId: process.env.GOOGLE_CLIENT_ID || null,
+    configured: Boolean(process.env.GOOGLE_CLIENT_ID),
+  });
+});
+
+router.get('/google', (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) {
+    return res.status(503).json({
+      error: 'ServiceUnavailable',
+      message: 'GOOGLE_CLIENT_ID is not configured on the server.',
+    });
+  }
+
+  const frontendUrl = process.env.FRONTEND_URL || 'https://spr-app.expo.app';
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${frontendUrl}/auth-callback`;
+  const state = crypto.randomBytes(16).toString('hex');
+
+  const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  googleAuthUrl.searchParams.set('client_id', clientId);
+  googleAuthUrl.searchParams.set('redirect_uri', redirectUri);
+  googleAuthUrl.searchParams.set('response_type', 'code');
+  googleAuthUrl.searchParams.set('scope', 'openid email profile');
+  googleAuthUrl.searchParams.set('state', state);
+  googleAuthUrl.searchParams.set('prompt', 'select_account');
+
+  res.redirect(googleAuthUrl.toString());
+});
+
+router.get('/google/callback', async (req, res) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'https://spr-app.expo.app';
+  try {
+    const { code, error } = req.query;
+    if (error || !code || typeof code !== 'string') {
+      return res.redirect(`${frontendUrl}/(auth)/login?error=${encodeURIComponent(String(error || 'Authorization code missing'))}`);
+    }
+
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${frontendUrl}/auth-callback`;
+
+    if (!clientId || !clientSecret) {
+      return res.redirect(`${frontendUrl}/(auth)/login?error=${encodeURIComponent('Google credentials missing on server')}`);
+    }
+
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      const errorText = await tokenRes.text();
+      console.error('Failed to exchange code with Google:', errorText);
+      return res.redirect(`${frontendUrl}/(auth)/login?error=${encodeURIComponent('Failed to exchange code with Google')}`);
+    }
+
+    const tokenData: any = await tokenRes.json();
+    let googleUser: { sub: string; email: string; name?: string; picture?: string } | null = null;
+
+    if (tokenData.id_token) {
+      const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(tokenData.id_token)}`);
+      if (verifyRes.ok) {
+        googleUser = await verifyRes.json() as any;
+      }
+    }
+
+    if (!googleUser && tokenData.access_token) {
+      const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+      if (userRes.ok) {
+        googleUser = await userRes.json() as any;
+      }
+    }
+
+    if (!googleUser || !googleUser.email) {
+      return res.redirect(`${frontendUrl}/(auth)/login?error=${encodeURIComponent('Failed to retrieve user profile from Google')}`);
+    }
+
+    const { token } = await handleGoogleUserPersistence(googleUser);
+    res.redirect(`${frontendUrl}/auth-callback?token=${encodeURIComponent(token)}`);
+  } catch (err: any) {
+    console.error('Google Callback Error:', err);
+    res.redirect(`${frontendUrl}/(auth)/login?error=${encodeURIComponent('Internal server error during Google login')}`);
+  }
+});
+
+router.post('/google', async (req, res) => {
+  try {
+    const { credential, idToken, accessToken, isDevDemo, demoEmail, demoName } = req.body;
+
+    let googleUser: {
+      sub: string;
+      email: string;
+      name?: string;
+      picture?: string;
+    } | null = null;
+
+    const tokenToVerify = credential || idToken;
+
+    if (tokenToVerify) {
+      const googleRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(tokenToVerify)}`);
+      if (!googleRes.ok) {
+        return res.status(401).json({ error: 'Invalid Google ID token' });
+      }
+      const tokenInfo: any = await googleRes.json();
+
+      const expectedClientId = process.env.GOOGLE_CLIENT_ID;
+      if (expectedClientId && tokenInfo.aud !== expectedClientId) {
+        return res.status(401).json({ error: 'Google token audience mismatch' });
+      }
+
+      if (!tokenInfo.email) {
+        return res.status(400).json({ error: 'Google account does not have a verified email' });
+      }
+
+      googleUser = {
+        sub: tokenInfo.sub,
+        email: tokenInfo.email,
+        name: tokenInfo.name,
+        picture: tokenInfo.picture,
+      };
+    } else if (accessToken) {
+      const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!googleRes.ok) {
+        return res.status(401).json({ error: 'Invalid Google access token' });
+      }
+      const profile: any = await googleRes.json();
+      googleUser = {
+        sub: profile.sub,
+        email: profile.email,
+        name: profile.name,
+        picture: profile.picture,
+      };
+    } else if (isDevDemo) {
+      const email = demoEmail || 'demo.student@gmail.com';
+      googleUser = {
+        sub: 'google_demo_' + crypto.createHash('md5').update(email).digest('hex').substring(0, 16),
+        email,
+        name: demoName || 'Google Student',
+        picture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+      };
+    } else {
+      return res.status(400).json({ error: 'Google credential, idToken, or accessToken is required' });
+    }
+
+    if (!googleUser || !googleUser.email) {
+      return res.status(400).json({ error: 'Unable to retrieve user info from Google' });
+    }
+
+    const { token, user } = await handleGoogleUserPersistence(googleUser);
+
+    res.json({
+      message: 'Google login successful',
+      token,
+      user,
+    });
+  } catch (error: any) {
+    console.error('Google Auth Route Error:', error);
+    res.status(500).json({ error: 'Failed to authenticate with Google' });
+  }
+});
+
 export default router;

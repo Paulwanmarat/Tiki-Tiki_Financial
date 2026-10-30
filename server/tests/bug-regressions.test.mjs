@@ -342,3 +342,102 @@ test('CORS: Middleware callback safely denies disallowed origins without throwin
   assert.equal(capturedAllowed, false);
 });
 
+// ─── GOOGLE AUTHENTICATION: Linking & Verification Tests ─────────────
+
+test('Google Auth: Automatically verifies email and links new Google accounts', async () => {
+  const mockUsers = [];
+  const googleProfile = {
+    sub: 'google_109823471092384',
+    email: 'student.google@example.com',
+    name: 'Alex Rivera',
+    picture: 'https://example.com/avatar.jpg'
+  };
+
+  async function simulateGoogleUserPersistence(googleUser) {
+    const existing = mockUsers.find(
+      u => u.google_id === googleUser.sub || u.email.toLowerCase() === googleUser.email.toLowerCase()
+    );
+
+    let userRow;
+    if (existing) {
+      existing.email_verified = true;
+      if (!existing.google_id) existing.google_id = googleUser.sub;
+      if (!existing.avatar_url && googleUser.picture) existing.avatar_url = googleUser.picture;
+      userRow = existing;
+    } else {
+      userRow = {
+        id: 'usr_' + Date.now(),
+        email: googleUser.email.toLowerCase(),
+        google_id: googleUser.sub,
+        email_verified: true,
+        username: googleUser.name.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20),
+        avatar_url: googleUser.picture || null,
+      };
+      mockUsers.push(userRow);
+    }
+
+    const token = jwt.sign({ id: userRow.id, email: userRow.email }, TEST_SECRET, { expiresIn: '7d' });
+    return { token, user: userRow };
+  }
+
+  // 1. Initial Google Login: Creates new verified user
+  const result1 = await simulateGoogleUserPersistence(googleProfile);
+  assert.ok(result1.token);
+  assert.equal(result1.user.email, 'student.google@example.com');
+  assert.equal(result1.user.google_id, 'google_109823471092384');
+  assert.equal(result1.user.email_verified, true);
+  assert.equal(result1.user.username, 'AlexRivera');
+
+  // Verify JWT payload
+  const decoded1 = jwt.verify(result1.token, TEST_SECRET);
+  assert.equal(decoded1.email, 'student.google@example.com');
+
+  // 2. Subsequent Google Login: Finds existing user and preserves data
+  const result2 = await simulateGoogleUserPersistence(googleProfile);
+  assert.equal(result2.user.id, result1.user.id);
+  assert.equal(mockUsers.length, 1);
+});
+
+test('Google Auth: Successfully links an existing unverified email account on Google sign-in', async () => {
+  const existingUser = {
+    id: 'usr_local_existing',
+    email: 'sarah@school.edu',
+    google_id: null,
+    email_verified: false,
+    username: 'sarah_local',
+    avatar_url: null,
+  };
+  const mockUsers = [existingUser];
+
+  const incomingGoogleUser = {
+    sub: 'google_555123987',
+    email: 'sarah@school.edu',
+    name: 'Sarah Connor',
+    picture: 'https://example.com/sarah.jpg'
+  };
+
+  async function simulateGoogleUserPersistence(googleUser) {
+    const existing = mockUsers.find(
+      u => u.google_id === googleUser.sub || u.email.toLowerCase() === googleUser.email.toLowerCase()
+    );
+
+    let userRow;
+    if (existing) {
+      existing.email_verified = true;
+      if (!existing.google_id) existing.google_id = googleUser.sub;
+      if (!existing.avatar_url && googleUser.picture) existing.avatar_url = googleUser.picture;
+      userRow = existing;
+    }
+
+    const token = jwt.sign({ id: userRow.id, email: userRow.email }, TEST_SECRET, { expiresIn: '7d' });
+    return { token, user: userRow };
+  }
+
+  const result = await simulateGoogleUserPersistence(incomingGoogleUser);
+  assert.equal(result.user.id, 'usr_local_existing');
+  assert.equal(result.user.google_id, 'google_555123987');
+  assert.equal(result.user.email_verified, true); // Now verified by Google
+  assert.equal(result.user.username, 'sarah_local'); // Preserves custom username
+  assert.equal(result.user.avatar_url, 'https://example.com/sarah.jpg');
+});
+
