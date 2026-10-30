@@ -17,13 +17,28 @@ export default function AuthCallbackScreen() {
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        const token = (params.token as string) || (params.access_token as string);
+        let token = (params.token as string) || (params.access_token as string);
+        const code = params.code as string;
         const error = params.error as string;
 
         if (error) {
           setErrorMsg(error);
           setTimeout(() => router.replace('/(auth)/login' as any), 3000);
           return;
+        }
+
+        if (!token && code) {
+          // Exchange code with backend
+          const exchangeRes = await fetch(`${LOCAL_API_URL}/api/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code }),
+          });
+          const exchangeData = await exchangeRes.json();
+          if (!exchangeRes.ok) {
+            throw new Error(exchangeData.error || 'Failed to authenticate Google authorization code');
+          }
+          token = exchangeData.token;
         }
 
         if (!token) {

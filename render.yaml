@@ -18,3 +18,9 @@ services:
         value: https://spr-app.expo.app
       - key: FRONTEND_URL
         value: https://spr-app.expo.app
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        value: https://tiki-tiki-financial.onrender.com/api/auth/google/callback

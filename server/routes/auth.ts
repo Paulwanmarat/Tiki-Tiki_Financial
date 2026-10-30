@@ -530,7 +530,7 @@ router.get('/google/callback', async (req, res) => {
 
 router.post('/google', async (req, res) => {
   try {
-    const { credential, idToken, accessToken, isDevDemo, demoEmail, demoName } = req.body;
+    const { credential, idToken, accessToken, code, isDevDemo, demoEmail, demoName } = req.body;
 
     let googleUser: {
       sub: string;
@@ -577,6 +577,49 @@ router.post('/google', async (req, res) => {
         name: profile.name,
         picture: profile.picture,
       };
+    } else if (code) {
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+      const frontendUrl = process.env.FRONTEND_URL || 'https://spr-app.expo.app';
+      const redirectUri = req.body.redirect_uri || process.env.GOOGLE_REDIRECT_URI || `${frontendUrl}/auth-callback`;
+
+      if (!clientId || !clientSecret) {
+        return res.status(500).json({ error: 'Google OAuth client not configured on server' });
+      }
+
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+        }),
+      });
+
+      if (!tokenRes.ok) {
+        const errorText = await tokenRes.text();
+        console.error('Failed to exchange code with Google:', errorText);
+        return res.status(401).json({ error: 'Failed to exchange authorization code with Google' });
+      }
+
+      const tokenData: any = await tokenRes.json();
+      if (tokenData.id_token) {
+        const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(tokenData.id_token)}`);
+        if (verifyRes.ok) {
+          googleUser = await verifyRes.json() as any;
+        }
+      }
+      if (!googleUser && tokenData.access_token) {
+        const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenData.access_token}` },
+        });
+        if (userRes.ok) {
+          googleUser = await userRes.json() as any;
+        }
+      }
     } else if (isDevDemo) {
       const email = demoEmail || 'demo.student@gmail.com';
       googleUser = {
