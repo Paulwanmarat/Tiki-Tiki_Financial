@@ -23,6 +23,7 @@ import { calculateGoalProgress } from '@/utils/financeEngine';
 import { formatCurrency, formatPercentage, formatDate, formatDateForInput } from '@/utils/formatters';
 import { validateAmount } from '@/utils/validators';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
+import { confirmAction } from '@/utils/confirm';
 
 export default function GoalDetailScreen() {
   const { colors } = useTheme();
@@ -103,16 +104,21 @@ export default function GoalDetailScreen() {
   };
 
   const handleDelete = () => {
-    Alert.alert('Delete Goal', 'Are you sure? This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive', onPress: async () => {
-          if (!id) return;
-          try { await removeGoal(id); router.back(); }
-          catch { Alert.alert('Error', 'Failed to delete'); }
-        },
+    confirmAction(
+      'Delete Goal',
+      'Are you sure you want to delete this goal? This cannot be undone.',
+      'Delete',
+      async () => {
+        if (!id) return;
+        try {
+          await removeGoal(id);
+          router.back();
+        } catch (err: any) {
+          Alert.alert('Error', err?.message || 'Failed to delete goal');
+        }
       },
-    ]);
+      true
+    );
   };
 
   if (loading) return <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}><LoadingState /></SafeAreaView>;

@@ -134,30 +134,29 @@ export default function ProfileScreen() {
   };
 
   const handleRemovePicture = async () => {
-    Alert.alert('Remove Picture', 'Are you sure you want to remove your custom profile picture?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          setUploadingImage(true);
-          try {
-            if (!token) throw new Error('Not authenticated');
-            const response = await fetch(`${LOCAL_API_URL}/api/profile/avatar`, {
-              method: 'DELETE',
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Failed to remove picture');
-            await refreshUserProfile();
-          } catch (error: any) {
-            Alert.alert('Error', error.message);
-          } finally {
-            setUploadingImage(false);
-          }
-        },
+    confirmAction(
+      'Remove Picture',
+      'Are you sure you want to remove your custom profile picture?',
+      'Remove',
+      async () => {
+        setUploadingImage(true);
+        try {
+          if (!token) throw new Error('Not authenticated');
+          const response = await fetch(`${LOCAL_API_URL}/api/profile/avatar`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Failed to remove picture');
+          await refreshUserProfile();
+        } catch (error: any) {
+          Alert.alert('Error', error?.message || 'Failed to remove picture');
+        } finally {
+          setUploadingImage(false);
+        }
       },
-    ]);
+      true
+    );
   };
 
   const [deletingAccount, setDeletingAccount] = useState(false);

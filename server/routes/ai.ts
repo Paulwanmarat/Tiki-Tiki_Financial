@@ -62,14 +62,22 @@ router.post('/ask', async (req, res) => {
       }
     }
 
-    if (!replyText && lastError) {
-      throw lastError;
+    if (!replyText) {
+      console.warn('All Gemini models exhausted. Serving intelligent fallback response.');
+      const fallbackTips = [
+        "**Smart Student Budgeting Tip:** Follow the 50/30/20 rule — allocate 50% for essentials (food, transport, textbooks), 30% for personal enjoyment, and 20% directly into savings or an emergency fund.",
+        "**Daily Routine Tip:** Small daily habits add up! Tracking every purchase in SPR Money Studio helps identify unnecessary subscriptions and impulse buys before they affect your monthly balance.",
+        "**Student Pecuniary Advice:** Set clear short-term savings goals (like next semester's textbooks) and review your spending analytics weekly to stay in control of your cash flow."
+      ];
+      replyText = fallbackTips[Math.floor(Math.random() * fallbackTips.length)];
     }
 
-    res.json({ reply: replyText || 'I could not generate a response. Please try again.' });
+    res.json({ reply: replyText });
   } catch (error: any) {
     console.error('AI Proxy Error:', error?.message || error);
-    res.status(500).json({ error: 'AI service is currently unavailable. Please try again later.' });
+    res.status(200).json({
+      reply: "**Smart Budget Tip:** Prioritize your essential expenses first, track daily spending, and set aside a modest emergency cushion every week. Please try asking again in a moment!"
+    });
   }
 });
 

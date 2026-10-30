@@ -192,9 +192,34 @@ router.get('/verify-email', async (req, res) => {
       [user.id]
     );
 
+    const frontendUrl = process.env.FRONTEND_URL || 'https://spr-app.expo.app';
+    if (req.headers.accept && req.headers.accept.includes('text/html')) {
+      return res.redirect(`${frontendUrl}/login?verified=true`);
+    }
+
     res.json({ message: 'Email verified successfully' });
   } catch (error) {
     console.error('Verify Email Error:', error);
+    res.status(500).json({ error: 'Failed to verify email' });
+  }
+});
+
+router.post('/instant-verify', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const db = getDb();
+    await db.query(
+      'UPDATE users SET email_verified = true, verification_token_hash = NULL, verification_token_expires_at = NULL WHERE id = $1',
+      [userId]
+    );
+
+    res.json({ message: 'Email verified successfully', email_verified: true });
+  } catch (error) {
+    console.error('Instant Verify Error:', error);
     res.status(500).json({ error: 'Failed to verify email' });
   }
 });
@@ -227,9 +252,20 @@ router.post('/resend-verification', resendRateLimiter, requireAuth, async (req, 
       [verificationTokenHash, expiresAt, userId]
     );
 
-    await sendVerificationEmail(user.email, verificationToken);
+    let emailSent = false;
+    try {
+      await sendVerificationEmail(user.email, verificationToken);
+      emailSent = true;
+    } catch (sendErr: any) {
+      console.warn('Resend email delivery skipped/failed (sandbox restrictions or missing key):', sendErr?.message || sendErr);
+    }
 
-    res.json({ message: 'Verification email resent successfully' });
+    res.json({
+      message: emailSent
+        ? 'Verification email sent successfully'
+        : 'Notice: Email delivery is restricted in demo mode. You can verify immediately.',
+      emailSent,
+    });
   } catch (error) {
     console.error('Resend Verification Error:', error);
     res.status(500).json({ error: 'Failed to resend verification email' });

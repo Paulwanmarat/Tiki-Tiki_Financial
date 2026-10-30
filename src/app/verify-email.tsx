@@ -13,6 +13,7 @@ export default function VerifyEmailScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [instantVerifying, setInstantVerifying] = useState(false);
 
   const handleRefresh = async () => {
     setLoading(true);
@@ -20,6 +21,27 @@ export default function VerifyEmailScreen() {
     setLoading(false);
     if (user?.email_verified) {
       router.replace('/app' as any);
+    }
+  };
+
+  const handleInstantVerify = async () => {
+    setInstantVerifying(true);
+    try {
+      const response = await fetch(`${LOCAL_API_URL}/api/auth/instant-verify`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        await refreshUser();
+        router.replace('/app' as any);
+      } else {
+        const data = await response.json().catch(() => ({}));
+        Alert.alert('Notice', data.error || 'Verification unavailable.');
+      }
+    } catch {
+      Alert.alert('Error', 'Network error. Please try again.');
+    } finally {
+      setInstantVerifying(false);
     }
   };
 
@@ -32,9 +54,9 @@ export default function VerifyEmailScreen() {
       });
       const data = await response.json();
       if (response.ok) {
-        Alert.alert('Email Sent', 'Please check your inbox for the verification link.');
+        Alert.alert('Verification', data.message || 'Please check your inbox or use Instant Verify below.');
       } else {
-        Alert.alert('Error', data.error || 'Failed to resend verification email.');
+        Alert.alert('Notice', data.error || 'Failed to resend verification email.');
       }
     } catch (error) {
       Alert.alert('Error', 'Network error. Please try again.');
@@ -66,6 +88,18 @@ export default function VerifyEmailScreen() {
           disabled={loading}
         >
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>I've verified my email</Text>}
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.instantButton, { backgroundColor: '#10B981' }]} 
+          onPress={handleInstantVerify}
+          disabled={instantVerifying}
+        >
+          {instantVerifying ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>⚡ Instant Verify (Demo Access)</Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity 
@@ -115,6 +149,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xxxl,
   },
   button: {
+    width: '100%',
+    height: 56,
+    borderRadius: BorderRadius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  instantButton: {
     width: '100%',
     height: 56,
     borderRadius: BorderRadius.lg,

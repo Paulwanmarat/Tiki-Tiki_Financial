@@ -9,7 +9,7 @@ export const LOCAL_API_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_URL;
 
 export const AI_CONFIG = {
   baseUrl: `${LOCAL_API_URL}/api`,
-  timeout: 20000, // 20 seconds
+  timeout: 60000, // 60 seconds (accommodates server cold starts & deep reasoning)
 };
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {

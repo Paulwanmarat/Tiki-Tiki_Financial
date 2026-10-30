@@ -23,6 +23,7 @@ import { getCategoryById, getCategoriesByType } from '@/constants/categories';
 import { formatCurrency, formatDate, formatDateForInput } from '@/utils/formatters';
 import { validateTransaction } from '@/utils/validators';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
+import { confirmAction } from '@/utils/confirm';
 
 export default function TransactionDetailScreen() {
   const { colors } = useTheme();
@@ -99,25 +100,20 @@ export default function TransactionDetailScreen() {
   };
 
   const handleDelete = () => {
-    Alert.alert(
+    confirmAction(
       'Delete Transaction',
       'Are you sure you want to delete this transaction? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            if (!id) return;
-            try {
-              await removeTransaction(id);
-              router.back();
-            } catch (err) {
-              Alert.alert('Error', 'Failed to delete transaction');
-            }
-          },
-        },
-      ]
+      'Delete',
+      async () => {
+        if (!id) return;
+        try {
+          await removeTransaction(id);
+          router.back();
+        } catch (err: any) {
+          Alert.alert('Error', err?.message || 'Failed to delete transaction');
+        }
+      },
+      true
     );
   };
 

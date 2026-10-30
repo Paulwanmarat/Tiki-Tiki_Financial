@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Alert, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -43,9 +43,14 @@ export default function FeedbackScreen() {
 
       const data = await response.json();
       if (response.ok) {
-        Alert.alert('Success', 'Thank you for your feedback!', [
-          { text: 'OK', onPress: () => router.back() }
-        ]);
+        if (Platform.OS === 'web') {
+          window.alert('Thank you for your feedback!');
+          router.back();
+        } else {
+          Alert.alert('Success', 'Thank you for your feedback!', [
+            { text: 'OK', onPress: () => router.back() }
+          ]);
+        }
       } else {
         Alert.alert('Error', data.error || 'Failed to submit feedback.');
       }
