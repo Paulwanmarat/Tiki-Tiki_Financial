@@ -33,22 +33,34 @@ router.post('/ask', async (req, res) => {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     let replyText = '';
+    let lastError: any = null;
 
-    try {
-      const primaryModel = genAI.getGenerativeModel({
-        model: 'gemini-1.5-flash',
-        ...(systemInstruction ? { systemInstruction } : {})
-      });
-      const response = await primaryModel.generateContent({ contents });
-      replyText = response.response.text();
-    } catch (primaryError) {
-      // Fallback model attempt if primary model identifier fails
-      const fallbackModel = genAI.getGenerativeModel({
-        model: 'gemini-1.5-flash-latest',
-        ...(systemInstruction ? { systemInstruction } : {})
-      });
-      const response = await fallbackModel.generateContent({ contents });
-      replyText = response.response.text();
+    const candidateModels = [
+      'gemini-flash-latest',
+      'gemini-2.0-flash',
+      'gemini-2.5-flash',
+      'gemini-1.5-flash',
+    ];
+
+    for (const modelName of candidateModels) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          ...(systemInstruction ? { systemInstruction } : {}),
+        });
+        const response = await model.generateContent({ contents });
+        replyText = response.response.text();
+        if (replyText) {
+          break;
+        }
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`Gemini model ${modelName} failed:`, err?.message || err);
+      }
+    }
+
+    if (!replyText && lastError) {
+      throw lastError;
     }
 
     res.json({ reply: replyText || 'I could not generate a response. Please try again.' });
