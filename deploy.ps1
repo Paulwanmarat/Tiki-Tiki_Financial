@@ -3,7 +3,7 @@ Write-Host "  SPR MONEY STUDIO - ONE-CLICK PRODUCTION DEPLOY" -ForegroundColor C
 Write-Host "========================================================" -ForegroundColor Magenta
 Write-Host ""
 
-Write-Host "[1/2] Exporting latest web build..." -ForegroundColor Yellow
+Write-Host "[1/3] Exporting latest web build..." -ForegroundColor Yellow
 npx expo export -p web
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[ERROR] Export failed." -ForegroundColor Red
@@ -11,7 +11,13 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
-Write-Host "[2/2] Pushing directly to https://spr-app.expo.app ..." -ForegroundColor Yellow
+Write-Host "[2/3] Injecting production page titles..." -ForegroundColor Yellow
+Get-ChildItem -Path "dist\*.html" | ForEach-Object {
+    (Get-Content $_.FullName) -replace '<title data-rh="true"></title>', '<title data-rh="true">SPR Money Studio | Student Pecuniary Routine</title>' | Set-Content $_.FullName
+}
+
+Write-Host ""
+Write-Host "[3/3] Pushing directly to https://spr-app.expo.app ..." -ForegroundColor Yellow
 npx eas deploy --prod --non-interactive
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[ERROR] Deployment failed." -ForegroundColor Red

@@ -5,7 +5,7 @@ echo ========================================================
 echo   SPR MONEY STUDIO - ONE-CLICK PRODUCTION DEPLOY
 echo ========================================================
 echo.
-echo [1/2] Exporting latest web build...
+echo [1/3] Exporting latest web build...
 call npx expo export -p web
 if %errorlevel% neq 0 (
     echo.
@@ -15,7 +15,11 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo [2/2] Pushing directly to https://spr-app.expo.app ...
+echo [2/3] Injecting production page titles...
+powershell -Command "Get-ChildItem -Path 'dist\*.html' | ForEach-Object { (Get-Content $_.FullName) -replace '<title data-rh=\"true\"></title>', '<title data-rh=\"true\">SPR Money Studio | Student Pecuniary Routine</title>' | Set-Content $_.FullName }"
+
+echo.
+echo [3/3] Pushing directly to https://spr-app.expo.app ...
 call npx eas deploy --prod --non-interactive
 if %errorlevel% neq 0 (
     echo.
