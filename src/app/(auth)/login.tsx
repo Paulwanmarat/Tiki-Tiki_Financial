@@ -14,6 +14,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,6 +37,9 @@ export default function LoginScreen() {
   const slideAnim = useRef(new Animated.Value(24)).current;
 
   useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.title = 'Sign In | SPR Money Studio';
+    }
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
@@ -76,6 +80,9 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <Head>
+        <title>Sign In | SPR Money Studio</title>
+      </Head>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}

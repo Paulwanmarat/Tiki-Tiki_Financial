@@ -2,6 +2,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import Head from 'expo-router/head';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 
@@ -60,6 +61,13 @@ function AppContent() {
 
   return (
     <>
+      <Head>
+        <title>SPR Money Studio | Student Pecuniary Routine</title>
+        <meta
+          name="description"
+          content="SPR Money Studio - Student Pecuniary Routine, smart financial companion and daily allowance manager"
+        />
+      </Head>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
