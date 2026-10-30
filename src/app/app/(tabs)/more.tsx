@@ -7,6 +7,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { Card } from '@/components/ui/Card';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { PIGGY_LOGO } from '@/constants/assets';
+import { useAuth } from '@/context/AuthContext';
+import { confirmAction } from '@/utils/confirm';
 
 interface MenuItemData {
   icon: keyof typeof Ionicons.glyphMap;
@@ -20,6 +22,20 @@ interface MenuItemData {
 export default function MoreScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    confirmAction(
+      'Log Out',
+      'Are you sure you want to log out of SPR Money Studio?',
+      'Log Out',
+      async () => {
+        await logout();
+        router.replace('/(auth)/login' as any);
+      },
+      true
+    );
+  };
 
   const items: MenuItemData[] = [
     {
@@ -120,6 +136,26 @@ export default function MoreScreen() {
             </Card>
           </TouchableOpacity>
         ))}
+
+        {/* Log Out Button */}
+        <TouchableOpacity
+          onPress={handleLogout}
+          activeOpacity={0.7}
+          style={styles.logoutWrapper}
+        >
+          <Card style={[styles.menuItem, { backgroundColor: colors.danger + '10', borderColor: colors.danger + '35' }]}>
+            <View style={[styles.iconContainer, { backgroundColor: colors.danger + '20' }]}>
+              <Ionicons name="log-out-outline" size={22} color={colors.danger} />
+            </View>
+            <View style={styles.itemText}>
+              <Text style={[styles.itemTitle, { color: colors.danger }]}>Log Out of SPR Studio</Text>
+              <Text style={[styles.itemDescription, { color: colors.textSecondary }]}>
+                End your active session on this device
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.danger} />
+          </Card>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -212,5 +248,8 @@ const styles = StyleSheet.create({
   itemDescription: {
     fontSize: FontSize.xs,
     lineHeight: 16,
+  },
+  logoutWrapper: {
+    marginTop: Spacing.sm,
   },
 });

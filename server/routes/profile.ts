@@ -173,7 +173,23 @@ router.delete('/', async (req, res) => {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const db = getDb();
-    await db.query('DELETE FROM users WHERE id = $1', [userId]);
+    const client = await db.connect();
+    try {
+      await client.query('BEGIN');
+      // Explicitly purge all associated user data to prevent foreign key constraint blocks
+      await client.query('DELETE FROM transactions WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM goals WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM settings WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM ai_history WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM feedback WHERE user_id = $1', [userId]);
+      await client.query('DELETE FROM users WHERE id = $1', [userId]);
+      await client.query('COMMIT');
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      throw txErr;
+    } finally {
+      client.release();
+    }
 
     res.json({ message: 'Account and all associated personal data deleted successfully' });
   } catch (error) {

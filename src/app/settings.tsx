@@ -20,6 +20,7 @@ import * as aiHistoryDb from '@/services/database/aiHistory';
 import { checkAiBackendStatus, AI_CONFIG } from '@/services/ai/client';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { PIGGY_LOGO } from '@/constants/assets';
+import { confirmAction } from '@/utils/confirm';
 
 export default function SettingsScreen() {
   const { colors, isDark } = useTheme();
@@ -50,36 +51,34 @@ export default function SettingsScreen() {
 
   const handleClearChatHistory = () => {
     if (!user) return;
-    Alert.alert('Clear Chat History', 'Delete all AI assistant conversation history?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await aiHistoryDb.clearAIHistory(null, user.id);
-            setMessageCount(0);
-            Alert.alert('Done', 'Chat history cleared.');
-          } catch {
-            Alert.alert('Error', 'Failed to clear history.');
-          }
-        },
+    confirmAction(
+      'Clear Chat History',
+      'Delete all AI assistant conversation history?',
+      'Clear',
+      async () => {
+        try {
+          await aiHistoryDb.clearAIHistory(null, user.id);
+          setMessageCount(0);
+          Alert.alert('Done', 'Chat history cleared.');
+        } catch {
+          Alert.alert('Error', 'Failed to clear history.');
+        }
       },
-    ]);
+      true
+    );
   };
 
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to log out of SPR Money Studio?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: async () => {
-          await logout();
-          router.replace('/(auth)/login' as any);
-        },
+    confirmAction(
+      'Log Out',
+      'Are you sure you want to log out of SPR Money Studio?',
+      'Log Out',
+      async () => {
+        await logout();
+        router.replace('/(auth)/login' as any);
       },
-    ]);
+      true
+    );
   };
 
   return (

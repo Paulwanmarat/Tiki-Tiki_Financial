@@ -76,7 +76,13 @@ export default function VerifyEmailScreen() {
           {resending ? <ActivityIndicator color={colors.primary} /> : <Text style={[styles.outlineButtonText, { color: colors.primary }]}>Resend verification email</Text>}
         </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={async () => {
+          await logout();
+          router.replace('/(auth)/login' as any);
+        }}
+      >
         <Text style={[styles.logoutText, { color: colors.danger }]}>Log Out</Text>
       </TouchableOpacity>
     </SafeAreaView>

@@ -21,6 +21,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { LOCAL_API_URL } from '@/services/ai/client';
 import { BorderRadius, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { PIGGY_LOGO } from '@/constants/assets';
+import { confirmAction } from '@/utils/confirm';
 
 export default function ProfileScreen() {
   const { user, token, refreshUserProfile, logout } = useAuth();
@@ -159,35 +160,52 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const handleDeleteAccount = async () => {
-    Alert.alert(
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  const handleLogout = () => {
+    confirmAction(
+      'Log Out',
+      'Are you sure you want to log out of SPR Money Studio?',
+      'Log Out',
+      async () => {
+        await logout();
+        router.replace('/(auth)/login' as any);
+      },
+      true
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    confirmAction(
       'Permanent Account Deletion',
       'Are you sure you want to delete your account? All your recorded transactions, goals, and history will be permanently deleted from the database in compliance with GDPR. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete Permanently',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              if (!token) return;
-              const res = await fetch(`${LOCAL_API_URL}/api/profile`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || 'Failed to delete account');
-              }
-              await logout();
-              Alert.alert('Account Deleted', 'Your account and personal data have been completely erased.');
-              router.replace('/' as any);
-            } catch (err: any) {
-              Alert.alert('Error', err.message);
-            }
-          },
-        },
-      ]
+      'Delete Permanently',
+      async () => {
+        setDeletingAccount(true);
+        try {
+          if (!token) return;
+          const res = await fetch(`${LOCAL_API_URL}/api/profile`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || 'Failed to delete account');
+          }
+          await logout();
+          if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            window.alert('Account Deleted: Your account and personal data have been completely erased.');
+          } else {
+            Alert.alert('Account Deleted', 'Your account and personal data have been completely erased.');
+          }
+          router.replace('/(auth)/login' as any);
+        } catch (err: any) {
+          Alert.alert('Error', err.message);
+        } finally {
+          setDeletingAccount(false);
+        }
+      },
+      true
     );
   };
 
@@ -322,16 +340,43 @@ export default function ProfileScreen() {
 
           <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
 
+          {/* Session & Sign Out */}
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Account Session</Text>
+          <TouchableOpacity
+            style={[styles.securityButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={handleLogout}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="log-out-outline" size={20} color={colors.danger} />
+            <View style={{ flex: 1, marginLeft: Spacing.md }}>
+              <Text style={{ color: colors.danger, fontWeight: FontWeight.bold, fontSize: FontSize.sm }}>
+                Log Out of SPR Studio
+              </Text>
+              <Text style={{ color: colors.textTertiary, fontSize: 11, marginTop: 2 }}>
+                Clears current device session and returns to login.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          </TouchableOpacity>
+
+          <View style={[styles.sectionDivider, { backgroundColor: colors.border }]} />
+
           {/* Danger Zone */}
           <Text style={[styles.sectionTitle, { color: colors.danger }]}>GDPR Privacy & Account Deletion</Text>
           <TouchableOpacity
-            style={[styles.securityButton, { backgroundColor: colors.danger + '10', borderColor: colors.danger + '40' }]}
+            style={[styles.securityButton, { backgroundColor: colors.danger + '10', borderColor: colors.danger + '40', opacity: deletingAccount ? 0.6 : 1 }]}
             onPress={handleDeleteAccount}
+            disabled={deletingAccount}
+            activeOpacity={0.7}
           >
-            <Ionicons name="trash-outline" size={20} color={colors.danger} />
+            {deletingAccount ? (
+              <ActivityIndicator size="small" color={colors.danger} />
+            ) : (
+              <Ionicons name="trash-outline" size={20} color={colors.danger} />
+            )}
             <View style={{ flex: 1, marginLeft: Spacing.md }}>
               <Text style={{ color: colors.danger, fontWeight: FontWeight.bold, fontSize: FontSize.sm }}>
-                Permanently Erase Account & All Data
+                {deletingAccount ? 'Erasing Account Data...' : 'Permanently Erase Account & All Data'}
               </Text>
               <Text style={{ color: colors.textTertiary, fontSize: 11, marginTop: 2 }}>
                 Irreversibly deletes transactions, goals, and history.
