@@ -16,7 +16,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo [2/3] Injecting production page titles...
-powershell -Command "Get-ChildItem -Path 'dist\*.html' | ForEach-Object { (Get-Content $_.FullName) -replace '<title data-rh=\"true\"></title>', '<title data-rh=\"true\">SPR Money Studio | Student Pecuniary Routine</title>' | Set-Content $_.FullName }"
+node scripts/inject-title.js
 
 echo.
 echo [3/3] Pushing directly to https://spr-app.expo.app ...
