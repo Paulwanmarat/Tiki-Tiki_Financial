@@ -47,7 +47,11 @@ router.post('/scan', upload.single('image'), async (req, res) => {
 
     // 3. Initialize Gemini
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+    const candidateModels = [
+      'gemini-flash-lite-latest',
+      'gemini-3.5-flash-lite',
+      'gemini-flash-latest',
+    ];
 
     const prompt = `Extract all food and drink items that are actually visible in this menu image.
 
@@ -84,12 +88,30 @@ Return JSON only in the following format:
       }
     ];
 
-    // 4. Call Gemini
-    const result = await model.generateContent([prompt, ...imageParts]);
-    let responseText = result.response.text();
+    // 4. Call Gemini with multi-model fallback cascade
+    let responseText = '';
+    let lastError: any = null;
+
+    for (const modelName of candidateModels) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const generatePromise = model.generateContent([prompt, ...imageParts]);
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`Timeout after 15s on OCR model ${modelName}`)), 15000)
+        );
+        const result: any = await Promise.race([generatePromise, timeoutPromise]);
+        responseText = result.response.text();
+        if (responseText) {
+          break;
+        }
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`OCR model ${modelName} failed:`, err?.message || err);
+      }
+    }
 
     if (!responseText) {
-      return res.status(502).json({ error: 'Invalid response from OCR model (empty).' });
+      return res.status(502).json({ error: 'Invalid response from OCR model (empty or failed).' });
     }
 
     // Safely strip markdown code fences if present
