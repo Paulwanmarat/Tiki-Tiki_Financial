@@ -14,13 +14,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useGoals } from '@/hooks/useGoals';
+import { useCurrency } from '@/context/CurrencyContext';
 import { Button } from '@/components/ui/Button';
+import { DatePickerField } from '@/components/ui/DatePickerField';
 import { validateGoal } from '@/utils/validators';
 import { formatDateForInput } from '@/utils/formatters';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 
 export default function AddGoalScreen() {
   const { colors } = useTheme();
+  const { currency } = useCurrency();
   const router = useRouter();
   const { addGoal } = useGoals();
 
@@ -87,7 +90,7 @@ export default function AddGoalScreen() {
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>Target Amount</Text>
             <View style={[styles.amountContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.currencySymbol, { color: colors.textTertiary }]}>₫</Text>
+              <Text style={[styles.currencySymbol, { color: colors.textTertiary }]}>{currency.symbol}</Text>
               <TextInput
                 style={[styles.amountInput, { color: colors.text }]}
                 placeholder="0"
@@ -102,7 +105,7 @@ export default function AddGoalScreen() {
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>Already Saved (optional)</Text>
             <View style={[styles.amountContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.currencySymbol, { color: colors.textTertiary }]}>₫</Text>
+              <Text style={[styles.currencySymbol, { color: colors.textTertiary }]}>{currency.symbol}</Text>
               <TextInput
                 style={[styles.amountInput, { color: colors.text }]}
                 placeholder="0"
@@ -116,12 +119,10 @@ export default function AddGoalScreen() {
 
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>Target Date</Text>
-            <TextInput
-              style={[styles.textInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.textTertiary}
+            <DatePickerField
               value={targetDate}
-              onChangeText={setTargetDate}
+              onChange={setTargetDate}
+              minDate={formatDateForInput(new Date())}
             />
           </View>
 

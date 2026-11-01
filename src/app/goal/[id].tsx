@@ -25,10 +25,11 @@ import { formatPercentage, formatDate, formatDateForInput } from '@/utils/format
 import { validateAmount } from '@/utils/validators';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { confirmAction } from '@/utils/confirm';
+import { DatePickerField } from '@/components/ui/DatePickerField';
 
 export default function GoalDetailScreen() {
   const { colors } = useTheme();
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency, currency } = useCurrency();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getById, updateGoal, removeGoal, addMoney, withdrawMoney, refresh } = useGoals();
@@ -198,7 +199,7 @@ export default function GoalDetailScreen() {
                         {moneyAction === 'add' ? 'Add Money' : 'Withdraw Money'}
                       </Text>
                       <View style={[styles.moneyInput, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}>
-                        <Text style={[styles.currencySymbol, { color: colors.textTertiary }]}>₫</Text>
+                        <Text style={[styles.currencySymbol, { color: colors.textTertiary }]}>{currency.symbol}</Text>
                         <TextInput
                           style={[styles.moneyTextInput, { color: colors.text }]}
                           placeholder="0"
@@ -249,7 +250,7 @@ export default function GoalDetailScreen() {
               </View>
               <View style={styles.fieldGroup}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>Target Date</Text>
-                <TextInput style={[styles.textInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]} value={editDate} onChangeText={setEditDate} placeholder="YYYY-MM-DD" placeholderTextColor={colors.textTertiary} />
+                <DatePickerField value={editDate} onChange={setEditDate} />
               </View>
               <View style={styles.fieldGroup}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>Description</Text>

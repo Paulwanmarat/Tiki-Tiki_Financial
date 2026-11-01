@@ -21,6 +21,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useGoals } from '@/hooks/useGoals';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCurrency } from '@/context/CurrencyContext';
+import { DatePickerField } from '@/components/ui/DatePickerField';
 import { ChatMessage } from '@/types/ai';
 import { Goal, GoalProgress } from '@/types/goal';
 import * as aiHistoryDb from '@/services/database/aiHistory';
@@ -739,13 +740,11 @@ export default function GoalsAndAIChatScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Target Deadline (YYYY-MM-DD)</Text>
-              <TextInput
-                style={[styles.modalInput, { backgroundColor: colors.surfaceElevated, borderColor: colors.border, color: colors.text }]}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={colors.textTertiary}
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Target Deadline</Text>
+              <DatePickerField
                 value={newTargetDate}
-                onChangeText={setNewTargetDate}
+                onChange={setNewTargetDate}
+                minDate={formatDateForInput(new Date())}
               />
             </View>
 

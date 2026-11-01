@@ -15,8 +15,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useCurrency } from '@/context/CurrencyContext';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { DatePickerField } from '@/components/ui/DatePickerField';
 import { TransactionType } from '@/types/transaction';
 import { getCategoriesByType } from '@/constants/categories';
 import { validateTransaction } from '@/utils/validators';
@@ -25,6 +27,7 @@ import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 
 export default function AddTransactionScreen() {
   const { colors } = useTheme();
+  const { currency } = useCurrency();
   const router = useRouter();
   const params = useLocalSearchParams<{ type?: string }>();
   const { addTransaction } = useTransactions();
@@ -146,7 +149,7 @@ export default function AddTransactionScreen() {
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>Amount</Text>
             <View style={[styles.amountContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.currencySymbol, { color: colors.textTertiary }]}>₫</Text>
+              <Text style={[styles.currencySymbol, { color: colors.textTertiary }]}>{currency.symbol}</Text>
               <TextInput
                 style={[styles.amountInput, { color: colors.text }]}
                 placeholder="0"
@@ -218,15 +221,10 @@ export default function AddTransactionScreen() {
           {/* Date */}
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>Date</Text>
-            <TextInput
-              style={[
-                styles.textInput,
-                { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text },
-              ]}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.textTertiary}
+            <DatePickerField
               value={date}
-              onChangeText={setDate}
+              onChange={setDate}
+              maxDate={formatDateForInput(new Date())}
             />
           </View>
 

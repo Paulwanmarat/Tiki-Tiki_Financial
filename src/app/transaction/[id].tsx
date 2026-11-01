@@ -25,6 +25,7 @@ import { formatDate, formatDateForInput } from '@/utils/formatters';
 import { validateTransaction } from '@/utils/validators';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { confirmAction } from '@/utils/confirm';
+import { DatePickerField } from '@/components/ui/DatePickerField';
 
 export default function TransactionDetailScreen() {
   const { colors } = useTheme();
@@ -256,12 +257,10 @@ export default function TransactionDetailScreen() {
 
               <View style={styles.fieldGroup}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>Date</Text>
-                <TextInput
-                  style={[styles.textInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+                <DatePickerField
                   value={editDate}
-                  onChangeText={setEditDate}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={colors.textTertiary}
+                  onChange={setEditDate}
+                  maxDate={formatDateForInput(new Date())}
                 />
               </View>
 

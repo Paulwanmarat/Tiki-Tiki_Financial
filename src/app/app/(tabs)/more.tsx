@@ -1,9 +1,10 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform, Image, Modal, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
+import { useCurrency, CURRENCIES, CurrencyDef } from '@/context/CurrencyContext';
 import { Card } from '@/components/ui/Card';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { PIGGY_LOGO } from '@/constants/assets';
@@ -23,6 +24,8 @@ export default function MoreScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
   const { logout } = useAuth();
+  const { currency, setCurrency } = useCurrency();
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
   const handleLogout = () => {
     confirmAction(
@@ -137,6 +140,27 @@ export default function MoreScreen() {
           </TouchableOpacity>
         ))}
 
+        {/* ── Currency Quick-Select ───────────────── */}
+        <TouchableOpacity onPress={() => setShowCurrencyPicker(true)} activeOpacity={0.7}>
+          <Card style={[styles.menuItem, { borderColor: colors.primary + '40', backgroundColor: colors.primary + '08' }]}>
+            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '18' }]}>
+              <Text style={{ fontSize: 18, fontWeight: FontWeight.bold, color: colors.primary }}>{currency.symbol}</Text>
+            </View>
+            <View style={styles.itemText}>
+              <View style={styles.itemTitleRow}>
+                <Text style={[styles.itemTitle, { color: colors.text }]}>Display Currency</Text>
+                <View style={[styles.badgePill, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}>
+                  <Text style={[styles.badgeText, { color: colors.primary }]}>{currency.code}</Text>
+                </View>
+              </View>
+              <Text style={[styles.itemDescription, { color: colors.textSecondary }]}>
+                {currency.name} · Tap to change
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+          </Card>
+        </TouchableOpacity>
+
         {/* Log Out Button */}
         <TouchableOpacity
           onPress={handleLogout}
@@ -157,6 +181,48 @@ export default function MoreScreen() {
           </Card>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* ── Currency Picker Modal ─────────────────── */}
+      <Modal visible={showCurrencyPicker} transparent animationType="slide" onRequestClose={() => setShowCurrencyPicker(false)}>
+        <View style={pickerStyles.backdrop}>
+          <View style={[pickerStyles.sheet, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[pickerStyles.header, { borderBottomColor: colors.border }]}>
+              <Text style={[pickerStyles.title, { color: colors.text }]}>Select Currency</Text>
+              <TouchableOpacity onPress={() => setShowCurrencyPicker(false)}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={CURRENCIES}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }: { item: CurrencyDef }) => {
+                const isSelected = item.code === currency.code;
+                return (
+                  <TouchableOpacity
+                    style={[
+                      pickerStyles.row,
+                      { borderBottomColor: colors.border },
+                      isSelected && { backgroundColor: colors.primary + '12' },
+                    ]}
+                    onPress={() => { setCurrency(item); setShowCurrencyPicker(false); }}
+                  >
+                    <View style={[pickerStyles.symbolBox, { backgroundColor: colors.primary + '18' }]}>
+                      <Text style={[pickerStyles.symbol, { color: colors.primary }]}>{item.symbol}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[pickerStyles.name, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={[pickerStyles.code, { color: colors.textTertiary }]}>{item.code}</Text>
+                    </View>
+                    {isSelected && <Ionicons name="checkmark-circle" size={22} color={colors.primary} />}
+                  </TouchableOpacity>
+                );
+              }}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 32 }}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -252,4 +318,45 @@ const styles = StyleSheet.create({
   logoutWrapper: {
     marginTop: Spacing.sm,
   },
+});
+
+const pickerStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1,
+    maxHeight: '75%',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  title: { fontSize: FontSize.lg, fontWeight: FontWeight.bold },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  symbolBox: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  symbol: { fontSize: 18, fontWeight: FontWeight.bold },
+  name: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold },
+  code: { fontSize: FontSize.xs, marginTop: 2 },
 });
