@@ -51,3 +51,5 @@ example
 # Local scratch and test scripts
 server/test-*.js
 test-*.js
+
+scratch/test-gemini.mjs
