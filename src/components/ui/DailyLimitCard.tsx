@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { DailySpendingLimit } from '@/types/finance';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
-import { formatCurrency } from '@/utils/formatters';
+import { useCurrency } from '@/context/CurrencyContext';
 
 interface DailyLimitCardProps {
   limit: DailySpendingLimit;
@@ -11,6 +11,7 @@ interface DailyLimitCardProps {
 
 export function DailyLimitCard({ limit }: DailyLimitCardProps) {
   const { colors } = useTheme();
+  const { formatCurrency } = useCurrency();
   
   const pct = limit.recommendedLimit > 0 
     ? Math.min(100, (limit.spentToday / limit.recommendedLimit) * 100) 

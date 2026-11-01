@@ -11,7 +11,8 @@ export async function askFinancialQuestion(
   chatHistory: ChatMessage[],
   transactions: Transaction[],
   goals: Goal[],
-  activeGoal?: Goal | null
+  activeGoal?: Goal | null,
+  currencySymbol: string = '฿'
 ): Promise<string> {
   // 1. Build context from real user data
   const summary = calculateFinanceSummary(transactions);
@@ -57,12 +58,13 @@ export async function askFinancialQuestion(
 
   if (activeGoal) {
     const progress = calculateGoalProgress(activeGoal);
+    const sym = currencySymbol;
     contextPrompt += `\n\n🎯 CURRENT ACTIVE GOAL FOCUS:
 - Goal Name: "${activeGoal.name}"
-- Target Amount: ฿${activeGoal.targetAmount}
-- Saved So Far: ฿${activeGoal.currentAmount} (${progress.percentage.toFixed(0)}% reached)
+- Target Amount: ${sym}${activeGoal.targetAmount}
+- Saved So Far: ${sym}${activeGoal.currentAmount} (${progress.percentage.toFixed(0)}% reached)
 - Target Deadline: ${activeGoal.targetDate} (${progress.daysRemaining} days left)
-- Required Daily Savings: ~฿${Math.round(progress.requiredMonthlySaving / 30)}/day
+- Required Daily Savings: ~${sym}${Math.round(progress.requiredMonthlySaving / 30)}/day
 Please provide student-friendly financial guidance specifically focused on hitting this goal.`;
   }
 

@@ -12,10 +12,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useCurrency } from '@/context/CurrencyContext';
 import { TransactionItem } from '@/components/transactions/TransactionItem';
 import { EmptyState, LoadingState } from '@/components/ui/States';
 import { Transaction, TransactionType } from '@/types/transaction';
-import { formatCurrency, getDayLabel } from '@/utils/formatters';
+import { getDayLabel } from '@/utils/formatters';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 
 interface TransactionGroup {
@@ -47,6 +48,7 @@ function groupTransactionsByDate(transactions: Transaction[]): TransactionGroup[
 
 export default function TransactionsScreen() {
   const { colors, isDark } = useTheme();
+  const { formatCurrency } = useCurrency();
   const router = useRouter();
   const { transactions, loading } = useTransactions();
   const [filterType, setFilterType] = useState<TransactionType | 'all'>('all');

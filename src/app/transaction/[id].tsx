@@ -15,18 +15,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useCurrency } from '@/context/CurrencyContext';
 import { Button } from '@/components/ui/Button';
 import { LoadingState, ErrorState } from '@/components/ui/States';
 import { Card } from '@/components/ui/Card';
 import { Transaction, TransactionType } from '@/types/transaction';
 import { getCategoryById, getCategoriesByType } from '@/constants/categories';
-import { formatCurrency, formatDate, formatDateForInput } from '@/utils/formatters';
+import { formatDate, formatDateForInput } from '@/utils/formatters';
 import { validateTransaction } from '@/utils/validators';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { confirmAction } from '@/utils/confirm';
 
 export default function TransactionDetailScreen() {
   const { colors } = useTheme();
+  const { formatCurrency } = useCurrency();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getById, updateTransaction, removeTransaction } = useTransactions();

@@ -14,13 +14,14 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useGoals } from '@/hooks/useGoals';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/States';
 import { simulatePurchase } from '@/utils/financeEngine';
-import { formatCurrency, formatDate } from '@/utils/formatters';
+import { formatDate } from '@/utils/formatters';
 import { SimulationResult } from '@/types/finance';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 
@@ -34,6 +35,7 @@ const STUDENT_PRESETS = [
 
 export default function SimulatorScreen() {
   const { colors, isDark } = useTheme();
+  const { formatCurrency } = useCurrency();
   const router = useRouter();
   const { transactions } = useTransactions();
   const { goals } = useGoals();

@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { Transaction } from '@/types/transaction';
 import { getCategoryById } from '@/constants/categories';
-import { formatCurrency, formatRelativeDate } from '@/utils/formatters';
+import { formatRelativeDate } from '@/utils/formatters';
+import { useCurrency } from '@/context/CurrencyContext';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 
 interface TransactionItemProps {
@@ -14,6 +15,7 @@ interface TransactionItemProps {
 
 export function TransactionItem({ transaction, onPress }: TransactionItemProps) {
   const { colors } = useTheme();
+  const { formatCurrency } = useCurrency();
   const category = getCategoryById(transaction.categoryId);
   const isIncome = transaction.type === 'income';
 

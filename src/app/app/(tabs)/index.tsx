@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useGoals } from '@/hooks/useGoals';
 import { useDashboard } from '@/hooks/useDashboard';
@@ -22,7 +23,7 @@ import { EmptyState, LoadingState } from '@/components/ui/States';
 import { SavingPig } from '@/components/ui/SavingPig';
 import { DailyLimitCard } from '@/components/ui/DailyLimitCard';
 import { TransactionItem } from '@/components/transactions/TransactionItem';
-import { formatCurrency, formatPercentage, getUserDisplayName } from '@/utils/formatters';
+import { formatPercentage, getUserDisplayName } from '@/utils/formatters';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
 import { PIGGY_LOGO } from '@/constants/assets';
 
@@ -30,6 +31,7 @@ export default function DashboardScreen() {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
   const router = useRouter();
+  const { formatCurrency, formatCurrencyCompact } = useCurrency();
   const { transactions, loading: txnLoading, refresh: refreshTxns } = useTransactions();
   const { goals, loading: goalsLoading, refresh: refreshGoals } = useGoals();
   const { summary, analysis, recentTransactions, activeGoals, dailyLimit } = useDashboard(transactions, goals);

@@ -15,18 +15,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useGoals } from '@/hooks/useGoals';
+import { useCurrency } from '@/context/CurrencyContext';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { LoadingState, ErrorState } from '@/components/ui/States';
 import { Goal } from '@/types/goal';
 import { calculateGoalProgress } from '@/utils/financeEngine';
-import { formatCurrency, formatPercentage, formatDate, formatDateForInput } from '@/utils/formatters';
+import { formatPercentage, formatDate, formatDateForInput } from '@/utils/formatters';
 import { validateAmount } from '@/utils/validators';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { confirmAction } from '@/utils/confirm';
 
 export default function GoalDetailScreen() {
   const { colors } = useTheme();
+  const { formatCurrency } = useCurrency();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getById, updateGoal, removeGoal, addMoney, withdrawMoney, refresh } = useGoals();

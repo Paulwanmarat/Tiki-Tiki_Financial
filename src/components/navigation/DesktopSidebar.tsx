@@ -12,10 +12,11 @@ import { useRouter, usePathname, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { useGoals } from '@/hooks/useGoals';
 import { PIGGY_LOGO } from '@/constants/assets';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
-import { formatCurrency, formatPercentage, getUserDisplayName } from '@/utils/formatters';
+import { formatPercentage, getUserDisplayName } from '@/utils/formatters';
 import { confirmAction } from '@/utils/confirm';
 
 interface DesktopSidebarProps {
@@ -27,6 +28,7 @@ interface DesktopSidebarProps {
 export function DesktopSidebar({ onNewGoal, collapsed = false, onToggleCollapse }: DesktopSidebarProps) {
   const { colors, isDark } = useTheme();
   const { user, logout } = useAuth();
+  const { formatCurrency } = useCurrency();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useLocalSearchParams<{ goalId?: string }>();

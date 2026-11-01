@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Alert,
   Image,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +18,7 @@ import { Card } from '@/components/ui/Card';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useGoals } from '@/hooks/useGoals';
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency, CURRENCIES, CurrencyDef } from '@/context/CurrencyContext';
 import * as aiHistoryDb from '@/services/database/aiHistory';
 import { checkAiBackendStatus, AI_CONFIG } from '@/services/ai/client';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
@@ -28,8 +31,10 @@ export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const { transactions } = useTransactions();
   const { goals } = useGoals();
+  const { currency, setCurrency, formatCurrency } = useCurrency();
   const [messageCount, setMessageCount] = useState(0);
   const [isBackendConnected, setIsBackendConnected] = useState(false);
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -141,6 +146,21 @@ export default function SettingsScreen() {
           </View>
         </Card>
 
+        {/* ── Currency Setting ───────────────────────── */}
+        <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>DISPLAY CURRENCY</Text>
+        <Card style={[styles.statsCard, { borderColor: colors.border }]}>
+          <TouchableOpacity style={styles.actionRow} onPress={() => setShowCurrencyPicker(true)}>
+            <Text style={[styles.currencySymbolBig, { color: colors.primary }]}>{currency.symbol}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.statText, { color: colors.text }]}>{currency.name}</Text>
+              <Text style={[styles.statusHint, { color: colors.textTertiary }]}>
+                {currency.code} · Tap to change currency
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          </TouchableOpacity>
+        </Card>
+
         {/* AI Backend Status */}
         <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>FIN-AI SERVICE CONNECTION</Text>
         <Card style={[styles.statsCard, { borderColor: colors.border }]}>
@@ -234,6 +254,51 @@ export default function SettingsScreen() {
           </View>
         </Card>
       </ScrollView>
+
+      {/* ── Currency Picker Modal ─────────────────── */}
+      <Modal visible={showCurrencyPicker} transparent animationType="slide" onRequestClose={() => setShowCurrencyPicker(false)}>
+        <View style={pickerStyles.backdrop}>
+          <View style={[pickerStyles.sheet, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[pickerStyles.header, { borderBottomColor: colors.border }]}>
+              <Text style={[pickerStyles.title, { color: colors.text }]}>Select Currency</Text>
+              <TouchableOpacity onPress={() => setShowCurrencyPicker(false)}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={CURRENCIES}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }: { item: CurrencyDef }) => {
+                const isSelected = item.code === currency.code;
+                return (
+                  <TouchableOpacity
+                    style={[
+                      pickerStyles.currencyRow,
+                      { borderBottomColor: colors.border },
+                      isSelected && { backgroundColor: colors.primary + '12' },
+                    ]}
+                    onPress={() => {
+                      setCurrency(item);
+                      setShowCurrencyPicker(false);
+                    }}
+                  >
+                    <View style={[pickerStyles.symbolBox, { backgroundColor: colors.primary + '18' }]}>
+                      <Text style={[pickerStyles.symbolText, { color: colors.primary }]}>{item.symbol}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[pickerStyles.currencyName, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={[pickerStyles.currencyCode, { color: colors.textTertiary }]}>{item.code}</Text>
+                    </View>
+                    {isSelected && <Ionicons name="checkmark-circle" size={22} color={colors.primary} />}
+                  </TouchableOpacity>
+                );
+              }}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 32 }}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -392,5 +457,64 @@ const styles = StyleSheet.create({
   creditAdvisor: {
     fontSize: 11,
     fontWeight: FontWeight.bold,
+  },
+  currencySymbolBig: {
+    fontSize: 24,
+    fontWeight: FontWeight.bold,
+    width: 40,
+    textAlign: 'center',
+  },
+});
+
+const pickerStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1,
+    maxHeight: '75%',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  title: {
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.bold,
+  },
+  currencyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  symbolBox: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  symbolText: {
+    fontSize: 18,
+    fontWeight: FontWeight.bold,
+  },
+  currencyName: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+  },
+  currencyCode: {
+    fontSize: FontSize.xs,
+    marginTop: 2,
   },
 });

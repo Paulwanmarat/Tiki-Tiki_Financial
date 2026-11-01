@@ -1,5 +1,6 @@
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
+import { CurrencyProvider } from '@/context/CurrencyContext';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import Head from 'expo-router/head';
@@ -146,11 +147,13 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <AuthGuard>
-          <AppContent />
-        </AuthGuard>
-      </AuthProvider>
+      <CurrencyProvider>
+        <AuthProvider>
+          <AuthGuard>
+            <AppContent />
+          </AuthGuard>
+        </AuthProvider>
+      </CurrencyProvider>
     </ThemeProvider>
   );
 }

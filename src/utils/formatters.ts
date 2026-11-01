@@ -1,5 +1,9 @@
-const CURRENCY_SYMBOL = '₫';
-const LOCALE = 'vi-VN';
+// ─── Currency formatting ──────────────────────────────────────────────────────
+// Components should use useCurrency() from @/context/CurrencyContext for
+// user-selected currency.  These standalone functions are kept as fallbacks for
+// non-hook contexts (e.g. unit tests, server-side helpers) and default to THB.
+
+import { formatCurrencyWith, formatCurrencyCompactWith, DEFAULT_CURRENCY } from '@/context/CurrencyContext';
 
 export function getUserDisplayName(user?: { username?: string | null, email?: string } | null): string {
   if (!user) return 'Student';
@@ -12,32 +16,11 @@ export function getUserDisplayName(user?: { username?: string | null, email?: st
 }
 
 export function formatCurrency(amount: number): string {
-  if (isNaN(amount)) return `0${CURRENCY_SYMBOL}`;
-
-  // For VND, no decimal places
-  const absAmount = Math.abs(amount);
-  const formatted = absAmount.toLocaleString(LOCALE, {
-    maximumFractionDigits: 0,
-  });
-
-  const sign = amount < 0 ? '-' : '';
-  return `${sign}${formatted}${CURRENCY_SYMBOL}`;
+  return formatCurrencyWith(amount, DEFAULT_CURRENCY);
 }
 
 export function formatCurrencyCompact(amount: number): string {
-  const absAmount = Math.abs(amount);
-  const sign = amount < 0 ? '-' : '';
-
-  if (absAmount >= 1_000_000_000) {
-    return `${sign}${(absAmount / 1_000_000_000).toFixed(1)}B${CURRENCY_SYMBOL}`;
-  }
-  if (absAmount >= 1_000_000) {
-    return `${sign}${(absAmount / 1_000_000).toFixed(1)}M${CURRENCY_SYMBOL}`;
-  }
-  if (absAmount >= 1_000) {
-    return `${sign}${(absAmount / 1_000).toFixed(0)}K${CURRENCY_SYMBOL}`;
-  }
-  return formatCurrency(amount);
+  return formatCurrencyCompactWith(amount, DEFAULT_CURRENCY);
 }
 
 export function formatDate(dateStr: string, style: 'short' | 'medium' | 'long' = 'medium'): string {
@@ -46,7 +29,7 @@ export function formatDate(dateStr: string, style: 'short' | 'medium' | 'long' =
 
   switch (style) {
     case 'short':
-      return date.toLocaleDateString(LOCALE, { day: '2-digit', month: '2-digit' });
+      return date.toLocaleDateString('en-US', { day: '2-digit', month: '2-digit' });
     case 'medium':
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     case 'long':

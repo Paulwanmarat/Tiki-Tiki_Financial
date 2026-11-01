@@ -20,12 +20,12 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useGoals } from '@/hooks/useGoals';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useCurrency } from '@/context/CurrencyContext';
 import { ChatMessage } from '@/types/ai';
 import { Goal, GoalProgress } from '@/types/goal';
 import * as aiHistoryDb from '@/services/database/aiHistory';
 import { askFinancialQuestion } from '@/services/ai/financeAssistant';
 import {
-  formatCurrency,
   formatPercentage,
   formatDateForInput,
   formatDate,
@@ -37,7 +37,7 @@ import { validateGoal } from '@/utils/validators';
 
 export default function GoalsAndAIChatScreen() {
   const { colors, isDark } = useTheme();
-  const { user } = useAuth();
+  const { formatCurrency, currency } = useCurrency();  const { user } = useAuth();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
@@ -148,7 +148,7 @@ export default function GoalsAndAIChatScreen() {
       let reply = '';
       try {
         const goalsList = goalsWithProgress.map((gp) => gp.goal);
-        reply = await askFinancialQuestion(textToSend, messages, transactions, goalsList, goal);
+        reply = await askFinancialQuestion(textToSend, messages, transactions, goalsList, goal, currency.symbol);
       } catch (err: any) {
         reply = `I could not connect to Piggy AI. (${err.message || 'Please check connection'}).`;
       }
@@ -242,7 +242,7 @@ export default function GoalsAndAIChatScreen() {
 
       // Post confirmation into chat
       if (user) {
-        const depositNotice = `💰 Added ฿${amt} to "${activeGoalProgress.goal.name}". New progress: ${formatCurrency(newAmount)} / ${formatCurrency(activeGoalProgress.goal.targetAmount)}!`;
+        const depositNotice = `💰 Added ${formatCurrency(amt)} to "${activeGoalProgress.goal.name}". New progress: ${formatCurrency(newAmount)} / ${formatCurrency(activeGoalProgress.goal.targetAmount)}!`;
         const noticeMsg = await aiHistoryDb.saveAIHistory(
           null,
           user.id,
@@ -715,7 +715,7 @@ export default function GoalsAndAIChatScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Target Amount (฿)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Target Amount ({currency.symbol})</Text>
               <TextInput
                 style={[styles.modalInput, { backgroundColor: colors.surfaceElevated, borderColor: colors.border, color: colors.text }]}
                 placeholder="e.g. 5000"
@@ -727,7 +727,7 @@ export default function GoalsAndAIChatScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Initial Saved (Optional ฿)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Initial Saved (Optional {currency.symbol})</Text>
               <TextInput
                 style={[styles.modalInput, { backgroundColor: colors.surfaceElevated, borderColor: colors.border, color: colors.text }]}
                 placeholder="0"
@@ -808,7 +808,7 @@ export default function GoalsAndAIChatScreen() {
                     textAlign: 'center',
                   },
                 ]}
-                placeholder="฿0.00"
+                placeholder={`${currency.symbol}0.00`}
                 placeholderTextColor={colors.textTertiary}
                 keyboardType="numeric"
                 value={depositAmount}
@@ -824,7 +824,7 @@ export default function GoalsAndAIChatScreen() {
                   style={[styles.presetBtn, { borderColor: colors.border, backgroundColor: colors.surfaceElevated }]}
                   onPress={() => setDepositAmount(String(amt))}
                 >
-                  <Text style={[styles.presetBtnText, { color: colors.primary }]}>+฿{amt}</Text>
+                  <Text style={[styles.presetBtnText, { color: colors.primary }]}>+{formatCurrency(amt)}</Text>
                 </TouchableOpacity>
               ))}
             </View>

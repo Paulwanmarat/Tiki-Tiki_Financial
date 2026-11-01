@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Animated, Image } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { GoalProgress } from '@/types/goal';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
-import { formatCurrency } from '@/utils/formatters';
+import { useCurrency } from '@/context/CurrencyContext';
 import { PIGGY_LOGO } from '@/constants/assets';
 
 interface SavingPigProps {
@@ -12,6 +12,7 @@ interface SavingPigProps {
 
 export function SavingPig({ progress }: SavingPigProps) {
   const { colors } = useTheme();
+  const { formatCurrency } = useCurrency();
   
   // Clamped percentage 0-100
   const pct = Math.min(100, Math.max(0, progress.percentage));
