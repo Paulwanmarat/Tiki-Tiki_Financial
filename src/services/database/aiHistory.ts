@@ -6,6 +6,7 @@ export interface AIHistoryItem {
   content: string;
   contextSnapshot?: string;
   timestamp: string;
+  goal_id?: string | null;
 }
 
 export async function saveAIHistory(
@@ -13,29 +14,34 @@ export async function saveAIHistory(
   userId: string,
   role: 'user' | 'assistant' | 'system',
   content: string,
-  contextSnapshot?: string
+  contextSnapshot?: string,
+  goalId?: string | null
 ): Promise<AIHistoryItem & { userId: string }> {
   return fetchWithAuth('/api/history', {
     method: 'POST',
-    body: JSON.stringify({ role, content, contextSnapshot }),
+    body: JSON.stringify({ role, content, contextSnapshot, goalId }),
   });
 }
 
 export async function getAIHistory(
   db: any,
   userId: string,
-  limit: number = 50
+  limit: number = 50,
+  goalId?: string | null
 ): Promise<(AIHistoryItem & { userId: string })[]> {
-  const history = await fetchWithAuth('/api/history');
-  return history.slice(-limit); // Just a basic limit since API returns all for now.
+  const endpoint = goalId ? `/api/history?goalId=${encodeURIComponent(goalId)}` : '/api/history';
+  const history = await fetchWithAuth(endpoint);
+  return Array.isArray(history) ? history.slice(-limit) : [];
 }
 
 export async function clearAIHistory(
   db: any,
-  userId: string
+  userId: string,
+  goalId?: string | null
 ): Promise<void> {
   try {
-    await fetchWithAuth('/api/history', { method: 'DELETE' });
+    const endpoint = goalId ? `/api/history?goalId=${encodeURIComponent(goalId)}` : '/api/history';
+    await fetchWithAuth(endpoint, { method: 'DELETE' });
   } catch (error) {
     console.error('Failed to clear AI history:', error);
     throw error;

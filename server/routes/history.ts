@@ -13,8 +13,18 @@ router.get('/', async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
+    const { goalId } = req.query;
     const db = getDb();
-    const result = await db.query('SELECT * FROM ai_history WHERE user_id = $1 ORDER BY timestamp ASC', [userId]);
+    let query = 'SELECT * FROM ai_history WHERE user_id = $1';
+    const params: any[] = [userId];
+
+    if (goalId) {
+      query += ' AND goal_id = $2';
+      params.push(goalId);
+    }
+    query += ' ORDER BY timestamp ASC';
+
+    const result = await db.query(query, params);
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching AI history:', error);
@@ -28,19 +38,20 @@ router.post('/', async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { role, content, contextSnapshot, timestamp } = req.body;
+    const { role, content, contextSnapshot, timestamp, goalId, goal_id } = req.body;
     if (!role || !content) {
       return res.status(400).json({ error: 'Role and content are required' });
     }
 
     const id = generateId();
     const ts = timestamp || new Date().toISOString();
+    const targetGoalId = goalId || goal_id || null;
     const db = getDb();
 
     await db.query(
-      `INSERT INTO ai_history (id, user_id, role, content, "contextSnapshot", timestamp)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [id, userId, role, content, contextSnapshot || null, ts]
+      `INSERT INTO ai_history (id, user_id, role, content, "contextSnapshot", timestamp, goal_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [id, userId, role, content, contextSnapshot || null, ts, targetGoalId]
     );
 
     const result = await db.query('SELECT * FROM ai_history WHERE id = $1 AND user_id = $2', [id, userId]);
@@ -72,16 +83,21 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/history (Clear all history for authenticated user)
+// DELETE /api/history (Clear history for authenticated user, optionally scoped to goalId)
 router.delete('/', async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
+    const { goalId } = req.query;
     const db = getDb();
-    await db.query('DELETE FROM ai_history WHERE user_id = $1', [userId]);
+    if (goalId) {
+      await db.query('DELETE FROM ai_history WHERE user_id = $1 AND goal_id = $2', [userId, goalId]);
+    } else {
+      await db.query('DELETE FROM ai_history WHERE user_id = $1', [userId]);
+    }
 
-    res.json({ message: 'All history cleared successfully' });
+    res.json({ message: 'History cleared successfully' });
   } catch (error) {
     console.error('Error clearing AI history:', error);
     res.status(500).json({ error: 'Internal server error' });

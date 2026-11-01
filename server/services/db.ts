@@ -73,6 +73,8 @@ export async function initDb(): Promise<Pool> {
       );
       
       CREATE INDEX IF NOT EXISTS idx_ai_history_userId ON ai_history(user_id);
+      ALTER TABLE ai_history ADD COLUMN IF NOT EXISTS "goal_id" TEXT;
+      CREATE INDEX IF NOT EXISTS idx_ai_history_goalId ON ai_history(goal_id);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS "email_verified" BOOLEAN DEFAULT false;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS "verification_token_hash" TEXT;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS "verification_token_expires_at" TIMESTAMP WITH TIME ZONE;

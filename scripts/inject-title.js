@@ -11,3 +11,4 @@ if (fs.existsSync(distDir)) {
     console.log('Injected title into', f);
   });
 }
+

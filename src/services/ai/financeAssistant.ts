@@ -10,7 +10,8 @@ export async function askFinancialQuestion(
   userQuestion: string,
   chatHistory: ChatMessage[],
   transactions: Transaction[],
-  goals: Goal[]
+  goals: Goal[],
+  activeGoal?: Goal | null
 ): Promise<string> {
   // 1. Build context from real user data
   const summary = calculateFinanceSummary(transactions);
@@ -52,7 +53,18 @@ export async function askFinancialQuestion(
     monthOverMonthChange: analysis.monthOverMonthChange,
   };
 
-  const contextPrompt = buildFinancialContextPrompt(aiContext);
+  let contextPrompt = buildFinancialContextPrompt(aiContext);
+
+  if (activeGoal) {
+    const progress = calculateGoalProgress(activeGoal);
+    contextPrompt += `\n\n🎯 CURRENT ACTIVE GOAL FOCUS:
+- Goal Name: "${activeGoal.name}"
+- Target Amount: ฿${activeGoal.targetAmount}
+- Saved So Far: ฿${activeGoal.currentAmount} (${progress.percentage.toFixed(0)}% reached)
+- Target Deadline: ${activeGoal.targetDate} (${progress.daysRemaining} days left)
+- Required Daily Savings: ~฿${Math.round(progress.requiredMonthlySaving / 30)}/day
+Please provide student-friendly financial guidance specifically focused on hitting this goal.`;
+  }
 
   // 2. Format history for the AI provider
   const formattedMessages = chatHistory.map(msg => ({

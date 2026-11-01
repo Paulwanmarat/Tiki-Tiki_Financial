@@ -91,37 +91,22 @@ export function WebLanding() {
     sectionRefs.current[key] = y;
   }, []);
 
-  // Compute cinematic timecode
-  const totalSeconds = Math.floor(scrollY / 120);
-  const mins = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-  const secs = (totalSeconds % 60).toString().padStart(2, '0');
-  const frames = Math.floor((scrollY % 120) / 5).toString().padStart(2, '0');
-  const timecode = `00:${mins}:${secs}:${frames}`;
-
-  // Compute current cinematic narrative scene
-  let sceneName = 'SCENE 01 // OVERTURE · FINANCIAL CANVAS';
+  // Compute active navigation section based on scroll offset
   let activeNavKey = 'top';
 
   if (scrollY >= (sectionRefs.current['team'] || 4800) - 200) {
-    sceneName = 'SCENE 08 // PRODUCTION CREDITS · FACULTY & CREATORS';
     activeNavKey = 'team';
   } else if (scrollY >= (sectionRefs.current['research'] || 4200) - 200) {
-    sceneName = 'SCENE 07 // EMPIRICAL PROOF · 73-STUDENT AUDIT';
     activeNavKey = 'research';
   } else if (scrollY >= (sectionRefs.current['ai'] || 3600) - 200) {
-    sceneName = 'SCENE 06 // VISION INTELLIGENCE · MENU OCR & ADVISOR';
     activeNavKey = 'ai';
   } else if (scrollY >= (sectionRefs.current['goals'] || 3000) - 200) {
-    sceneName = 'SCENE 05 // COMPOUND VAULT · THE PIGGY METHOD';
     activeNavKey = 'goals';
   } else if (scrollY >= (sectionRefs.current['simulator'] || 2200) - 200) {
-    sceneName = 'SCENE 04 // SIMULATION ENGINE · PRE-PURCHASE IMPACT';
     activeNavKey = 'simulator';
   } else if (scrollY >= (sectionRefs.current['ledger'] || 1400) - 200) {
-    sceneName = 'SCENE 03 // 3-PILLAR LEDGER · SYSTEM ARCHITECTURE';
     activeNavKey = 'ledger';
   } else if (scrollY >= (sectionRefs.current['problem'] || 600) - 200) {
-    sceneName = 'SCENE 02 // THE DAILY LEAK · MICRO-EXPENSE FRICTION';
     activeNavKey = 'problem';
   }
 
@@ -198,14 +183,6 @@ export function WebLanding() {
         <StudioFinalCTA onOpenApp={() => router.push('/app')} isMobile={isMobile} />
         <StudioFooter isMobile={isMobile} scrollTo={scrollTo} />
       </ScrollView>
-
-      {/* Floating Cinematic Production HUD */}
-      <CinematicProductionHUD
-        timecode={timecode}
-        sceneName={sceneName}
-        scrollProgress={scrollProgress}
-        isMobile={isMobile}
-      />
     </View>
   );
 }
@@ -240,11 +217,6 @@ function StudioNavBar({
 
   return (
     <View style={navStyles.wrapper}>
-      {/* Top Laser Progress Bar */}
-      <View style={navStyles.laserTrack}>
-        <View style={[navStyles.laserFill, { width: `${scrollProgress}%` }]} />
-      </View>
-
       <View style={navStyles.container}>
         {/* Brand Emblem */}
         <TouchableOpacity
@@ -345,49 +317,6 @@ function StudioNavBar({
 
 /* ───────────────────────────────────────────────────────────────── */
 /*  Cinematic Production HUD                                        */
-/* ───────────────────────────────────────────────────────────────── */
-function CinematicProductionHUD({
-  timecode,
-  sceneName,
-  scrollProgress,
-  isMobile,
-}: {
-  timecode: string;
-  sceneName: string;
-  scrollProgress: number;
-  isMobile: boolean;
-}) {
-  return (
-    <View style={[hudStyles.bar, isMobile && hudStyles.barMobile]}>
-      <View style={hudStyles.leftSection}>
-        <View style={hudStyles.recPill}>
-          <View style={hudStyles.recDot} />
-          <Text style={hudStyles.recText}>REC</Text>
-        </View>
-        <Text style={hudStyles.timecode}>{timecode}</Text>
-        {!isMobile && (
-          <Text style={hudStyles.cameraMeta}>DCI-P3 · 2.39:1</Text>
-        )}
-      </View>
-
-      <View style={hudStyles.centerSection}>
-        <Text style={hudStyles.sceneText} numberOfLines={1}>
-          {sceneName}
-        </Text>
-      </View>
-
-      {!isMobile && (
-        <View style={hudStyles.rightSection}>
-          <Text style={hudStyles.progressPct}>{Math.round(scrollProgress)}%</Text>
-          <View style={hudStyles.miniTrack}>
-            <View style={[hudStyles.miniFill, { width: `${scrollProgress}%` }]} />
-          </View>
-        </View>
-      )}
-    </View>
-  );
-}
-
 const navStyles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
@@ -398,15 +327,6 @@ const navStyles = StyleSheet.create({
     backgroundColor: 'rgba(13, 9, 18, 0.94)',
     borderBottomWidth: 1,
     borderBottomColor: S.canvasDarkBorder,
-  },
-  laserTrack: {
-    height: 2,
-    width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  laserFill: {
-    height: 2,
-    backgroundColor: S.piggyPink,
   },
   container: {
     flexDirection: 'row',
@@ -529,114 +449,6 @@ const navStyles = StyleSheet.create({
   },
 });
 
-const hudStyles = StyleSheet.create({
-  bar: {
-    position: 'absolute',
-    bottom: 24,
-    left: '50%',
-    transform: [{ translateX: -310 }],
-    width: 620,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(12, 7, 16, 0.90)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    zIndex: 998,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-  },
-  barMobile: {
-    left: 12,
-    right: 12,
-    width: 'auto',
-    transform: [],
-    paddingHorizontal: 12,
-    bottom: 16,
-  },
-  leftSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  recPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.35)',
-  },
-  recDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#EF4444',
-  },
-  recText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#EF4444',
-    letterSpacing: 1,
-  },
-  timecode: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#FDF8F4',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    letterSpacing: 1,
-  },
-  cameraMeta: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#8A7B91',
-    letterSpacing: 0.8,
-    marginLeft: 4,
-  },
-  centerSection: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 10,
-  },
-  sceneText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: S.piggyPink,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  rightSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  progressPct: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#B9ABC1',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  miniTrack: {
-    width: 44,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    overflow: 'hidden',
-  },
-  miniFill: {
-    height: '100%',
-    backgroundColor: S.piggyPink,
-  },
-});
-
 /* ───────────────────────────────────────────────────────────────── */
 /*  HERO SECTION: "Your money. Your canvas."                        */
 /* ───────────────────────────────────────────────────────────────── */
@@ -657,7 +469,7 @@ function StudioHeroSection({
   const ledgerData =
     heroMode === 'weekday'
       ? {
-          title: 'SESSION 01 // MON-FRI CAMPUS LEDGER',
+          title: 'SESSION 01 · MON-FRI CAMPUS LEDGER',
           budget: '฿150.00',
           spent: '฿120.00',
           remaining: '฿30.00',
@@ -669,7 +481,7 @@ function StudioHeroSection({
           ],
         }
       : {
-          title: 'SESSION 02 // RESEARCH LAB SESSION',
+          title: 'SESSION 02 · RESEARCH LAB SESSION',
           budget: '฿300.00',
           spent: '฿230.00',
           remaining: '฿70.00',
@@ -722,7 +534,7 @@ function StudioHeroSection({
                     heroMode === 'weekday' && heroStyles.modeBtnTextActive,
                   ]}
                 >
-                  [ 01 // CAMPUS ROUTINE ]
+                  [ 01 · CAMPUS ROUTINE ]
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -738,7 +550,7 @@ function StudioHeroSection({
                     heroMode === 'weekend' && heroStyles.modeBtnTextActive,
                   ]}
                 >
-                  [ 02 // RESEARCH LAB ]
+                  [ 02 · RESEARCH LAB ]
                 </Text>
               </TouchableOpacity>
             </View>
