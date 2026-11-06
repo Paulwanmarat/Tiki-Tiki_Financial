@@ -41,6 +41,54 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
   }
 };
 
+// Optional auth middleware for public browse routes with personalized user context
+export const optionalAuth = (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+  const secret = process.env.JWT_SECRET;
+  if (!secret) return next();
+
+  try {
+    const payload = jwt.verify(token, secret) as { id: string; email: string };
+    req.user = payload;
+  } catch {
+    // Ignore invalid or expired tokens on public endpoints
+  }
+  next();
+};
+
+// Middleware to ensure user has administrator privileges
+export const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+  }
+
+  try {
+    const db = getDb();
+    const result = await db.query('SELECT role, email FROM users WHERE id = $1', [userId]);
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized', message: 'User not found' });
+    }
+
+    const isAdmin = user.role === 'admin' || user.email === 'admin@spr.app' || user.email?.startsWith('admin@');
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Administrator privileges required' });
+    }
+
+    next();
+  } catch (error) {
+    console.error('requireAdmin error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 const resendRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 3, // Limit each IP to 3 resend requests per windowMs
@@ -276,7 +324,7 @@ router.get('/me', requireAuth, async (req, res) => {
   try {
     const userId = req.user?.id;
     const db = getDb();
-    const result = await db.query('SELECT id, email, email_verified, username, avatar_url FROM users WHERE id = $1', [userId]);
+    const result = await db.query('SELECT id, email, email_verified, username, avatar_url, COALESCE(role, \'user\') as role FROM users WHERE id = $1', [userId]);
     const user = result.rows[0];
     if (!user) {
       return res.status(404).json({ error: 'User not found' });

@@ -23,6 +23,7 @@ import { EmptyState, LoadingState } from '@/components/ui/States';
 import { SavingPig } from '@/components/ui/SavingPig';
 import { DailyLimitCard } from '@/components/ui/DailyLimitCard';
 import { TransactionItem } from '@/components/transactions/TransactionItem';
+import { TrylandWordmark } from '@/components/ui/TrylandWordmark';
 import { formatPercentage, getUserDisplayName } from '@/utils/formatters';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
 import { PIGGY_LOGO } from '@/constants/assets';
@@ -234,6 +235,84 @@ export default function DashboardScreen() {
               {hasData ? formatPercentage(summary.savingsRate, 0) : '0%'}
             </Text>
           </Card>
+        </View>
+
+        {/* Campus & Community Hub */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Campus & Community</Text>
+            <Text style={[styles.sectionSubtitle, { color: colors.textTertiary }]}>Student Ecosystem</Text>
+          </View>
+
+          <View style={styles.hubGrid}>
+            <TouchableOpacity
+              style={[styles.hubCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => router.push('/marketplace')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.hubIconBg, { backgroundColor: colors.primary + '18' }]}>
+                <Ionicons name="cart-outline" size={22} color={colors.primary} />
+              </View>
+              <View style={styles.hubTextCol}>
+                <Text style={[styles.hubTitle, { color: colors.text }]}>Marketplace</Text>
+                <Text style={[styles.hubDesc, { color: colors.textSecondary }]} numberOfLines={1}>
+                  Buy & sell pre-loved gear
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.hubCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => router.push('/projects')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.hubIconBg, { backgroundColor: '#8B5CF618' }]}>
+                <Ionicons name="bulb-outline" size={22} color="#8B5CF6" />
+              </View>
+              <View style={styles.hubTextCol}>
+                <Text style={[styles.hubTitle, { color: colors.text }]}>SPR Projects</Text>
+                <Text style={[styles.hubDesc, { color: colors.textSecondary }]} numberOfLines={1}>
+                  Ideas & AI project mentor
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.hubCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => router.push('/tryland')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.hubIconBg, { backgroundColor: '#10B98118' }]}>
+                <Text style={{ fontSize: 18 }}>🌳</Text>
+              </View>
+              <View style={styles.hubTextCol}>
+                <TrylandWordmark size="sm" />
+                <Text style={[styles.hubDesc, { color: colors.textSecondary, marginTop: 2 }]} numberOfLines={1}>
+                  Student bill sponsorship
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.hubCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => router.push('/donate')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.hubIconBg, { backgroundColor: '#F59E0B18' }]}>
+                <Ionicons name="heart-outline" size={22} color="#F59E0B" />
+              </View>
+              <View style={styles.hubTextCol}>
+                <Text style={[styles.hubTitle, { color: colors.text }]}>SPR Donate</Text>
+                <Text style={[styles.hubDesc, { color: colors.textSecondary }]} numberOfLines={1}>
+                  Fund campus & student causes
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Category Spending Breakdown */}
@@ -681,6 +760,39 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.semibold,
   },
   alertDescription: {
+    fontSize: FontSize.xs,
+    marginTop: 2,
+  },
+  sectionSubtitle: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.medium,
+  },
+  hubGrid: {
+    gap: Spacing.sm,
+  },
+  hubCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    gap: Spacing.md,
+  },
+  hubIconBg: {
+    width: 42,
+    height: 42,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hubTextCol: {
+    flex: 1,
+  },
+  hubTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
+  },
+  hubDesc: {
     fontSize: FontSize.xs,
     marginTop: 2,
   },

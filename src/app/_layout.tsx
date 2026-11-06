@@ -1,6 +1,7 @@
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { CurrencyProvider } from '@/context/CurrencyContext';
+import { FinancialDataProvider } from '@/context/FinancialDataContext';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import Head from 'expo-router/head';
@@ -150,7 +151,9 @@ export default function RootLayout() {
       <CurrencyProvider>
         <AuthProvider>
           <AuthGuard>
-            <AppContent />
+            <FinancialDataProvider>
+              <AppContent />
+            </FinancialDataProvider>
           </AuthGuard>
         </AuthProvider>
       </CurrencyProvider>

@@ -1,0 +1,32 @@
+import { fetchWithAuth } from '@/services/ai/client';
+import { LiveImpactTotals, PaymentSubmission } from '@/types/payments';
+
+export async function getLiveImpactTotals(): Promise<LiveImpactTotals> {
+  return fetchWithAuth('/api/impact/live-totals');
+}
+
+export async function getAdminPayments(params?: {
+  status?: string;
+  type?: string;
+  search?: string;
+}): Promise<PaymentSubmission[]> {
+  const query = new URLSearchParams();
+  if (params?.status) query.append('status', params.status);
+  if (params?.type) query.append('type', params.type);
+  if (params?.search) query.append('search', params.search);
+  const qs = query.toString();
+  return fetchWithAuth(`/api/admin/payments${qs ? `?${qs}` : ''}`);
+}
+
+export async function verifyAdminPayment(
+  type: 'tryland' | 'donate',
+  id: string,
+  action: 'approve' | 'reject',
+  rejection_reason?: string
+): Promise<{ success: boolean; message: string; status: string }> {
+  return fetchWithAuth(`/api/admin/payments/${type}/${id}/verify`, {
+    method: 'POST',
+    body: JSON.stringify({ action, rejection_reason }),
+  });
+}
+

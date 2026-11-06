@@ -7,6 +7,7 @@ import {
   ScrollView,
   Image,
   Platform,
+  Alert,
 } from 'react-native';
 import { useRouter, usePathname, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,7 @@ import { PIGGY_LOGO } from '@/constants/assets';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { formatPercentage, getUserDisplayName } from '@/utils/formatters';
 import { confirmAction } from '@/utils/confirm';
+import * as aiHistoryDb from '@/services/database/aiHistory';
 
 interface DesktopSidebarProps {
   onNewGoal?: () => void;
@@ -32,7 +34,7 @@ export function DesktopSidebar({ onNewGoal, collapsed = false, onToggleCollapse 
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useLocalSearchParams<{ goalId?: string }>();
-  const { goalsWithProgress } = useGoals();
+  const { goalsWithProgress, removeGoal } = useGoals();
 
   const handleLogout = () => {
     confirmAction(
@@ -55,11 +57,44 @@ export function DesktopSidebar({ onNewGoal, collapsed = false, onToggleCollapse 
     { label: 'Menu OCR Scanner', icon: 'camera-outline', activeIcon: 'camera', route: '/scanner' },
   ];
 
+  const communityItems = [
+    { label: 'Marketplace', icon: 'cart-outline', activeIcon: 'cart', route: '/marketplace' },
+    { label: 'SPR Projects', icon: 'bulb-outline', activeIcon: 'bulb', route: '/projects' },
+    { label: '🌳RYLAND', icon: 'leaf-outline', activeIcon: 'leaf', route: '/tryland' },
+    { label: 'Donate & Causes', icon: 'heart-outline', activeIcon: 'heart', route: '/donate' },
+    { label: 'Live Impact (฿)', icon: 'analytics-outline', activeIcon: 'analytics', route: '/impact' },
+    { label: 'Payment Admin', icon: 'shield-checkmark-outline', activeIcon: 'shield-checkmark', route: '/admin/payments' },
+  ];
+
   const handleGoalSelect = (goalId: string) => {
     router.push({
       pathname: '/app/goals' as any,
       params: { goalId },
     });
+  };
+
+  const handleDeleteGoal = (goalId: string, goalName: string, e: any) => {
+    e?.stopPropagation?.();
+    confirmAction(
+      'Delete Goal',
+      `Delete "${goalName}" and its AI chat history? This cannot be undone.`,
+      'Delete',
+      async () => {
+        try {
+          if (user) {
+            await aiHistoryDb.clearAIHistory(null, user.id, goalId);
+          }
+          await removeGoal(goalId);
+          // If currently viewing that goal's chat, navigate away
+          if (pathname === '/app/goals' && searchParams.goalId === goalId) {
+            router.replace('/app/goals' as any);
+          }
+        } catch (err: any) {
+          Alert.alert('Error', err?.message || 'Failed to delete goal');
+        }
+      },
+      true
+    );
   };
 
   const handleCreateNewGoal = () => {
@@ -140,6 +175,43 @@ export function DesktopSidebar({ onNewGoal, collapsed = false, onToggleCollapse 
         <Text style={[styles.sectionHeading, { color: colors.textTertiary }]}>NAVIGATION</Text>
         {navItems.map((item) => {
           const isActive = pathname === item.route;
+          return (
+            <TouchableOpacity
+              key={item.route}
+              style={[
+                styles.navItem,
+                isActive && [
+                  styles.navItemActive,
+                  { backgroundColor: colors.primary + '15' },
+                ],
+              ]}
+              onPress={() => router.push(item.route as any)}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={(isActive ? item.activeIcon : item.icon) as any}
+                size={18}
+                color={isActive ? colors.primary : colors.textSecondary}
+              />
+              <Text
+                style={[
+                  styles.navItemText,
+                  { color: isActive ? colors.primary : colors.text },
+                  isActive && { fontWeight: FontWeight.bold },
+                ]}
+              >
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* 3b. Student Community & Commerce */}
+      <View style={[styles.navSection, { marginTop: 4 }]}>
+        <Text style={[styles.sectionHeading, { color: colors.textTertiary }]}>CAMPUS & COMMUNITY</Text>
+        {communityItems.map((item) => {
+          const isActive = pathname.startsWith(item.route);
           return (
             <TouchableOpacity
               key={item.route}
@@ -256,6 +328,15 @@ export function DesktopSidebar({ onNewGoal, collapsed = false, onToggleCollapse 
                       {formatPercentage(gp.percentage, 0)}
                     </Text>
                   </View>
+                  {/* Delete button — shown on hover/tap for each goal row */}
+                  <TouchableOpacity
+                    style={[styles.sidebarDeleteBtn, { backgroundColor: colors.danger + '18' }]}
+                    onPress={(e) => handleDeleteGoal(gp.goal.id, gp.goal.name, e)}
+                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                    accessibilityLabel={`Delete goal ${gp.goal.name}`}
+                  >
+                    <Ionicons name="trash-outline" size={12} color={colors.danger} />
+                  </TouchableOpacity>
                 </TouchableOpacity>
               );
             })
@@ -545,5 +626,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+  },
+  sidebarDeleteBtn: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 2,
   },
 });

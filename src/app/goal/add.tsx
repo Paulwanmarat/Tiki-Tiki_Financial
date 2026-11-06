@@ -23,7 +23,7 @@ import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 
 export default function AddGoalScreen() {
   const { colors } = useTheme();
-  const { currency } = useCurrency();
+  const { currency, convertToBase } = useCurrency();
   const router = useRouter();
   const { addGoal } = useGoals();
 
@@ -50,8 +50,8 @@ export default function AddGoalScreen() {
       setErrors([]);
       await addGoal({
         name: name.trim(),
-        targetAmount: parseFloat(targetAmount),
-        currentAmount: currentAmount ? parseFloat(currentAmount) : 0,
+        targetAmount: convertToBase(parseFloat(targetAmount)),
+        currentAmount: currentAmount ? convertToBase(parseFloat(currentAmount)) : 0,
         targetDate: new Date(targetDate).toISOString(),
         description: description.trim(),
       });

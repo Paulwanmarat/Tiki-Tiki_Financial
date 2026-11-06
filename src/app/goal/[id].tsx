@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+  import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,8 +14,10 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 import { useGoals } from '@/hooks/useGoals';
 import { useCurrency } from '@/context/CurrencyContext';
+import * as aiHistoryDb from '@/services/database/aiHistory';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { LoadingState, ErrorState } from '@/components/ui/States';
@@ -29,7 +31,8 @@ import { DatePickerField } from '@/components/ui/DatePickerField';
 
 export default function GoalDetailScreen() {
   const { colors } = useTheme();
-  const { formatCurrency, currency } = useCurrency();
+  const { formatCurrency, currency, convertFromBase, convertToBase } = useCurrency();
+  const { user } = useAuth();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getById, updateGoal, removeGoal, addMoney, withdrawMoney, refresh } = useGoals();
@@ -54,7 +57,8 @@ export default function GoalDetailScreen() {
       if (g) {
         setGoal(g);
         setEditName(g.name);
-        setEditTarget(g.targetAmount.toString());
+        const convertedTarget = convertFromBase(g.targetAmount);
+        setEditTarget(currency.decimals === 0 ? Math.round(convertedTarget).toString() : convertedTarget.toFixed(currency.decimals));
         setEditDate(formatDateForInput(new Date(g.targetDate)));
         setEditDescription(g.description);
       } else {
@@ -76,10 +80,11 @@ export default function GoalDetailScreen() {
     try {
       setProcessing(true);
       const amt = parseFloat(moneyAmount);
+      const baseAmt = convertToBase(amt);
       if (moneyAction === 'add') {
-        await addMoney(id, amt);
+        await addMoney(id, baseAmt);
       } else {
-        await withdrawMoney(id, amt);
+        await withdrawMoney(id, baseAmt);
       }
       setMoneyAmount('');
       setMoneyAction(null);
@@ -95,7 +100,7 @@ export default function GoalDetailScreen() {
       setProcessing(true);
       await updateGoal(id, {
         name: editName.trim(),
-        targetAmount: parseFloat(editTarget),
+        targetAmount: convertToBase(parseFloat(editTarget)),
         targetDate: new Date(editDate).toISOString(),
         description: editDescription.trim(),
       });
@@ -109,11 +114,14 @@ export default function GoalDetailScreen() {
   const handleDelete = () => {
     confirmAction(
       'Delete Goal',
-      'Are you sure you want to delete this goal? This cannot be undone.',
+      'Are you sure you want to delete this goal and its associated AI chat history? This cannot be undone.',
       'Delete',
       async () => {
         if (!id) return;
         try {
+          if (user) {
+            await aiHistoryDb.clearAIHistory(null, user.id, id);
+          }
           await removeGoal(id);
           router.back();
         } catch (err: any) {
@@ -245,7 +253,7 @@ export default function GoalDetailScreen() {
                 <TextInput style={[styles.textInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]} value={editName} onChangeText={setEditName} />
               </View>
               <View style={styles.fieldGroup}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Target Amount</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Target Amount ({currency.symbol})</Text>
                 <TextInput style={[styles.textInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]} value={editTarget} onChangeText={setEditTarget} keyboardType="numeric" />
               </View>
               <View style={styles.fieldGroup}>

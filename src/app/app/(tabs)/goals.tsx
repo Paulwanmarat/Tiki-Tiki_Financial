@@ -12,6 +12,7 @@ import {
   Image,
   ActivityIndicator,
   useWindowDimensions,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,6 +23,7 @@ import { useGoals } from '@/hooks/useGoals';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCurrency } from '@/context/CurrencyContext';
 import { DatePickerField } from '@/components/ui/DatePickerField';
+import { confirmAction } from '@/utils/confirm';
 import { ChatMessage } from '@/types/ai';
 import { Goal, GoalProgress } from '@/types/goal';
 import * as aiHistoryDb from '@/services/database/aiHistory';
@@ -38,13 +40,14 @@ import { validateGoal } from '@/utils/validators';
 
 export default function GoalsAndAIChatScreen() {
   const { colors, isDark } = useTheme();
-  const { formatCurrency, currency } = useCurrency();  const { user } = useAuth();
+  const { formatCurrency, currency, convertFromBase, convertToBase } = useCurrency();
+  const { user } = useAuth();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
   const { goalId, create } = useLocalSearchParams<{ goalId?: string; create?: string }>();
 
-  const { goalsWithProgress, loading: goalsLoading, addGoal, updateGoal, refresh: refreshGoals } = useGoals();
+  const { goalsWithProgress, loading: goalsLoading, addGoal, updateGoal, removeGoal, refresh: refreshGoals } = useGoals();
   const { transactions } = useTransactions();
   const scrollRef = useRef<ScrollView>(null);
 
@@ -190,8 +193,8 @@ export default function GoalsAndAIChatScreen() {
 
       const createdGoal = await addGoal({
         name: newGoalName.trim(),
-        targetAmount: parseFloat(newTargetAmount),
-        currentAmount: newCurrentAmount ? parseFloat(newCurrentAmount) : 0,
+        targetAmount: convertToBase(parseFloat(newTargetAmount)),
+        currentAmount: newCurrentAmount ? convertToBase(parseFloat(newCurrentAmount)) : 0,
         targetDate: new Date(newTargetDate).toISOString(),
       });
 
@@ -230,12 +233,13 @@ export default function GoalsAndAIChatScreen() {
 
   // Deposit funds into active goal
   const handleDepositSubmit = async () => {
-    const amt = parseFloat(depositAmount);
-    if (isNaN(amt) || amt <= 0 || !activeGoalProgress) return;
+    const rawAmt = parseFloat(depositAmount);
+    if (isNaN(rawAmt) || rawAmt <= 0 || !activeGoalProgress) return;
 
     try {
+      const baseAmt = convertToBase(rawAmt);
       const current = activeGoalProgress.goal.currentAmount || 0;
-      const newAmount = current + amt;
+      const newAmount = current + baseAmt;
       await updateGoal(activeGoalProgress.goal.id, { currentAmount: newAmount });
       setShowDepositModal(false);
       setDepositAmount('');
@@ -243,7 +247,7 @@ export default function GoalsAndAIChatScreen() {
 
       // Post confirmation into chat
       if (user) {
-        const depositNotice = `💰 Added ${formatCurrency(amt)} to "${activeGoalProgress.goal.name}". New progress: ${formatCurrency(newAmount)} / ${formatCurrency(activeGoalProgress.goal.targetAmount)}!`;
+        const depositNotice = `💰 Added ${formatCurrency(baseAmt)} to "${activeGoalProgress.goal.name}". New progress: ${formatCurrency(newAmount)} / ${formatCurrency(activeGoalProgress.goal.targetAmount)}!`;
         const noticeMsg = await aiHistoryDb.saveAIHistory(
           null,
           user.id,
@@ -267,6 +271,49 @@ export default function GoalsAndAIChatScreen() {
     } catch (err) {
       console.error('Failed to clear chat:', err);
     }
+  };
+
+  // Clear chat history for the active goal with confirmation
+  const handleClearChatPrompt = () => {
+    if (!activeGoalProgress || !user) return;
+    confirmAction(
+      'Clear AI Conversation',
+      `Clear all AI financial chat messages for "${activeGoalProgress.goal.name}"? Your savings milestone and saved funds will remain intact.`,
+      'Clear Chat',
+      async () => {
+        await clearCurrentGoalChat();
+      },
+      true
+    );
+  };
+
+  // Delete the active goal and its AI chat thread with confirmation
+  const handleDeleteActiveGoalPrompt = () => {
+    if (!activeGoalProgress) return;
+    const goalToDelete = activeGoalProgress.goal;
+    confirmAction(
+      'Delete Goal & AI Chat',
+      `Are you sure you want to delete "${goalToDelete.name}" and all its AI advice history? This action cannot be undone.`,
+      'Delete Goal',
+      async () => {
+        try {
+          if (user) {
+            await aiHistoryDb.clearAIHistory(null, user.id, goalToDelete.id);
+          }
+          await removeGoal(goalToDelete.id);
+          setMessages([]);
+          const remaining = goalsWithProgress.filter((gp) => gp.goal.id !== goalToDelete.id);
+          if (remaining.length > 0) {
+            setSelectedGoalId(remaining[0].goal.id);
+          } else {
+            setSelectedGoalId(null);
+          }
+        } catch (err: any) {
+          Alert.alert('Error', err?.message || 'Failed to delete goal');
+        }
+      },
+      true
+    );
   };
 
   // Suggested questions for the active goal
@@ -474,14 +521,25 @@ export default function GoalsAndAIChatScreen() {
                 <TouchableOpacity
                   style={[styles.depositBtn, { backgroundColor: colors.income + '18' }]}
                   onPress={() => setShowDepositModal(true)}
+                  accessibilityLabel="Add funds to goal"
                 >
                   <Ionicons name="add-circle" size={15} color={colors.income} />
                   <Text style={[styles.depositBtnText, { color: colors.income }]}>Deposit</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  style={[styles.dangerHeaderBtn, { backgroundColor: colors.expense + '15', borderColor: colors.expense + '30' }]}
+                  onPress={handleDeleteActiveGoalPrompt}
+                  accessibilityLabel="Delete goal & AI chat"
+                  accessibilityHint="Deletes this goal and clears its conversation"
+                >
+                  <Ionicons name="trash-outline" size={14} color={colors.expense} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
                   onPress={() => setCardCollapsed(!cardCollapsed)}
                   style={styles.collapseToggle}
+                  accessibilityLabel={cardCollapsed ? "Expand goal details" : "Collapse goal details"}
                 >
                   <Ionicons
                     name={cardCollapsed ? 'chevron-down' : 'chevron-up'}
@@ -492,7 +550,7 @@ export default function GoalsAndAIChatScreen() {
               </View>
             </View>
 
-            {/* Progress Bar & Required Savings */}
+            {/* Progress Bar, Required Savings & Quick Management Actions */}
             {!cardCollapsed && (
               <View style={styles.progressSection}>
                 <View style={[styles.progressTrack, { backgroundColor: colors.surfaceHighlight }]}>
@@ -522,6 +580,33 @@ export default function GoalsAndAIChatScreen() {
                       Pace: ~{formatCurrency(Math.round(activeGoalProgress.requiredMonthlySaving / 30))}/day
                     </Text>
                   )}
+                </View>
+
+                {/* Direct Action Bar to Edit, Clear AI Chat, or Delete Goal */}
+                <View style={[styles.goalQuickActionsRow, { borderTopColor: colors.border }]}>
+                  <TouchableOpacity
+                    style={[styles.goalQuickBtn, { borderColor: colors.border, backgroundColor: colors.surfaceHighlight + '40' }]}
+                    onPress={() => router.push(`/goal/${activeGoalProgress.goal.id}` as any)}
+                  >
+                    <Ionicons name="create-outline" size={13} color={colors.textSecondary} />
+                    <Text style={[styles.goalQuickBtnText, { color: colors.textSecondary }]}>Edit Goal</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.goalQuickBtn, { borderColor: colors.border, backgroundColor: colors.surfaceHighlight + '40' }]}
+                    onPress={handleClearChatPrompt}
+                  >
+                    <Ionicons name="refresh-outline" size={13} color={colors.textSecondary} />
+                    <Text style={[styles.goalQuickBtnText, { color: colors.textSecondary }]}>Clear AI Chat</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.goalQuickBtn, { borderColor: colors.expense + '40', backgroundColor: colors.expense + '12' }]}
+                    onPress={handleDeleteActiveGoalPrompt}
+                  >
+                    <Ionicons name="trash-outline" size={13} color={colors.expense} />
+                    <Text style={[styles.goalQuickBtnText, { color: colors.expense }]}>Delete Goal</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             )}
@@ -1010,6 +1095,35 @@ const styles = StyleSheet.create({
   },
   collapseToggle: {
     padding: 4,
+  },
+  dangerHeaderBtn: {
+    padding: 6,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goalQuickActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  goalQuickBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+  },
+  goalQuickBtnText: {
+    fontSize: 10,
+    fontWeight: FontWeight.semibold,
   },
   progressSection: {
     marginTop: 10,

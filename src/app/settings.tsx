@@ -287,7 +287,9 @@ export default function SettingsScreen() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[pickerStyles.currencyName, { color: colors.text }]}>{item.name}</Text>
-                      <Text style={[pickerStyles.currencyCode, { color: colors.textTertiary }]}>{item.code}</Text>
+                      <Text style={[pickerStyles.currencyCode, { color: colors.textTertiary }]}>
+                        {item.code} · {item.code === 'THB' ? 'Base Currency (1.0x)' : `1฿ ≈ ${item.symbol}${item.rateFromBase}`}
+                      </Text>
                     </View>
                     {isSelected && <Ionicons name="checkmark-circle" size={22} color={colors.primary} />}
                   </TouchableOpacity>

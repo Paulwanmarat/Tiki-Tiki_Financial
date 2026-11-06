@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import path from 'path';
 import aiRoutes from './routes/ai';
 import ocrRoutes from './routes/ocr';
 import authRoutes, { requireAuth } from './routes/auth';
@@ -11,6 +12,12 @@ import settingsRoutes from './routes/settings';
 import historyRoutes from './routes/history';
 import feedbackRoutes from './routes/feedback';
 import profileRoutes from './routes/profile';
+import marketplaceRoutes from './routes/marketplace';
+import projectsRoutes from './routes/projects';
+import trylandRoutes from './routes/tryland';
+import donateRoutes from './routes/donate';
+import adminPaymentsRoutes from './routes/adminPayments';
+import impactRoutes from './routes/impact';
 import { initDb } from './services/db';
 
 // Load environment variables
@@ -95,6 +102,9 @@ app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Static assets (serves payment QR code and campus images safely)
+app.use('/assets', express.static(path.resolve(__dirname, '../assets')));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', requireAuth, aiRoutes);
@@ -105,6 +115,12 @@ app.use('/api/settings', requireAuth, settingsRoutes);
 app.use('/api/history', requireAuth, historyRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/profile', requireAuth, profileRoutes);
+app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/projects', projectsRoutes);
+app.use('/api/tryland', trylandRoutes);
+app.use('/api/donate', donateRoutes);
+app.use('/api/admin/payments', adminPaymentsRoutes);
+app.use('/api/impact', impactRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

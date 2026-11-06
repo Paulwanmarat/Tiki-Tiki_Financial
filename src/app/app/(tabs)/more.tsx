@@ -42,6 +42,54 @@ export default function MoreScreen() {
 
   const items: MenuItemData[] = [
     {
+      icon: 'cart',
+      title: 'SPR Marketplace',
+      description: 'Buy & sell pre-loved campus textbooks, dorm items & tech',
+      route: '/marketplace',
+      color: '#F59E0B',
+      badge: 'PRE-LOVED',
+    },
+    {
+      icon: 'bulb',
+      title: 'SPR Projects',
+      description: 'Student project blueprints, IoT guides & AI mentor',
+      route: '/projects',
+      color: '#8B5CF6',
+      badge: 'INNOVATION',
+    },
+    {
+      icon: 'leaf',
+      title: '🌳RYLAND',
+      description: 'Dignified student bill sponsorship & mutual aid platform',
+      route: '/tryland',
+      color: '#10B981',
+      badge: 'SPONSORSHIP',
+    },
+    {
+      icon: 'heart',
+      title: 'SPR Donate & Causes',
+      description: 'Fund meaningful campus initiatives & student community projects',
+      route: '/donate',
+      color: '#EC4899',
+      badge: 'COMMUNITY',
+    },
+    {
+      icon: 'analytics-outline',
+      title: 'Live Impact Totals',
+      description: 'Real-time database audit of verified sponsorships & donations (฿ THB)',
+      route: '/impact',
+      color: '#10B981',
+      badge: 'LIVE ฿',
+    },
+    {
+      icon: 'shield-checkmark-outline',
+      title: 'Payment Verification',
+      description: 'Review pending PromptPay transfers, bank slips & approve funding',
+      route: '/admin/payments',
+      color: '#3B82F6',
+      badge: 'ADMIN',
+    },
+    {
       icon: 'calculator',
       title: 'Spending Simulator',
       description: 'Model future purchase impacts on daily cash & goals',
@@ -211,7 +259,9 @@ export default function MoreScreen() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[pickerStyles.name, { color: colors.text }]}>{item.name}</Text>
-                      <Text style={[pickerStyles.code, { color: colors.textTertiary }]}>{item.code}</Text>
+                      <Text style={[pickerStyles.code, { color: colors.textTertiary }]}>
+                        {item.code} · {item.code === 'THB' ? 'Base Currency (1.0x)' : `1฿ ≈ ${item.symbol}${item.rateFromBase}`}
+                      </Text>
                     </View>
                     {isSelected && <Ionicons name="checkmark-circle" size={22} color={colors.primary} />}
                   </TouchableOpacity>

@@ -27,7 +27,7 @@ import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 
 export default function AddTransactionScreen() {
   const { colors } = useTheme();
-  const { currency } = useCurrency();
+  const { currency, convertToBase } = useCurrency();
   const router = useRouter();
   const params = useLocalSearchParams<{ type?: string }>();
   const { addTransaction } = useTransactions();
@@ -59,9 +59,12 @@ export default function AddTransactionScreen() {
     try {
       setSaving(true);
       setErrors([]);
+      const rawAmount = parseFloat(amount);
+      const baseAmount = convertToBase(rawAmount);
+
       await addTransaction({
         type,
-        amount: parseFloat(amount),
+        amount: baseAmount,
         categoryId,
         description: description.trim(),
         date: new Date(date).toISOString(),

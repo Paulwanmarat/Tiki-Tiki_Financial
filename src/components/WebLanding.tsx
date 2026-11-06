@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import { SurveyResults } from './SurveyResults';
+import { LiveWebImpactSection } from './impact/LiveWebImpactSection';
 import { PIGGY_LOGO, ANTHONY_PHOTO } from '@/constants/assets';
 
 /* ───────────────────────────────────────────────────────────────── */
@@ -94,7 +95,9 @@ export function WebLanding() {
   // Compute active navigation section based on scroll offset
   let activeNavKey = 'top';
 
-  if (scrollY >= (sectionRefs.current['team'] || 4800) - 200) {
+  if (scrollY >= (sectionRefs.current['impact'] || 5200) - 200) {
+    activeNavKey = 'impact';
+  } else if (scrollY >= (sectionRefs.current['team'] || 4800) - 200) {
     activeNavKey = 'team';
   } else if (scrollY >= (sectionRefs.current['research'] || 4200) - 200) {
     activeNavKey = 'research';
@@ -174,7 +177,12 @@ export function WebLanding() {
           <StudioTeamSection isMobile={isMobile} isTablet={isTablet} />
         </View>
 
-        {/* SECTION H: Feedback Box */}
+        {/* SECTION H: Live Community Impact & Verified Transparency (฿ THB) */}
+        <View onLayout={(e) => onLayout('impact', e.nativeEvent.layout.y)}>
+          <LiveWebImpactSection isMobile={isMobile} isTablet={isTablet} />
+        </View>
+
+        {/* SECTION I: Feedback Box */}
         <View onLayout={(e) => onLayout('feedback', e.nativeEvent.layout.y)}>
           <StudioFeedbackSection isMobile={isMobile} />
         </View>
@@ -213,6 +221,7 @@ function StudioNavBar({
     { label: 'Menu OCR', key: 'ai' },
     { label: 'Research', key: 'research' },
     { label: 'Team', key: 'team' },
+    { label: 'Impact (฿)', key: 'impact' },
   ];
 
   return (
@@ -581,6 +590,26 @@ function StudioHeroSection({
               <Text style={{ fontWeight: '700', color: S.textLight }}>Mr. Anthony Jose B. Ferrer</Text>
             </Text>
           </View>
+
+          {/* Studio Upgrade Highlights */}
+          <View style={heroStyles.featurePillsRow}>
+            <View style={heroStyles.featurePill}>
+              <Ionicons name="flash-outline" size={12} color={S.mintCash} />
+              <Text style={heroStyles.featurePillText}>Instant Live Data Sync</Text>
+            </View>
+            <View style={heroStyles.featurePill}>
+              <Ionicons name="globe-outline" size={12} color={S.piggyPink} />
+              <Text style={heroStyles.featurePillText}>18 Global Currencies</Text>
+            </View>
+            <View style={heroStyles.featurePill}>
+              <Ionicons name="calendar-outline" size={12} color={S.amberCoin} />
+              <Text style={heroStyles.featurePillText}>Smart Touch Date Picker</Text>
+            </View>
+            <View style={heroStyles.featurePill}>
+              <Ionicons name="sparkles-outline" size={12} color="#A78BFA" />
+              <Text style={heroStyles.featurePillText}>Unified Goals & AI Chats</Text>
+            </View>
+          </View>
         </View>
 
         {/* Right Studio Financial Scene */}
@@ -859,6 +888,30 @@ const heroStyles = StyleSheet.create({
   advisorTagText: {
     fontSize: 12,
     color: S.textLightMuted,
+  },
+  featurePillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  featurePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: S.canvasDarkCard,
+    borderWidth: 1,
+    borderColor: S.canvasDarkBorder,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 99,
+  },
+  featurePillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: S.textLight,
+    letterSpacing: 0.2,
   },
   rightCol: {
     flex: 0.95,
@@ -2464,8 +2517,9 @@ function AIVisionSection({
             </View>
 
             <Text style={aiStyles.toolDesc}>
-              Trained specifically on your actual transactions and goals. Ask natural questions
-              like "Can I afford weekend cinema?" and receive fact-checked financial answers.
+              Directly unified with your savings goals: each goal automatically launches its own
+              dedicated AI advisory thread. Ask questions like "Can I afford weekend cinema?" and
+              receive live, context-aware answers calculated against your real allowances.
             </Text>
 
             {/* Chat Dialog Mockup */}

@@ -29,7 +29,7 @@ import { DatePickerField } from '@/components/ui/DatePickerField';
 
 export default function TransactionDetailScreen() {
   const { colors } = useTheme();
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency, currency, convertFromBase, convertToBase } = useCurrency();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getById, updateTransaction, removeTransaction } = useTransactions();
@@ -60,7 +60,8 @@ export default function TransactionDetailScreen() {
       if (txn) {
         setTransaction(txn);
         setEditType(txn.type);
-        setEditAmount(txn.amount.toString());
+        const convertedAmt = convertFromBase(txn.amount);
+        setEditAmount(currency.decimals === 0 ? Math.round(convertedAmt).toString() : convertedAmt.toFixed(currency.decimals));
         setEditCategoryId(txn.categoryId);
         setEditDescription(txn.description);
         setEditDate(formatDateForInput(new Date(txn.date)));
@@ -88,7 +89,7 @@ export default function TransactionDetailScreen() {
       setErrors([]);
       await updateTransaction(id, {
         type: editType,
-        amount: parseFloat(editAmount),
+        amount: convertToBase(parseFloat(editAmount)),
         categoryId: editCategoryId,
         description: editDescription.trim(),
         date: new Date(editDate).toISOString(),
@@ -212,12 +213,14 @@ export default function TransactionDetailScreen() {
               </View>
 
               <View style={styles.fieldGroup}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Amount</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Amount ({currency.symbol})</Text>
                 <TextInput
                   style={[styles.textInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
                   value={editAmount}
                   onChangeText={setEditAmount}
                   keyboardType="numeric"
+                  placeholder="0.00"
+                  placeholderTextColor={colors.textTertiary}
                 />
               </View>
 
