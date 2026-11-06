@@ -80,3 +80,23 @@ export interface LiveImpactTotals {
   };
 }
 
+export interface AdminUserItem {
+  id: string;
+  email: string;
+  username?: string;
+  role: 'owner' | 'admin' | 'user';
+  email_verified: boolean;
+  created_at: string;
+}
+
+export interface AdminAuditLog {
+  id: string;
+  actor_id: string;
+  actor_email: string;
+  action: string;
+  target_email: string;
+  details: string;
+  created_at: string;
+}
+
+

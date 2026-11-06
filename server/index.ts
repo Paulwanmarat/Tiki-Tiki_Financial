@@ -17,6 +17,7 @@ import projectsRoutes from './routes/projects';
 import trylandRoutes from './routes/tryland';
 import donateRoutes from './routes/donate';
 import adminPaymentsRoutes from './routes/adminPayments';
+import adminUsersRoutes from './routes/adminUsers';
 import impactRoutes from './routes/impact';
 import { initDb } from './services/db';
 
@@ -120,6 +121,7 @@ app.use('/api/projects', projectsRoutes);
 app.use('/api/tryland', trylandRoutes);
 app.use('/api/donate', donateRoutes);
 app.use('/api/admin/payments', adminPaymentsRoutes);
+app.use('/api/admin/users', adminUsersRoutes);
 app.use('/api/impact', impactRoutes);
 
 // Health check

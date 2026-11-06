@@ -61,7 +61,20 @@ export const optionalAuth = (req: Request, res: Response, next: NextFunction) =>
   next();
 };
 
-// Middleware to ensure user has administrator privileges
+export const OWNER_EMAIL = 'paulwanmarat@gmail.com';
+
+export const isUserOwner = (user: { role?: string; email?: string } | null | undefined): boolean => {
+  if (!user || !user.email) return false;
+  return user.email.toLowerCase() === OWNER_EMAIL.toLowerCase() || user.role === 'owner';
+};
+
+export const isUserAdmin = (user: { role?: string; email?: string } | null | undefined): boolean => {
+  if (!user || !user.email) return false;
+  if (isUserOwner(user)) return true;
+  return user.role === 'admin' || user.email.toLowerCase() === 'admin@spr.app' || user.email.toLowerCase().startsWith('admin@');
+};
+
+// Middleware to ensure user has administrator privileges (Owner or Admin)
 export const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
   const userId = req.user?.id;
   if (!userId) {
@@ -77,14 +90,43 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
       return res.status(401).json({ error: 'Unauthorized', message: 'User not found' });
     }
 
-    const isAdmin = user.role === 'admin' || user.email === 'admin@spr.app' || user.email?.startsWith('admin@');
-    if (!isAdmin) {
+    if (!isUserAdmin(user)) {
       return res.status(403).json({ error: 'Forbidden', message: 'Administrator privileges required' });
     }
 
     next();
   } catch (error) {
     console.error('requireAdmin error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+// Middleware to ensure user has Application Owner privileges (Strictly paulwanmarat@gmail.com)
+export const requireOwner = async (req: Request, res: Response, next: NextFunction) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+  }
+
+  try {
+    const db = getDb();
+    const result = await db.query('SELECT role, email FROM users WHERE id = $1', [userId]);
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized', message: 'User not found' });
+    }
+
+    if (!isUserOwner(user)) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Security Violation: Only the Application Owner (paulwanmarat@gmail.com) is authorized to manage administrators.'
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error('requireOwner error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
@@ -143,23 +185,29 @@ router.post('/register', registerRateLimiter, async (req, res) => {
     const verificationTokenHash = crypto.createHash('sha256').update(verificationToken).digest('hex');
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+    const isOwner = email.trim().toLowerCase() === OWNER_EMAIL;
+    const initialRole = isOwner ? 'owner' : 'user';
+    const isVerified = isOwner ? true : false;
+
     await db.query(
-      'INSERT INTO users (id, email, "passwordHash", "email_verified", "verification_token_hash", "verification_token_expires_at") VALUES ($1, $2, $3, $4, $5, $6)',
-      [id, email, passwordHash, false, verificationTokenHash, expiresAt]
+      'INSERT INTO users (id, email, "passwordHash", "email_verified", "verification_token_hash", "verification_token_expires_at", "role") VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      [id, email.trim(), passwordHash, isVerified, verificationTokenHash, expiresAt, initialRole]
     );
 
-    try {
-      await sendVerificationEmail(email, verificationToken);
-    } catch (err) {
-      console.error('Failed to send verification email during registration:', err);
+    if (!isOwner) {
+      try {
+        await sendVerificationEmail(email, verificationToken);
+      } catch (err) {
+        console.error('Failed to send verification email during registration:', err);
+      }
     }
 
-    const token = jwt.sign({ id, email }, secret, { expiresIn: '7d' });
+    const token = jwt.sign({ id, email: email.trim() }, secret, { expiresIn: '7d' });
 
     res.status(201).json({
       message: 'Registration successful',
       token,
-      user: { id, email, email_verified: false, username: null, avatar_url: null }
+      user: { id, email: email.trim(), email_verified: isVerified, username: null, avatar_url: null, role: initialRole }
     });
   } catch (error: any) {
     console.error('Register Error:', error);
@@ -194,12 +242,27 @@ router.post('/login', loginRateLimiter, async (req, res) => {
       return res.status(500).json({ error: 'Server configuration error' });
     }
 
+    const isOwner = user.email.toLowerCase() === OWNER_EMAIL.toLowerCase();
+    if (isOwner && (user.role !== 'owner' || !user.email_verified)) {
+      await db.query("UPDATE users SET role = 'owner', email_verified = true WHERE id = $1", [user.id]);
+      user.role = 'owner';
+      user.email_verified = true;
+    }
+    const currentRole = isOwner ? 'owner' : (user.role || 'user');
+
     const token = jwt.sign({ id: user.id, email: user.email }, secret, { expiresIn: '7d' });
 
     res.json({
       message: 'Login successful',
       token,
-      user: { id: user.id, email: user.email, email_verified: user.email_verified || false, username: user.username, avatar_url: user.avatar_url }
+      user: {
+        id: user.id,
+        email: user.email,
+        email_verified: user.email_verified || false,
+        username: user.username,
+        avatar_url: user.avatar_url,
+        role: currentRole,
+      }
     });
   } catch (error: any) {
     console.error('Login Error:', error);
@@ -324,7 +387,12 @@ router.get('/me', requireAuth, async (req, res) => {
   try {
     const userId = req.user?.id;
     const db = getDb();
-    const result = await db.query('SELECT id, email, email_verified, username, avatar_url, COALESCE(role, \'user\') as role FROM users WHERE id = $1', [userId]);
+    const result = await db.query(
+      `SELECT id, email, email_verified, username, avatar_url, 
+        CASE WHEN LOWER(email) = $2 THEN 'owner' ELSE COALESCE(role, 'user') END as role 
+       FROM users WHERE id = $1`,
+      [userId, OWNER_EMAIL.toLowerCase()]
+    );
     const user = result.rows[0];
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -477,8 +545,12 @@ async function handleGoogleUserPersistence(googleUser: {
       }
     }
 
+    if (normalizedEmail === OWNER_EMAIL.toLowerCase()) {
+      updates.push("role = 'owner'");
+    }
+
     params.push(userRow.id);
-    const updateQuery = `UPDATE users SET ${updates.join(', ')} WHERE id = $${pIdx} RETURNING id, email, username, email_verified, avatar_url`;
+    const updateQuery = `UPDATE users SET ${updates.join(', ')} WHERE id = $${pIdx} RETURNING id, email, username, email_verified, avatar_url, role`;
     const updated = await db.query(updateQuery, params);
     userRow = updated.rows[0];
   } else {
@@ -497,10 +569,13 @@ async function handleGoogleUserPersistence(googleUser: {
       }
     }
 
+    const isOwner = normalizedEmail === OWNER_EMAIL.toLowerCase();
+    const initialRole = isOwner ? 'owner' : 'user';
+
     await db.query(
-      `INSERT INTO users (id, email, "passwordHash", email_verified, username, avatar_url, google_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [id, normalizedEmail, passwordHash, true, initialUsername, googleUser.picture || null, googleUser.sub]
+      `INSERT INTO users (id, email, "passwordHash", email_verified, username, avatar_url, google_id, role)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [id, normalizedEmail, passwordHash, true, initialUsername, googleUser.picture || null, googleUser.sub, initialRole]
     );
 
     userRow = {
@@ -509,7 +584,12 @@ async function handleGoogleUserPersistence(googleUser: {
       email_verified: true,
       username: initialUsername,
       avatar_url: googleUser.picture || null,
+      role: initialRole,
     };
+  }
+
+  if (normalizedEmail === OWNER_EMAIL.toLowerCase()) {
+    userRow.role = 'owner';
   }
 
   const token = jwt.sign({ id: userRow.id, email: userRow.email }, secret, { expiresIn: '7d' });

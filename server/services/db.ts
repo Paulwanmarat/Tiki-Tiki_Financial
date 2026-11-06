@@ -252,6 +252,22 @@ export async function initDb(): Promise<Pool> {
 
       ALTER TABLE users ADD COLUMN IF NOT EXISTS "role" TEXT NOT NULL DEFAULT 'user';
 
+      -- Ensure paulwanmarat@gmail.com is designated as the permanent Owner of the application
+      UPDATE users 
+      SET role = 'owner', email_verified = true 
+      WHERE LOWER(email) = 'paulwanmarat@gmail.com';
+
+      CREATE TABLE IF NOT EXISTS admin_audit_logs (
+        id TEXT PRIMARY KEY,
+        actor_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        actor_email TEXT NOT NULL,
+        action TEXT NOT NULL,
+        target_email TEXT NOT NULL,
+        details TEXT NOT NULL DEFAULT '',
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_actor ON admin_audit_logs(actor_id);
+
       -- ─── QR Payment extensions for 🌳RYLAND sponsorships ───
       ALTER TABLE tryland_sponsorships ADD COLUMN IF NOT EXISTS payment_reference TEXT UNIQUE;
       ALTER TABLE tryland_sponsorships ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'promptpay_qr';

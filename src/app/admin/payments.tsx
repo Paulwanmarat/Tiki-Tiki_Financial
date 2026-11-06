@@ -24,8 +24,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
-import { getAdminPayments, verifyAdminPayment } from '@/services/database/payments';
-import { PaymentSubmission } from '@/types/payments';
+import { getAdminPayments, verifyAdminPayment, getAdminUsers, assignUserRole, getAdminAuditLogs } from '@/services/database/payments';
+import { PaymentSubmission, AdminUserItem, AdminAuditLog } from '@/types/payments';
 import { Card } from '@/components/ui/Card';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
 
@@ -56,6 +56,51 @@ export default function AdminPaymentsScreen() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Admin section switcher: 'payments' | 'admins'
+  const [activeSection, setActiveSection] = useState<'payments' | 'admins'>('payments');
+  const [adminUsers, setAdminUsers] = useState<AdminUserItem[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [assigningRole, setAssigningRole] = useState(false);
+
+  const isOwner = user?.role === 'owner' || user?.email?.toLowerCase() === 'paulwanmarat@gmail.com';
+
+  const loadUsers = useCallback(async () => {
+    try {
+      setLoadingUsers(true);
+      const list = await getAdminUsers();
+      setAdminUsers(list);
+    } catch (err: any) {
+      console.warn('Failed to load users:', err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeSection === 'admins') {
+      loadUsers();
+    }
+  }, [activeSection, loadUsers]);
+
+  const handleAssignRole = useCallback(async (targetEmail: string, roleToAssign: 'admin' | 'user') => {
+    if (!isOwner) {
+      Alert.alert('Permission Denied', 'Only the Application Owner (paulwanmarat@gmail.com) can manage administrators.');
+      return;
+    }
+    setAssigningRole(true);
+    try {
+      const res = await assignUserRole(targetEmail, roleToAssign);
+      Alert.alert('Role Updated', res.message);
+      setNewAdminEmail('');
+      await loadUsers();
+    } catch (err: any) {
+      Alert.alert('Role Assignment Failed', err?.message || 'Could not update user role.');
+    } finally {
+      setAssigningRole(false);
+    }
+  }, [isOwner, loadUsers]);
 
   // Reject modal state
   const [rejectTarget, setRejectTarget] = useState<PaymentSubmission | null>(null);
@@ -155,16 +200,277 @@ export default function AdminPaymentsScreen() {
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Payment Verification</Text>
-          <Text style={[styles.headerSub, { color: colors.textTertiary }]}>Admin Dashboard</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Admin Center</Text>
+          <Text style={[styles.headerSub, { color: colors.textTertiary }]}>
+            {isOwner ? '👑 Root Owner (paulwanmarat@gmail.com)' : '🛡️ Administrator Mode'}
+          </Text>
         </View>
-        {pendingCount > 0 && (
+        {pendingCount > 0 && activeSection === 'payments' && (
           <View style={styles.pendingBadge}>
             <Text style={styles.pendingBadgeText}>{pendingCount} pending</Text>
           </View>
         )}
       </View>
 
+      {/* Top Tab Bar: Payments vs Admins */}
+      <View style={[styles.topTabs, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <TouchableOpacity
+          style={[styles.topTabBtn, activeSection === 'payments' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+          onPress={() => setActiveSection('payments')}
+        >
+          <Ionicons
+            name="receipt-outline"
+            size={16}
+            color={activeSection === 'payments' ? colors.primary : colors.textSecondary}
+          />
+          <Text style={[styles.topTabText, { color: activeSection === 'payments' ? colors.primary : colors.textSecondary }]}>
+            Payments ({pendingCount} pending)
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.topTabBtn, activeSection === 'admins' && { borderBottomColor: '#F59E0B', borderBottomWidth: 2 }]}
+          onPress={() => setActiveSection('admins')}
+        >
+          <Ionicons
+            name="shield-checkmark"
+            size={16}
+            color={activeSection === 'admins' ? '#F59E0B' : colors.textSecondary}
+          />
+          <Text style={[styles.topTabText, { color: activeSection === 'admins' ? '#F59E0B' : colors.textSecondary, fontWeight: FontWeight.bold }]}>
+            Manage Admins 👑
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {activeSection === 'admins' ? (
+        <ScrollView
+          refreshControl={<RefreshControl refreshing={loadingUsers} onRefresh={loadUsers} />}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ padding: Spacing.lg, paddingBottom: 40 }}
+        >
+          {/* Owner Banner */}
+          <Card style={[styles.ownerBannerCard, { borderColor: '#F59E0B', backgroundColor: '#F59E0B12' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+              <Ionicons name="ribbon" size={28} color="#F59E0B" />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: FontSize.md, fontWeight: FontWeight.bold, color: '#D97706' }}>
+                  Permanent Application Owner
+                </Text>
+                <Text style={{ fontSize: FontSize.sm, fontWeight: FontWeight.semibold, color: colors.text, marginTop: 2 }}>
+                  paulwanmarat@gmail.com
+                </Text>
+              </View>
+              <View style={[styles.ownerBadge, { backgroundColor: '#F59E0B' }]}>
+                <Text style={styles.ownerBadgeText}>ROOT OWNER</Text>
+              </View>
+            </View>
+            <Text style={{ fontSize: FontSize.xs, color: colors.textSecondary, marginTop: Spacing.sm, lineHeight: 18 }}>
+              {isOwner
+                ? 'You have root ownership. You can appoint and revoke administrators at any time. All actions are logged with tamper-evident audit trails.'
+                : 'Only the permanent Owner (paulwanmarat@gmail.com) can promote or revoke administrators. Regular administrators can review payments and view this directory in read-only mode.'}
+            </Text>
+          </Card>
+
+          {/* Add New Admin Form (Owner only) */}
+          {isOwner && (
+            <Card style={{ marginTop: Spacing.lg, padding: Spacing.lg }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.xs }}>
+                <Ionicons name="person-add-outline" size={18} color={colors.primary} />
+                <Text style={{ fontSize: FontSize.md, fontWeight: FontWeight.bold, color: colors.text }}>
+                  Appoint New Administrator
+                </Text>
+              </View>
+              <Text style={{ fontSize: FontSize.xs, color: colors.textTertiary, marginBottom: Spacing.md }}>
+                Enter the email address of a registered user to grant them administrative privileges.
+              </Text>
+
+              <View style={[styles.searchWrap, { backgroundColor: colors.background, borderColor: colors.border, marginBottom: Spacing.md }]}>
+                <Ionicons name="mail-outline" size={16} color={colors.textTertiary} />
+                <TextInput
+                  value={newAdminEmail}
+                  onChangeText={setNewAdminEmail}
+                  placeholder="e.g. colleague@university.ac.th"
+                  placeholderTextColor={colors.textTertiary}
+                  style={[styles.searchInput, { color: colors.text }]}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.approveBtn,
+                  {
+                    backgroundColor: newAdminEmail.trim() ? colors.primary : colors.border,
+                    opacity: assigningRole ? 0.7 : 1,
+                  },
+                ]}
+                disabled={!newAdminEmail.trim() || assigningRole}
+                onPress={() => {
+                  const target = newAdminEmail.trim();
+                  Alert.alert(
+                    'Confirm Admin Appointment',
+                    `Grant Administrator privileges to "${target}"?\n\nThey will be able to verify QR code payments and review financial submissions.`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Grant Admin Role',
+                        style: 'default',
+                        onPress: () => handleAssignRole(target, 'admin'),
+                      },
+                    ]
+                  );
+                }}
+              >
+                {assigningRole ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="shield-checkmark" size={16} color="#fff" />
+                    <Text style={styles.approveBtnText}>Grant Administrator Privileges</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </Card>
+          )}
+
+          {/* Users Directory */}
+          <View style={{ marginTop: Spacing.xl, marginBottom: Spacing.sm, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: FontSize.md, fontWeight: FontWeight.bold, color: colors.text }}>
+              User & Administrator Directory ({adminUsers.length})
+            </Text>
+            <TouchableOpacity onPress={loadUsers} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name="refresh-outline" size={14} color={colors.primary} />
+              <Text style={{ fontSize: FontSize.xs, color: colors.primary, fontWeight: FontWeight.semibold }}>Refresh</Text>
+            </TouchableOpacity>
+          </View>
+
+          {loadingUsers && adminUsers.length === 0 ? (
+            <ActivityIndicator color={colors.primary} size="large" style={{ marginTop: 32 }} />
+          ) : adminUsers.length === 0 ? (
+            <Card style={{ padding: Spacing.xl, alignItems: 'center' }}>
+              <Ionicons name="people-outline" size={36} color={colors.textTertiary} />
+              <Text style={{ color: colors.textSecondary, marginTop: Spacing.sm }}>No registered users found.</Text>
+            </Card>
+          ) : (
+            adminUsers.map(u => {
+              const userIsRootOwner = u.email.toLowerCase() === 'paulwanmarat@gmail.com' || u.role === 'owner';
+              const userIsAdmin = u.role === 'admin';
+
+              return (
+                <Card key={u.id} style={{ marginBottom: Spacing.md, padding: Spacing.md, borderColor: userIsRootOwner ? '#F59E0B' : userIsAdmin ? '#3B82F6' : colors.border }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+                    <View
+                      style={[
+                        styles.avatarCircle,
+                        {
+                          backgroundColor: userIsRootOwner
+                            ? '#FEF3C7'
+                            : userIsAdmin
+                            ? '#DBEAFE'
+                            : colors.surfaceHighlight,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={userIsRootOwner ? 'ribbon' : userIsAdmin ? 'shield-checkmark' : 'person-outline'}
+                        size={20}
+                        color={userIsRootOwner ? '#D97706' : userIsAdmin ? '#2563EB' : colors.textSecondary}
+                      />
+                    </View>
+
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, flexWrap: 'wrap' }}>
+                        <Text style={{ fontSize: FontSize.md, fontWeight: FontWeight.bold, color: colors.text }}>
+                          {u.username || u.email.split('@')[0]}
+                        </Text>
+
+                        {userIsRootOwner ? (
+                          <View style={[styles.roleTag, { backgroundColor: '#F59E0B22', borderColor: '#F59E0B' }]}>
+                            <Text style={[styles.roleTagText, { color: '#D97706' }]}>👑 OWNER</Text>
+                          </View>
+                        ) : userIsAdmin ? (
+                          <View style={[styles.roleTag, { backgroundColor: '#3B82F622', borderColor: '#3B82F6' }]}>
+                            <Text style={[styles.roleTagText, { color: '#2563EB' }]}>🛡️ ADMIN</Text>
+                          </View>
+                        ) : (
+                          <View style={[styles.roleTag, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}>
+                            <Text style={[styles.roleTagText, { color: colors.textTertiary }]}>USER</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      <Text style={{ fontSize: FontSize.xs, color: colors.textSecondary, marginTop: 2 }}>
+                        {u.email}
+                      </Text>
+
+                      <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 4 }}>
+                        Joined: {formatDate(u.created_at)}
+                      </Text>
+                    </View>
+
+                    {/* Role Actions (Owner Only) */}
+                    {isOwner && !userIsRootOwner && (
+                      <View>
+                        {userIsAdmin ? (
+                          <TouchableOpacity
+                            style={[styles.roleActionBtn, { borderColor: '#EF4444', backgroundColor: '#EF444414' }]}
+                            onPress={() => {
+                              Alert.alert(
+                                'Revoke Admin Role',
+                                `Revoke administrator privileges from ${u.email}? They will return to standard user permissions.`,
+                                [
+                                  { text: 'Cancel', style: 'cancel' },
+                                  {
+                                    text: 'Revoke Admin',
+                                    style: 'destructive',
+                                    onPress: () => handleAssignRole(u.email, 'user'),
+                                  },
+                                ]
+                              );
+                            }}
+                            disabled={assigningRole}
+                          >
+                            <Ionicons name="close-circle-outline" size={14} color="#EF4444" />
+                            <Text style={{ color: '#EF4444', fontSize: FontSize.xs, fontWeight: FontWeight.semibold }}>
+                              Revoke
+                            </Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            style={[styles.roleActionBtn, { borderColor: colors.primary, backgroundColor: colors.primary + '14' }]}
+                            onPress={() => {
+                              Alert.alert(
+                                'Make Administrator',
+                                `Promote ${u.email} to Administrator?`,
+                                [
+                                  { text: 'Cancel', style: 'cancel' },
+                                  {
+                                    text: 'Promote',
+                                    style: 'default',
+                                    onPress: () => handleAssignRole(u.email, 'admin'),
+                                  },
+                                ]
+                              );
+                            }}
+                            disabled={assigningRole}
+                          >
+                            <Ionicons name="shield-outline" size={14} color={colors.primary} />
+                            <Text style={{ color: colors.primary, fontSize: FontSize.xs, fontWeight: FontWeight.semibold }}>
+                              Make Admin
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                </Card>
+              );
+            })
+          )}
+        </ScrollView>
+      ) : (
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
@@ -361,6 +667,7 @@ export default function AdminPaymentsScreen() {
           </Card>
         ))}
       </ScrollView>
+      )}
 
       {/* Reject Reason Modal */}
       <Modal
@@ -506,5 +813,63 @@ const styles = StyleSheet.create({
   fieldLabel2: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, marginBottom: Spacing.sm },
   inputWrap2: { borderWidth: 1.5, borderRadius: BorderRadius.md, padding: Spacing.md, marginBottom: Spacing.lg, minHeight: 80 },
   rejectModalBtns: { flexDirection: 'row', gap: Spacing.md },
+  topTabs: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+  },
+  topTabBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+  },
+  topTabText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.medium,
+  },
+  ownerBannerCard: {
+    padding: Spacing.lg,
+    borderWidth: 1.5,
+    borderRadius: BorderRadius.lg,
+  },
+  ownerBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  ownerBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.5,
+  },
+  avatarCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roleTag: {
+    paddingHorizontal: Spacing.xs + 2,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+  },
+  roleTagText: {
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+  },
+  roleActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+  },
 });
 

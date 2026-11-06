@@ -1,5 +1,5 @@
 import { fetchWithAuth } from '@/services/ai/client';
-import { LiveImpactTotals, PaymentSubmission } from '@/types/payments';
+import { LiveImpactTotals, PaymentSubmission, AdminUserItem, AdminAuditLog } from '@/types/payments';
 
 export async function getLiveImpactTotals(): Promise<LiveImpactTotals> {
   return fetchWithAuth('/api/impact/live-totals');
@@ -29,4 +29,30 @@ export async function verifyAdminPayment(
     body: JSON.stringify({ action, rejection_reason }),
   });
 }
+
+export async function getAdminUsers(params?: {
+  search?: string;
+  role?: string;
+}): Promise<AdminUserItem[]> {
+  const query = new URLSearchParams();
+  if (params?.search) query.append('search', params.search);
+  if (params?.role) query.append('role', params.role);
+  const qs = query.toString();
+  return fetchWithAuth(`/api/admin/users${qs ? `?${qs}` : ''}`);
+}
+
+export async function assignUserRole(
+  email: string,
+  role: 'admin' | 'user'
+): Promise<{ success: boolean; message: string; user: AdminUserItem }> {
+  return fetchWithAuth('/api/admin/users/assign-role', {
+    method: 'POST',
+    body: JSON.stringify({ email, role }),
+  });
+}
+
+export async function getAdminAuditLogs(): Promise<AdminAuditLog[]> {
+  return fetchWithAuth('/api/admin/users/audit-logs');
+}
+
 
