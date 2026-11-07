@@ -343,68 +343,23 @@ export async function initDb(): Promise<Pool> {
       )
       ON CONFLICT (id) DO NOTHING;
 
-      -- Reset all seeded figures to 0 (all numbers start clean from 0)
-      UPDATE donate_campaigns SET amount_raised = 0 WHERE NOT EXISTS (
-        SELECT 1 FROM donations WHERE campaign_id = donate_campaigns.id AND status = 'verified'
-      );
+      -- Clear all donations and donate campaigns as requested (only Owner & Admin can add new campaigns)
+      DELETE FROM donations;
+      DELETE FROM donate_campaigns;
+
+      -- Reset all tryland request figures to 0 (all numbers start clean from 0)
       UPDATE tryland_requests SET amount_funded = 0, status = 'open' WHERE NOT EXISTS (
         SELECT 1 FROM tryland_sponsorships WHERE request_id = tryland_requests.id AND status = 'verified'
       );
 
-      -- Remove any test/made-up donations (such as 300 baht tester user)
-      DELETE FROM donations WHERE amount = 300 OR message ILIKE '%tester%' OR message ILIKE '%made up%';
+      -- Remove any test/made-up sponsorships
       DELETE FROM tryland_sponsorships WHERE amount = 300;
     `);
 
-    // Ensure Campus Food Pantry Winter Supply campaign exists (from advisor's transfer slip)
-    await client.query(`
-      INSERT INTO donate_campaigns 
-        (id, organizer_id, organizer_name, title, description, objective, target_amount, amount_raised, cover_image, category, status)
-      VALUES (
-        'camp_pantry_winter',
-        'system_organizer',
-        'Student Welfare Union',
-        'Campus Food Pantry Winter Supply',
-        'Providing supplemental nutritious meals and emergency grocery packs to students living on campus during winter term.',
-        'Support campus dorm students with nutritious groceries and emergency meals.',
-        5000,
-        0,
-        'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800',
-        'Student Welfare',
-        'active'
-      )
-      ON CONFLICT (id) DO UPDATE SET title = 'Campus Food Pantry Winter Supply';
-
-      -- Ensure Mr. Anthony's ฿100 TrueMoney payment (ref 50060248100418) is recorded in pending verification
-      INSERT INTO donations
-        (id, campaign_id, donor_id, amount, message, is_anonymous, status, payment_reference, payment_method, slip_reference, transfer_time, guest_name)
-      VALUES (
-        'don_anthony_100',
-        'camp_pantry_winter',
-        NULL,
-        100.00,
-        'True Money',
-        false,
-        'pending',
-        'DON-2K38SK',
-        'promptpay_qr',
-        '50060248100418',
-        '2026-11-06T22:38:45+07:00',
-        'Anthony Jose Ferrer'
-      )
-      ON CONFLICT (payment_reference) DO NOTHING;
-    `);
-
-    // Seed initial projects if empty
+    // Seed initial projects if empty (preserving project catalog)
     const projCount = await client.query('SELECT COUNT(*) FROM projects');
     if (parseInt(projCount.rows[0].count, 10) === 0) {
       await seedProjects(client);
-    }
-
-    // Seed initial donate campaigns if empty
-    const campCount = await client.query('SELECT COUNT(*) FROM donate_campaigns');
-    if (parseInt(campCount.rows[0].count, 10) === 0) {
-      await seedCampaigns(client);
     }
 
     // Seed initial tryland requests if empty

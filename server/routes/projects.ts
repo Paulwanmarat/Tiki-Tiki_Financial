@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { getDb } from '../services/db';
-import { requireAuth, optionalAuth } from './auth';
+import { requireAuth, optionalAuth, requireAdmin } from './auth';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = express.Router();
@@ -54,6 +54,66 @@ router.get('/', optionalAuth, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching projects:', error);
     res.status(500).json({ error: 'Failed to fetch projects' });
+  }
+});
+
+// ─── POST /api/projects (Create project - Restricted to Owner & Admins) ────────
+router.post('/', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const {
+      title,
+      description = '',
+      category,
+      difficulty = 'Beginner',
+      estimated_budget = 0,
+      estimated_days = 1,
+      materials = [],
+      steps = [],
+      expected_outcome = '',
+      resources = [],
+      images = [],
+      is_premium = false,
+    } = req.body;
+
+    if (!title || typeof title !== 'string' || title.trim().length < 3) {
+      return res.status(400).json({ error: 'Project title is required (at least 3 characters)' });
+    }
+    if (!category || typeof category !== 'string') {
+      return res.status(400).json({ error: 'Project category is required' });
+    }
+    if (!['Beginner', 'Intermediate', 'Advanced'].includes(difficulty)) {
+      return res.status(400).json({ error: 'Difficulty must be Beginner, Intermediate, or Advanced' });
+    }
+
+    const db = getDb();
+    const id = generateId();
+
+    const insertRes = await db.query(
+      `INSERT INTO projects
+        (id, title, description, category, difficulty, estimated_budget, estimated_days, materials, steps, expected_outcome, resources, images, is_premium)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       RETURNING *`,
+      [
+        id,
+        title.trim(),
+        description.trim(),
+        category.trim(),
+        difficulty,
+        Number(estimated_budget) || 0,
+        Number(estimated_days) || 1,
+        typeof materials === 'string' ? materials : JSON.stringify(materials),
+        typeof steps === 'string' ? steps : JSON.stringify(steps),
+        expected_outcome.trim(),
+        typeof resources === 'string' ? resources : JSON.stringify(resources),
+        Array.isArray(images) ? images : [],
+        Boolean(is_premium),
+      ]
+    );
+
+    res.status(201).json(insertRes.rows[0]);
+  } catch (error) {
+    console.error('Error creating project:', error);
+    res.status(500).json({ error: 'Failed to create project' });
   }
 });
 

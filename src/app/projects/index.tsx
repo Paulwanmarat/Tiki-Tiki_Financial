@@ -12,16 +12,19 @@ import {
   useWindowDimensions,
   Platform,
   Alert,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
+import { useAuth } from '@/context/AuthContext';
 import {
   getProjects,
   getSubscriptionStatus,
   activatePilotSubscription,
+  createProject,
 } from '@/services/database/projects';
 import { Project, ProjectDifficulty, SubscriptionStatus } from '@/types/projects';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
@@ -40,9 +43,20 @@ const DIFFICULTIES: ('All' | ProjectDifficulty)[] = ['All', 'Beginner', 'Interme
 export default function ProjectsScreen() {
   const { colors, isDark } = useTheme();
   const { formatCurrency } = useCurrency();
+  const { user } = useAuth();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
+
+  const isAdmin = Boolean(
+    user && (
+      user.role === 'admin' ||
+      user.role === 'owner' ||
+      user.email?.toLowerCase() === 'paulwanmarat@gmail.com' ||
+      user.email?.toLowerCase() === 'admin@spr.app' ||
+      user.email?.toLowerCase().startsWith('admin@')
+    )
+  );
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
@@ -52,6 +66,52 @@ export default function ProjectsScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'All' | ProjectDifficulty>('All');
   const [activatingPass, setActivatingPass] = useState(false);
+
+  // Admin Project Creation State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newCategory, setNewCategory] = useState('Tech & Coding');
+  const [newDifficulty, setNewDifficulty] = useState<ProjectDifficulty>('Beginner');
+  const [newBudget, setNewBudget] = useState('');
+  const [newDays, setNewDays] = useState('3');
+  const [newDesc, setNewDesc] = useState('');
+  const [newOutcome, setNewOutcome] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleCreateProject = async () => {
+    if (!newTitle.trim() || newTitle.trim().length < 3) {
+      Alert.alert('Notice', 'Project title is required (minimum 3 characters)');
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      await createProject({
+        title: newTitle.trim(),
+        category: newCategory,
+        difficulty: newDifficulty,
+        estimated_budget: parseFloat(newBudget) || 0,
+        estimated_days: parseInt(newDays, 10) || 1,
+        description: newDesc.trim() || 'Hands-on student engineering project with guided steps and AI assistance.',
+        expected_outcome: newOutcome.trim() || 'Working prototype verified by project mentor.',
+        materials: [],
+        steps: [],
+        resources: [],
+        images: [],
+        is_premium: false,
+      });
+      setShowAddModal(false);
+      setNewTitle('');
+      setNewBudget('');
+      setNewDesc('');
+      setNewOutcome('');
+      Alert.alert('Success', 'Project added to catalog successfully!');
+      await loadData();
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Failed to create project');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const loadData = useCallback(async () => {
     try {
@@ -119,12 +179,32 @@ export default function ProjectsScreen() {
           </View>
         </View>
 
-        {subscription?.isPremium ? (
-          <View style={[styles.passPill, { backgroundColor: '#8B5CF6' + '20', borderColor: '#8B5CF6' }]}>
-            <Ionicons name="sparkles" size={13} color="#8B5CF6" />
-            <Text style={[styles.passPillText, { color: '#8B5CF6' }]}>PILOT PASS ACTIVE</Text>
-          </View>
-        ) : null}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {subscription?.isPremium ? (
+            <View style={[styles.passPill, { backgroundColor: '#8B5CF6' + '20', borderColor: '#8B5CF6' }]}>
+              <Ionicons name="sparkles" size={13} color="#8B5CF6" />
+              <Text style={[styles.passPillText, { color: '#8B5CF6' }]}>PILOT PASS ACTIVE</Text>
+            </View>
+          ) : null}
+
+          {isAdmin && (
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#8B5CF6',
+                paddingHorizontal: 12,
+                paddingVertical: 7,
+                borderRadius: BorderRadius.full,
+                gap: 5,
+              }}
+              onPress={() => setShowAddModal(true)}
+            >
+              <Ionicons name="add" size={16} color="#FFF" />
+              <Text style={{ color: '#FFF', fontSize: FontSize.xs, fontWeight: FontWeight.bold }}>Add Project</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* 2. Free vs Premium Pilot Pass Banner (if on Free tier) */}
@@ -331,6 +411,138 @@ export default function ProjectsScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Admin Add Project Modal */}
+      <Modal visible={showAddModal} transparent animationType="slide" onRequestClose={() => setShowAddModal(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ width: '100%', maxWidth: 520, maxHeight: '90%', backgroundColor: colors.surface, borderRadius: 16, padding: 24, borderWidth: 1, borderColor: colors.border }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <View>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text }}>Add Innovation Project</Text>
+                <Text style={{ fontSize: 12, color: colors.textSecondary }}>Owner & Administrator Authorized Catalog Entry</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowAddModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={22} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 }}>PROJECT TITLE *</Text>
+              <TextInput
+                style={{ backgroundColor: colors.surfaceElevated, color: colors.text, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: colors.border, marginBottom: 12 }}
+                placeholder="e.g., Solar Mobile Charging Station"
+                placeholderTextColor={colors.textTertiary}
+                value={newTitle}
+                onChangeText={setNewTitle}
+              />
+
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 }}>CATEGORY</Text>
+                  <TextInput
+                    style={{ backgroundColor: colors.surfaceElevated, color: colors.text, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: colors.border }}
+                    placeholder="Tech & Coding"
+                    placeholderTextColor={colors.textTertiary}
+                    value={newCategory}
+                    onChangeText={setNewCategory}
+                  />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 }}>DIFFICULTY</Text>
+                  <View style={{ flexDirection: 'row', gap: 4 }}>
+                    {(['Beginner', 'Intermediate', 'Advanced'] as ProjectDifficulty[]).map((d) => (
+                      <TouchableOpacity
+                        key={d}
+                        onPress={() => setNewDifficulty(d)}
+                        style={{
+                          flex: 1,
+                          paddingVertical: 10,
+                          borderRadius: 8,
+                          alignItems: 'center',
+                          backgroundColor: newDifficulty === d ? '#8B5CF6' : colors.surfaceElevated,
+                          borderWidth: 1,
+                          borderColor: newDifficulty === d ? '#8B5CF6' : colors.border,
+                        }}
+                      >
+                        <Text style={{ fontSize: 10, fontWeight: '600', color: newDifficulty === d ? '#FFF' : colors.textSecondary }}>{d}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 }}>EST. BUDGET (฿ THB)</Text>
+                  <TextInput
+                    style={{ backgroundColor: colors.surfaceElevated, color: colors.text, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: colors.border }}
+                    placeholder="e.g., 450"
+                    placeholderTextColor={colors.textTertiary}
+                    keyboardType="numeric"
+                    value={newBudget}
+                    onChangeText={setNewBudget}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 }}>EST. DAYS</Text>
+                  <TextInput
+                    style={{ backgroundColor: colors.surfaceElevated, color: colors.text, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: colors.border }}
+                    placeholder="e.g., 3"
+                    placeholderTextColor={colors.textTertiary}
+                    keyboardType="numeric"
+                    value={newDays}
+                    onChangeText={setNewDays}
+                  />
+                </View>
+              </View>
+
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 }}>DESCRIPTION</Text>
+              <TextInput
+                style={{ backgroundColor: colors.surfaceElevated, color: colors.text, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: colors.border, minHeight: 70, marginBottom: 12 }}
+                placeholder="Overview of the project concept and skills learned..."
+                placeholderTextColor={colors.textTertiary}
+                multiline
+                value={newDesc}
+                onChangeText={setNewDesc}
+              />
+
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 }}>EXPECTED OUTCOME</Text>
+              <TextInput
+                style={{ backgroundColor: colors.surfaceElevated, color: colors.text, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: colors.border, minHeight: 60, marginBottom: 16 }}
+                placeholder="What the student finishes with..."
+                placeholderTextColor={colors.textTertiary}
+                multiline
+                value={newOutcome}
+                onChangeText={setNewOutcome}
+              />
+            </ScrollView>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 16, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 16 }}>
+              <TouchableOpacity
+                onPress={() => setShowAddModal(false)}
+                style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleCreateProject}
+                disabled={isSubmitting}
+                style={{ paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8, backgroundColor: '#8B5CF6', flexDirection: 'row', alignItems: 'center', gap: 6 }}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark" size={16} color="#FFF" />
+                    <Text style={{ color: '#FFF', fontWeight: '700' }}>Publish Project</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

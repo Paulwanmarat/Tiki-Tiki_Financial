@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { getDb } from '../services/db';
-import { requireAuth, optionalAuth } from './auth';
+import { requireAuth, optionalAuth, requireAdmin } from './auth';
 
 const router = express.Router();
 
@@ -122,8 +122,8 @@ router.get('/:id', optionalAuth, async (req: Request, res: Response) => {
   }
 });
 
-// ─── POST /api/donate (Create campaign) ──────────────────────────────────────
-router.post('/', requireAuth, async (req: Request, res: Response) => {
+// ─── POST /api/donate (Create campaign - Restricted to Owner & Admins) ────────
+router.post('/', requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });

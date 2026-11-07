@@ -220,3 +220,53 @@ test('Audit Trail: Log entries record complete metadata and timestamps', () => {
   assert.equal(log.action, 'promote_admin');
   assert.ok(log.created_at);
 });
+
+// ─── TEST 7: Donate Campaign Creation Authorization ──────────────────────────
+test('Donate Creation: Strictly restricted to Owner and Admin, blocked for students', () => {
+  function checkDonateCreation(user) {
+    if (!user) {
+      return { status: 401, error: 'Unauthorized' };
+    }
+    if (!isUserAdmin(user)) {
+      return { status: 403, error: 'Administrator privileges required' };
+    }
+    return { status: 201, success: true };
+  }
+
+  // Student is blocked (403)
+  assert.equal(checkDonateCreation({ id: 's1', email: 'student@spr.app', role: 'user' }).status, 403);
+
+  // Unauthenticated is blocked (401)
+  assert.equal(checkDonateCreation(null).status, 401);
+
+  // Appointed Admin succeeds (201)
+  assert.equal(checkDonateCreation({ id: 'a1', email: 'admin@spr.app', role: 'admin' }).status, 201);
+
+  // Owner succeeds (201)
+  assert.equal(checkDonateCreation({ id: 'o1', email: 'paulwanmarat@gmail.com', role: 'owner' }).status, 201);
+});
+
+// ─── TEST 8: Project Creation Authorization ──────────────────────────────────
+test('Project Creation: Strictly restricted to Owner and Admin, blocked for students', () => {
+  function checkProjectCreation(user) {
+    if (!user) {
+      return { status: 401, error: 'Unauthorized' };
+    }
+    if (!isUserAdmin(user)) {
+      return { status: 403, error: 'Administrator privileges required' };
+    }
+    return { status: 201, success: true };
+  }
+
+  // Student is blocked (403)
+  assert.equal(checkProjectCreation({ id: 's1', email: 'student@spr.app', role: 'user' }).status, 403);
+
+  // Unauthenticated is blocked (401)
+  assert.equal(checkProjectCreation(null).status, 401);
+
+  // Appointed Admin succeeds (201)
+  assert.equal(checkProjectCreation({ id: 'a1', email: 'admin@spr.app', role: 'admin' }).status, 201);
+
+  // Owner succeeds (201)
+  assert.equal(checkProjectCreation({ id: 'o1', email: 'paulwanmarat@gmail.com', role: 'owner' }).status, 201);
+});

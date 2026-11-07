@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
+import { useAuth } from '@/context/AuthContext';
 import { getDonateCampaigns } from '@/services/database/donate';
 import { DonateCampaign } from '@/types/donate';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
@@ -34,9 +35,20 @@ const CATEGORIES = [
 export default function DonateHomeScreen() {
   const { colors, isDark } = useTheme();
   const { formatCurrency } = useCurrency();
+  const { user } = useAuth();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
+
+  const isAdmin = Boolean(
+    user && (
+      user.role === 'admin' ||
+      user.role === 'owner' ||
+      user.email?.toLowerCase() === 'paulwanmarat@gmail.com' ||
+      user.email?.toLowerCase() === 'admin@spr.app' ||
+      user.email?.toLowerCase().startsWith('admin@')
+    )
+  );
 
   const [campaigns, setCampaigns] = useState<DonateCampaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,13 +98,15 @@ export default function DonateHomeScreen() {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={[styles.createBtn, { backgroundColor: '#EC4899' }]}
-          onPress={() => router.push('/donate/create' as any)}
-        >
-          <Ionicons name="add" size={16} color="#FFF" />
-          <Text style={styles.createBtnText}>Start Cause</Text>
-        </TouchableOpacity>
+        {isAdmin && (
+          <TouchableOpacity
+            style={[styles.createBtn, { backgroundColor: '#EC4899' }]}
+            onPress={() => router.push('/donate/create' as any)}
+          >
+            <Ionicons name="add" size={16} color="#FFF" />
+            <Text style={styles.createBtnText}>Create Campaign</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* 2. Search & Info Section */}
@@ -156,18 +170,29 @@ export default function DonateHomeScreen() {
             <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading causes & campaigns...</Text>
           </View>
         ) : campaigns.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Ionicons name="heart-outline" size={48} color={colors.textTertiary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No campaigns found</Text>
+          <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(236, 72, 153, 0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md }}>
+              <Ionicons name="shield-checkmark-outline" size={34} color="#EC4899" />
+            </View>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Active Fundraising Campaigns</Text>
             <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
-              Be the first student leader to launch an initiative for textbooks, community care, or green tech.
+              Official campus fundraising campaigns are inaugurated exclusively by Saipanyarangsit School administrators and Student Welfare officers.
             </Text>
-            <TouchableOpacity
-              style={[styles.emptyActionBtn, { backgroundColor: '#EC4899' }]}
-              onPress={() => router.push('/donate/create' as any)}
-            >
-              <Text style={styles.emptyActionBtnText}>Launch a Campaign</Text>
-            </TouchableOpacity>
+            {isAdmin ? (
+              <TouchableOpacity
+                style={[styles.emptyActionBtn, { backgroundColor: '#EC4899', marginTop: Spacing.md }]}
+                onPress={() => router.push('/donate/create' as any)}
+              >
+                <Ionicons name="add" size={16} color="#FFF" style={{ marginRight: 6 }} />
+                <Text style={styles.emptyActionBtnText}>Create Official Campaign</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={{ marginTop: Spacing.md, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, backgroundColor: colors.surfaceElevated }}>
+                <Text style={{ fontSize: 12, color: colors.textTertiary, textAlign: 'center' }}>
+                  Institutional Policy: To propose a new student welfare cause, contact your grade advisor or school administration.
+                </Text>
+              </View>
+            )}
           </View>
         ) : (
           <View style={[styles.grid, isDesktop && styles.desktopGrid]}>

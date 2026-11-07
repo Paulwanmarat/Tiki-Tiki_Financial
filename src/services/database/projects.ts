@@ -43,3 +43,10 @@ export async function askProjectAI(
   });
 }
 
+export async function createProject(data: Partial<ProjectDetail>): Promise<ProjectDetail> {
+  return fetchWithAuth('/api/projects', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+

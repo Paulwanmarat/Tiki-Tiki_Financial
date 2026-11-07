@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
+import { useAuth } from '@/context/AuthContext';
 import { DatePickerField } from '@/components/ui/DatePickerField';
 import { createDonateCampaign } from '@/services/database/donate';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
@@ -32,7 +33,18 @@ const CATEGORIES = [
 export default function CreateDonateCampaignScreen() {
   const { colors, isDark } = useTheme();
   const { currency, convertToBase } = useCurrency();
+  const { user } = useAuth();
   const router = useRouter();
+
+  const isAdmin = Boolean(
+    user && (
+      user.role === 'admin' ||
+      user.role === 'owner' ||
+      user.email?.toLowerCase() === 'paulwanmarat@gmail.com' ||
+      user.email?.toLowerCase() === 'admin@spr.app' ||
+      user.email?.toLowerCase().startsWith('admin@')
+    )
+  );
 
   const defaultEndDate = new Date();
   defaultEndDate.setMonth(defaultEndDate.getMonth() + 1);
@@ -46,6 +58,36 @@ export default function CreateDonateCampaignScreen() {
   const [coverImage, setCoverImage] = useState('');
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+
+  if (!isAdmin) {
+    return (
+      <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top']}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={() => router.replace('/donate')} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Admin Access Required</Text>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl }}>
+          <View style={{ width: 68, height: 68, borderRadius: 34, backgroundColor: 'rgba(239, 68, 68, 0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md }}>
+            <Ionicons name="lock-closed" size={32} color="#EF4444" />
+          </View>
+          <Text style={{ fontSize: FontSize.xl, fontWeight: FontWeight.bold, color: colors.text, marginBottom: Spacing.xs, textAlign: 'center' }}>
+            Administrator Authorization Required
+          </Text>
+          <Text style={{ fontSize: FontSize.sm, color: colors.textSecondary, textAlign: 'center', marginBottom: Spacing.xl, maxWidth: 360, lineHeight: 22 }}>
+            Public fundraising campaigns may only be created by designated school administrators and the Application Owner. Regular student accounts cannot create public donation drives.
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: '#EC4899', paddingHorizontal: 24, paddingVertical: 12, borderRadius: BorderRadius.md }}
+            onPress={() => router.replace('/donate')}
+          >
+            <Text style={{ color: '#FFF', fontWeight: FontWeight.bold }}>Return to Donate Hub</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const handleCreate = async () => {
     const errs: string[] = [];

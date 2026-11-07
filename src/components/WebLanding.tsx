@@ -1,10 +1,12 @@
 import { LOCAL_API_URL } from '@/services/ai/client';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
+  Easing,
   Image,
   Platform,
   Pressable,
@@ -18,6 +20,56 @@ import {
 import { SurveyResults } from './SurveyResults';
 import { LiveWebImpactSection } from './impact/LiveWebImpactSection';
 import { PIGGY_LOGO, SCHOOL_LOGO, ANTHONY_PHOTO } from '@/constants/assets';
+
+/* ───────────────────────────────────────────────────────────────── */
+/*  FadeInSection — Scroll-triggered fade + slide-up transition     */
+/* ───────────────────────────────────────────────────────────────── */
+function FadeInSection({
+  children,
+  delay = 0,
+  scrollY,
+  triggerY,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  scrollY: number;
+  triggerY: number | undefined;
+}) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(36)).current;
+  const hasAnimated = useRef(false);
+
+  const viewportHeight = Dimensions.get('window').height;
+  const isVisible = scrollY + viewportHeight > (triggerY ?? 99999) + 80;
+
+  useEffect(() => {
+    if (isVisible && !hasAnimated.current) {
+      hasAnimated.current = true;
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 680,
+          delay,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: 680,
+          delay,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isVisible, delay, opacity, translateY]);
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+      {children}
+    </Animated.View>
+  );
+}
 
 /* ───────────────────────────────────────────────────────────────── */
 /*  SPR MONEY STUDIO — DESIGN SYSTEM TOKENS                          */
@@ -144,59 +196,79 @@ export function WebLanding() {
 
         {/* SECTION A: The Everyday Money Problem (The Micro-Expense Avalanche) */}
         <View onLayout={(e) => onLayout('problem', e.nativeEvent.layout.y)}>
-          <MicroExpenseAvalancheSection isMobile={isMobile} isTablet={isTablet} />
+          <FadeInSection scrollY={scrollY} triggerY={sectionRefs.current['problem']}>
+            <MicroExpenseAvalancheSection isMobile={isMobile} isTablet={isTablet} />
+          </FadeInSection>
         </View>
 
         {/* SECTION B: Understand Your Money (The 3-Pillar Ledger System) */}
         <View onLayout={(e) => onLayout('ledger', e.nativeEvent.layout.y)}>
-          <ThreePillarLedgerSection isMobile={isMobile} isTablet={isTablet} />
+          <FadeInSection scrollY={scrollY} triggerY={sectionRefs.current['ledger']} delay={60}>
+            <ThreePillarLedgerSection isMobile={isMobile} isTablet={isTablet} />
+          </FadeInSection>
         </View>
 
         {/* SECTION 04: Complete Student Financial Ecosystem */}
         <View onLayout={(e) => onLayout('ecosystem', e.nativeEvent.layout.y)}>
-          <StudioEcosystemSection
-            isMobile={isMobile}
-            isTablet={isTablet}
-            onNavigate={(route) => router.push(route as any)}
-          />
+          <FadeInSection scrollY={scrollY} triggerY={sectionRefs.current['ecosystem']}>
+            <StudioEcosystemSection
+              isMobile={isMobile}
+              isTablet={isTablet}
+              onNavigate={(route) => router.push(route as any)}
+            />
+          </FadeInSection>
         </View>
 
         {/* SECTION C: The Interactive Spending Simulator */}
         <View onLayout={(e) => onLayout('simulator', e.nativeEvent.layout.y)}>
-          <InteractiveSpendingSimulatorSection isMobile={isMobile} isTablet={isTablet} />
+          <FadeInSection scrollY={scrollY} triggerY={sectionRefs.current['simulator']}>
+            <InteractiveSpendingSimulatorSection isMobile={isMobile} isTablet={isTablet} />
+          </FadeInSection>
         </View>
 
         {/* SECTION D: Plan & Save (The Piggy Vault) */}
         <View onLayout={(e) => onLayout('goals', e.nativeEvent.layout.y)}>
-          <PiggyVaultSection isMobile={isMobile} isTablet={isTablet} />
+          <FadeInSection scrollY={scrollY} triggerY={sectionRefs.current['goals']} delay={40}>
+            <PiggyVaultSection isMobile={isMobile} isTablet={isTablet} />
+          </FadeInSection>
         </View>
 
         {/* SECTION E: Menu Scanner & AI Financial Assistant */}
         <View onLayout={(e) => onLayout('ai', e.nativeEvent.layout.y)}>
-          <AIVisionSection isMobile={isMobile} isTablet={isTablet} />
+          <FadeInSection scrollY={scrollY} triggerY={sectionRefs.current['ai']}>
+            <AIVisionSection isMobile={isMobile} isTablet={isTablet} />
+          </FadeInSection>
         </View>
 
         {/* SECTION F: Survey Research */}
         <View onLayout={(e) => onLayout('research', e.nativeEvent.layout.y)}>
-          <StudioResearchSection isMobile={isMobile} isTablet={isTablet} />
+          <FadeInSection scrollY={scrollY} triggerY={sectionRefs.current['research']} delay={40}>
+            <StudioResearchSection isMobile={isMobile} isTablet={isTablet} />
+          </FadeInSection>
         </View>
 
         {/* SECTION G: Team and Project Advisor */}
         <View onLayout={(e) => onLayout('team', e.nativeEvent.layout.y)}>
-          <StudioTeamSection isMobile={isMobile} isTablet={isTablet} />
+          <FadeInSection scrollY={scrollY} triggerY={sectionRefs.current['team']}>
+            <StudioTeamSection isMobile={isMobile} isTablet={isTablet} />
+          </FadeInSection>
         </View>
 
         {/* SECTION H: Live Community Impact & Verified Transparency (฿ THB) */}
         <View onLayout={(e) => onLayout('impact', e.nativeEvent.layout.y)}>
-          <LiveWebImpactSection isMobile={isMobile} isTablet={isTablet} />
+          <FadeInSection scrollY={scrollY} triggerY={sectionRefs.current['impact']} delay={60}>
+            <LiveWebImpactSection isMobile={isMobile} isTablet={isTablet} />
+          </FadeInSection>
         </View>
 
         {/* SECTION I: Feedback Box */}
         <View onLayout={(e) => onLayout('feedback', e.nativeEvent.layout.y)}>
-          <StudioFeedbackSection isMobile={isMobile} />
+          <FadeInSection scrollY={scrollY} triggerY={sectionRefs.current['feedback']}>
+            <StudioFeedbackSection isMobile={isMobile} />
+          </FadeInSection>
         </View>
 
-        {/* SECTION I: Final Studio Call to Action & Footer */}
+        {/* Final Studio Call to Action & Footer */}
         <StudioFinalCTA onOpenApp={() => router.push('/app')} isMobile={isMobile} />
         <StudioFooter isMobile={isMobile} scrollTo={scrollTo} />
       </ScrollView>
@@ -236,6 +308,9 @@ function StudioNavBar({
 
   return (
     <View style={navStyles.wrapper}>
+      {/* Reading Progress Line */}
+      <View style={[navStyles.progressLine, { width: `${scrollProgress}%` as any }]} />
+
       <View style={navStyles.container}>
         {/* Brand Emblem & Institutional Affiliation */}
         <TouchableOpacity
@@ -355,7 +430,7 @@ function StudioNavBar({
 }
 
 /* ───────────────────────────────────────────────────────────────── */
-/*  Cinematic Production HUD                                        */
+/*  Institutional Navigation Styles                                 */
 const navStyles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
@@ -363,9 +438,21 @@ const navStyles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 999,
-    backgroundColor: 'rgba(13, 9, 18, 0.94)',
+    backgroundColor: 'rgba(11, 15, 23, 0.97)',
     borderBottomWidth: 1,
-    borderBottomColor: S.canvasDarkBorder,
+    borderBottomColor: 'rgba(34, 47, 70, 0.9)',
+    ...(Platform.OS === 'web' ? {
+      backdropFilter: 'blur(14px)',
+      WebkitBackdropFilter: 'blur(14px)',
+    } as any : {}),
+  },
+  progressLine: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    height: 2,
+    backgroundColor: S.piggyPink,
+    zIndex: 1000,
   },
   container: {
     flexDirection: 'row',
@@ -787,13 +874,15 @@ function StudioHeroSection({
 const heroStyles = StyleSheet.create({
   section: {
     paddingTop: 140,
-    paddingBottom: 90,
+    paddingBottom: 100,
     paddingHorizontal: '6%' as any,
     backgroundColor: S.canvasDark,
     alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: S.canvasDarkBorder,
   },
   sectionMobile: {
-    paddingTop: 105,
+    paddingTop: 108,
     paddingBottom: 60,
     paddingHorizontal: 20,
   },
@@ -1759,11 +1848,11 @@ function StudioEcosystemSection({
       id: 'donate',
       route: '/donate',
       eyebrow: 'COMMUNITY CAMPAIGNS',
-      badge: 'Verified Impact',
+      badge: 'Admin-Curated',
       badgeColor: S.amberCoin,
       title: 'SPR Donate',
-      desc: 'Empower student-led initiatives, hardship relief funds, and classroom drives through transparent, verified PromptPay donations.',
-      features: ['Campaign fundraising targets', 'Real-time database tally', 'Complete donor transparency'],
+      desc: 'Official school-managed fundraising campaigns for student welfare, campus equipment, and emergency aid — verified by administrators with real-time PromptPay donation tracking.',
+      features: ['School admin-only campaigns', 'Real-time database tally', 'Complete donor transparency'],
       icon: 'heart-outline',
       cta: 'Support a Campaign',
     },
@@ -1904,10 +1993,13 @@ const ecoStyles = StyleSheet.create({
     flex: 1,
     minWidth: 260,
     backgroundColor: S.canvasDarkCard,
-    borderRadius: 18,
-    padding: 24,
+    borderRadius: 16,
+    padding: 26,
     borderWidth: 1,
     justifyContent: 'space-between',
+    ...(Platform.OS === 'web' ? {
+      transition: 'transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease',
+    } as any : {}),
   },
   cardTopRow: {
     flexDirection: 'row',

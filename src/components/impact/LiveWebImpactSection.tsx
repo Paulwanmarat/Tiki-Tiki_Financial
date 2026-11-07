@@ -359,50 +359,62 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
                 {/* Individual campaign progress */}
                 <View style={styles.progressListWrap}>
                   <Text style={styles.progressListTitle}>Active Campus Fundraising Campaigns</Text>
-                  {data.donate.campaignsProgress.map((camp: CampaignProgress) => (
-                    <View key={camp.id} style={styles.progressItemCard}>
-                      <View style={styles.progressItemTop}>
-                        <View style={{ flex: 1 }}>
-                          <View style={styles.studentBadgeRow}>
-                            <Text style={styles.studentAliasText} numberOfLines={1}>{camp.title}</Text>
-                            <View style={[styles.categoryBadge, { backgroundColor: '#F59E0B18' }]}>
-                              <Text style={[styles.categoryBadgeText, { color: '#F59E0B' }]}>{camp.category}</Text>
-                            </View>
-                          </View>
-                          <Text style={styles.progressItemSub}>
-                            Status: {camp.status} {camp.endDate ? `· Ends: ${new Date(camp.endDate).toLocaleDateString('th-TH')}` : ''}
-                          </Text>
-                        </View>
-                        <View style={[styles.pctBadge, { backgroundColor: camp.percentage >= 100 ? '#F59E0B20' : '#1C1525' }]}>
-                          <Text style={[styles.pctBadgeText, { color: camp.percentage >= 100 ? '#F59E0B' : '#EC4899' }]}>
-                            {camp.percentage}%
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Bar */}
-                      <View style={styles.barTrack}>
-                        <View
-                          style={[
-                            styles.barFill,
-                            {
-                              width: `${Math.min(100, camp.percentage)}%`,
-                              backgroundColor: camp.percentage >= 100 ? '#F59E0B' : '#EC4899',
-                            },
-                          ]}
-                        />
-                      </View>
-
-                      <View style={styles.barBottomRow}>
-                        <Text style={[styles.barAmountFunded, { color: '#F59E0B' }]}>
-                          {THB(camp.amountRaised)} raised
-                        </Text>
-                        <Text style={styles.barAmountNeeded}>
-                          Target: {THB(camp.targetAmount)} {camp.remainingNeeded > 0 ? `(${THB(camp.remainingNeeded)} remaining)` : '(Completed)'}
-                        </Text>
-                      </View>
+                  {data.donate.campaignsProgress.length === 0 ? (
+                    <View style={{ padding: 28, borderRadius: 12, backgroundColor: '#1C1525', borderWidth: 1, borderColor: '#2E223B', alignItems: 'center' }}>
+                      <Ionicons name="shield-checkmark-outline" size={30} color="#F59E0B" style={{ marginBottom: 8 }} />
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: '#FDF8F4', marginBottom: 4 }}>
+                        Official Campaign Registry Clean
+                      </Text>
+                      <Text style={{ fontSize: 12, color: '#B9ABC1', textAlign: 'center', maxWidth: 460, lineHeight: 18 }}>
+                        Currently, there are no active public fundraising campaigns. All student causes and community endowments must be inaugurated and verified by Saipanyarangsit School administrators and the Application Owner.
+                      </Text>
                     </View>
-                  ))}
+                  ) : (
+                    data.donate.campaignsProgress.map((camp: CampaignProgress) => (
+                      <View key={camp.id} style={styles.progressItemCard}>
+                        <View style={styles.progressItemTop}>
+                          <View style={{ flex: 1 }}>
+                            <View style={styles.studentBadgeRow}>
+                              <Text style={styles.studentAliasText} numberOfLines={1}>{camp.title}</Text>
+                              <View style={[styles.categoryBadge, { backgroundColor: '#F59E0B18' }]}>
+                                <Text style={[styles.categoryBadgeText, { color: '#F59E0B' }]}>{camp.category}</Text>
+                              </View>
+                            </View>
+                            <Text style={styles.progressItemSub}>
+                              Status: {camp.status} {camp.endDate ? `· Ends: ${new Date(camp.endDate).toLocaleDateString('th-TH')}` : ''}
+                            </Text>
+                          </View>
+                          <View style={[styles.pctBadge, { backgroundColor: camp.percentage >= 100 ? '#F59E0B20' : '#1C1525' }]}>
+                            <Text style={[styles.pctBadgeText, { color: camp.percentage >= 100 ? '#F59E0B' : '#EC4899' }]}>
+                              {camp.percentage}%
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Bar */}
+                        <View style={styles.barTrack}>
+                          <View
+                            style={[
+                              styles.barFill,
+                              {
+                                width: `${Math.min(100, camp.percentage)}%`,
+                                backgroundColor: camp.percentage >= 100 ? '#F59E0B' : '#EC4899',
+                              },
+                            ]}
+                          />
+                        </View>
+
+                        <View style={styles.barBottomRow}>
+                          <Text style={[styles.barAmountFunded, { color: '#F59E0B' }]}>
+                            {THB(camp.amountRaised)} raised
+                          </Text>
+                          <Text style={styles.barAmountNeeded}>
+                            Target: {THB(camp.targetAmount)} {camp.remainingNeeded > 0 ? `(${THB(camp.remainingNeeded)} remaining)` : '(Completed)'}
+                          </Text>
+                        </View>
+                      </View>
+                    ))
+                  )}
                 </View>
 
                 {/* CTA */}
