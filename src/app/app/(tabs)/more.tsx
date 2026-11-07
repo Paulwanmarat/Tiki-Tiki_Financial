@@ -21,7 +21,7 @@ interface MenuItemData {
 }
 
 export default function MoreScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, themeMode, systemTheme, cycleTheme } = useTheme();
   const router = useRouter();
   const { user, logout } = useAuth();
   const { currency, setCurrency } = useCurrency();
@@ -218,6 +218,70 @@ export default function MoreScreen() {
             </Card>
           </TouchableOpacity>
         ))}
+
+        {/* ── Theme / Appearance Quick-Select ───────────────── */}
+        <TouchableOpacity onPress={cycleTheme} activeOpacity={0.7}>
+          <Card
+            style={[
+              styles.menuItem,
+              {
+                borderColor: (isDark ? '#818CF8' : '#F59E0B') + '40',
+                backgroundColor: (isDark ? '#818CF8' : '#F59E0B') + '0A',
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: (isDark ? '#818CF8' : '#F59E0B') + '20' },
+              ]}
+            >
+              <Ionicons
+                name={themeMode === 'system' ? 'phone-portrait-outline' : isDark ? 'moon' : 'sunny'}
+                size={22}
+                color={themeMode === 'system' ? colors.primary : isDark ? '#A5B4FC' : '#D97706'}
+              />
+            </View>
+            <View style={styles.itemText}>
+              <View style={styles.itemTitleRow}>
+                <Text style={[styles.itemTitle, { color: colors.text }]}>Appearance & Theme</Text>
+                <View
+                  style={[
+                    styles.badgePill,
+                    {
+                      backgroundColor:
+                        (themeMode === 'system' ? colors.primary : isDark ? '#818CF8' : '#F59E0B') + '20',
+                      borderColor:
+                        (themeMode === 'system' ? colors.primary : isDark ? '#818CF8' : '#F59E0B') + '40',
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.badgeText,
+                      {
+                        color:
+                          themeMode === 'system' ? colors.primary : isDark ? '#A5B4FC' : '#D97706',
+                      },
+                    ]}
+                  >
+                    {themeMode === 'system'
+                      ? `AUTO (${systemTheme.toUpperCase()})`
+                      : themeMode === 'dark'
+                      ? 'DARK'
+                      : 'LIGHT'}
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.itemDescription, { color: colors.textSecondary }]}>
+                {themeMode === 'system'
+                  ? `Following device & browser settings (${systemTheme === 'dark' ? 'Dark' : 'Light'}) · Tap to switch`
+                  : `Always in ${themeMode === 'dark' ? 'Dark' : 'Light'} Mode · Tap to switch`}
+              </Text>
+            </View>
+            <Ionicons name="refresh-outline" size={18} color={colors.textTertiary} />
+          </Card>
+        </TouchableOpacity>
 
         {/* ── Currency Quick-Select ───────────────── */}
         <TouchableOpacity onPress={() => setShowCurrencyPicker(true)} activeOpacity={0.7}>

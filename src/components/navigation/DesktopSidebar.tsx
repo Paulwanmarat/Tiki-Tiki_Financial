@@ -28,7 +28,7 @@ interface DesktopSidebarProps {
 }
 
 export function DesktopSidebar({ onNewGoal, collapsed = false, onToggleCollapse }: DesktopSidebarProps) {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, themeMode, cycleTheme } = useTheme();
   const { user, logout } = useAuth();
   const { formatCurrency } = useCurrency();
   const router = useRouter();
@@ -391,6 +391,17 @@ export function DesktopSidebar({ onNewGoal, collapsed = false, onToggleCollapse 
         </TouchableOpacity>
 
         <View style={styles.footerActions}>
+          <TouchableOpacity
+            style={[styles.footerIconBtn, { borderColor: colors.border }]}
+            onPress={cycleTheme}
+            accessibilityLabel={`Theme: ${themeMode} (Tap to change)`}
+          >
+            <Ionicons
+              name={themeMode === 'system' ? 'phone-portrait-outline' : isDark ? 'moon' : 'sunny'}
+              size={17}
+              color={themeMode === 'system' ? colors.primary : isDark ? '#A78BFA' : '#F59E0B'}
+            />
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.footerIconBtn, { borderColor: colors.border }]}
             onPress={() => router.push('/settings' as any)}

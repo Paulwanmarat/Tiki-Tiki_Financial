@@ -26,7 +26,7 @@ import { PIGGY_LOGO, SCHOOL_LOGO } from '@/constants/assets';
 import { confirmAction } from '@/utils/confirm';
 
 export default function SettingsScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, themeMode, systemTheme, setThemeMode } = useTheme();
   const router = useRouter();
   const { user, logout } = useAuth();
   const { transactions } = useTransactions();
@@ -143,6 +143,105 @@ export default function SettingsScreen() {
             <Ionicons name="chatbubble" size={20} color={colors.primary} />
             <Text style={[styles.statText, { color: colors.text }]}>AI Advisor Consultations</Text>
             <Text style={[styles.statValue, { color: colors.textSecondary }]}>{messageCount}</Text>
+          </View>
+        </Card>
+
+        {/* ── App Appearance & Theme ───────────────────────── */}
+        <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>APP APPEARANCE & THEME</Text>
+        <Card style={[styles.statsCard, { borderColor: colors.border, padding: Spacing.md }]}>
+          <View style={styles.themeHeaderRow}>
+            <View style={[styles.themeIconCircle, { backgroundColor: colors.primary + '18' }]}>
+              <Ionicons
+                name={themeMode === 'system' ? 'phone-portrait-outline' : isDark ? 'moon' : 'sunny'}
+                size={20}
+                color={colors.primary}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.statText, { color: colors.text }]}>Color Theme</Text>
+              <Text style={[styles.statusHint, { color: colors.textTertiary }]}>
+                {themeMode === 'system'
+                  ? `Based on device & browser settings (${systemTheme === 'dark' ? 'Dark' : 'Light'})`
+                  : themeMode === 'dark'
+                  ? 'Always Dark Mode'
+                  : 'Always Light Mode'}
+              </Text>
+            </View>
+          </View>
+
+          {/* 3-way Segment Control: Light, Dark, Auto/Device */}
+          <View style={[styles.themeSegmentTrack, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}>
+            <TouchableOpacity
+              style={[
+                styles.themeSegmentBtn,
+                themeMode === 'light' && [styles.themeSegmentBtnActive, { backgroundColor: colors.surface, borderColor: colors.border }],
+              ]}
+              onPress={() => setThemeMode('light')}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="sunny"
+                size={16}
+                color={themeMode === 'light' ? colors.primary : colors.textTertiary}
+              />
+              <Text
+                style={[
+                  styles.themeSegmentText,
+                  { color: themeMode === 'light' ? colors.primary : colors.textSecondary },
+                  themeMode === 'light' && { fontWeight: FontWeight.bold },
+                ]}
+              >
+                Light
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.themeSegmentBtn,
+                themeMode === 'dark' && [styles.themeSegmentBtnActive, { backgroundColor: colors.surface, borderColor: colors.border }],
+              ]}
+              onPress={() => setThemeMode('dark')}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="moon"
+                size={16}
+                color={themeMode === 'dark' ? colors.primary : colors.textTertiary}
+              />
+              <Text
+                style={[
+                  styles.themeSegmentText,
+                  { color: themeMode === 'dark' ? colors.primary : colors.textSecondary },
+                  themeMode === 'dark' && { fontWeight: FontWeight.bold },
+                ]}
+              >
+                Dark
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.themeSegmentBtn,
+                themeMode === 'system' && [styles.themeSegmentBtnActive, { backgroundColor: colors.surface, borderColor: colors.border }],
+              ]}
+              onPress={() => setThemeMode('system')}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="phone-portrait-outline"
+                size={16}
+                color={themeMode === 'system' ? colors.primary : colors.textTertiary}
+              />
+              <Text
+                style={[
+                  styles.themeSegmentText,
+                  { color: themeMode === 'system' ? colors.primary : colors.textSecondary },
+                  themeMode === 'system' && { fontWeight: FontWeight.bold },
+                ]}
+              >
+                Auto / Device
+              </Text>
+            </TouchableOpacity>
           </View>
         </Card>
 
@@ -495,6 +594,46 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.bold,
     width: 40,
     textAlign: 'center',
+  },
+  themeHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  themeIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeSegmentTrack: {
+    flexDirection: 'row',
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    padding: 3,
+    gap: 4,
+  },
+  themeSegmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: BorderRadius.sm + 2,
+  },
+  themeSegmentBtnActive: {
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  themeSegmentText: {
+    fontSize: FontSize.xs + 1,
   },
 });
 
