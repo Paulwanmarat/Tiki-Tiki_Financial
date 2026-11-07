@@ -23,9 +23,19 @@ interface MenuItemData {
 export default function MoreScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const { currency, setCurrency } = useCurrency();
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+
+  const isUserAdmin = Boolean(
+    user && (
+      user.role === 'admin' ||
+      user.role === 'owner' ||
+      user.email?.toLowerCase() === 'paulwanmarat@gmail.com' ||
+      user.email?.toLowerCase() === 'admin@spr.app' ||
+      user.email?.toLowerCase().startsWith('admin@')
+    )
+  );
 
   const handleLogout = () => {
     confirmAction(
@@ -81,14 +91,18 @@ export default function MoreScreen() {
       color: '#10B981',
       badge: 'LIVE ฿',
     },
-    {
-      icon: 'shield-checkmark-outline',
-      title: 'Payment Verification',
-      description: 'Review pending PromptPay transfers, bank slips & approve funding',
-      route: '/admin/payments',
-      color: '#3B82F6',
-      badge: 'ADMIN',
-    },
+    ...(isUserAdmin
+      ? [
+          {
+            icon: 'shield-checkmark-outline' as const,
+            title: 'Payment Verification',
+            description: 'Review pending PromptPay transfers, bank slips & approve funding',
+            route: '/admin/payments',
+            color: '#3B82F6',
+            badge: 'ADMIN',
+          },
+        ]
+      : []),
     {
       icon: 'calculator',
       title: 'Spending Simulator',

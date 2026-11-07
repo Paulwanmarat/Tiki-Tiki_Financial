@@ -57,13 +57,23 @@ export function DesktopSidebar({ onNewGoal, collapsed = false, onToggleCollapse 
     { label: 'Menu OCR Scanner', icon: 'camera-outline', activeIcon: 'camera', route: '/scanner' },
   ];
 
+  const isUserAdmin = Boolean(
+    user && (
+      user.role === 'admin' ||
+      user.role === 'owner' ||
+      user.email?.toLowerCase() === 'paulwanmarat@gmail.com' ||
+      user.email?.toLowerCase() === 'admin@spr.app' ||
+      user.email?.toLowerCase().startsWith('admin@')
+    )
+  );
+
   const communityItems = [
     { label: 'Marketplace', icon: 'cart-outline', activeIcon: 'cart', route: '/marketplace' },
     { label: 'SPR Projects', icon: 'bulb-outline', activeIcon: 'bulb', route: '/projects' },
     { label: '👑 RK (Rich Kid)', icon: 'wallet-outline', activeIcon: 'wallet', route: '/tryland' },
     { label: 'Donate & Causes', icon: 'heart-outline', activeIcon: 'heart', route: '/donate' },
     { label: 'Live Impact (฿)', icon: 'analytics-outline', activeIcon: 'analytics', route: '/impact' },
-    { label: 'Payment Admin', icon: 'shield-checkmark-outline', activeIcon: 'shield-checkmark', route: '/admin/payments' },
+    ...(isUserAdmin ? [{ label: 'Payment Admin', icon: 'shield-checkmark-outline', activeIcon: 'shield-checkmark', route: '/admin/payments' }] : []),
   ];
 
   const handleGoalSelect = (goalId: string) => {

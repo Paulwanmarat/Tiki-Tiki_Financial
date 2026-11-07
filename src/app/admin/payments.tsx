@@ -65,8 +65,18 @@ export default function AdminPaymentsScreen() {
   const [assigningRole, setAssigningRole] = useState(false);
 
   const isOwner = user?.role === 'owner' || user?.email?.toLowerCase() === 'paulwanmarat@gmail.com';
+  const isAdmin = Boolean(
+    user && (
+      user.role === 'admin' ||
+      user.role === 'owner' ||
+      user.email?.toLowerCase() === 'paulwanmarat@gmail.com' ||
+      user.email?.toLowerCase() === 'admin@spr.app' ||
+      user.email?.toLowerCase().startsWith('admin@')
+    )
+  );
 
   const loadUsers = useCallback(async () => {
+    if (!isAdmin) return;
     try {
       setLoadingUsers(true);
       const list = await getAdminUsers();
@@ -76,13 +86,13 @@ export default function AdminPaymentsScreen() {
     } finally {
       setLoadingUsers(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
-    if (activeSection === 'admins') {
+    if (activeSection === 'admins' && isAdmin) {
       loadUsers();
     }
-  }, [activeSection, loadUsers]);
+  }, [activeSection, isAdmin, loadUsers]);
 
   // Toast / Status Message
   const [actionToast, setActionToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -118,6 +128,10 @@ export default function AdminPaymentsScreen() {
   }, [isOwner, loadUsers]);
 
   const loadPayments = useCallback(async () => {
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
     try {
       setError(null);
       const data = await getAdminPayments({
@@ -132,12 +146,16 @@ export default function AdminPaymentsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [statusFilter, typeFilter, search]);
+  }, [isAdmin, statusFilter, typeFilter, search]);
 
   useEffect(() => {
-    setLoading(true);
-    loadPayments();
-  }, [loadPayments]);
+    if (isAdmin) {
+      setLoading(true);
+      loadPayments();
+    } else {
+      setLoading(false);
+    }
+  }, [isAdmin, loadPayments]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -196,6 +214,41 @@ export default function AdminPaymentsScreen() {
   };
 
   const pendingCount = payments.filter(p => p.status === 'pending').length;
+
+  if (!isAdmin) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={() => router.replace('/app')} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="arrow-back" size={22} color={colors.text} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Admin Center</Text>
+            <Text style={[styles.headerSub, { color: colors.textTertiary }]}>Restricted Access</Text>
+          </View>
+        </View>
+
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl }}>
+          <View style={{ width: 68, height: 68, borderRadius: 34, backgroundColor: '#EF444414', alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md }}>
+            <Ionicons name="lock-closed" size={32} color="#EF4444" />
+          </View>
+          <Text style={{ fontSize: FontSize.xl, fontWeight: FontWeight.bold, color: colors.text, marginBottom: Spacing.xs, textAlign: 'center' }}>
+            Administrator Access Required
+          </Text>
+          <Text style={{ fontSize: FontSize.sm, color: colors.textSecondary, textAlign: 'center', marginBottom: Spacing.xl, maxWidth: 360, lineHeight: 22 }}>
+            This section is restricted to authorized platform administrators and the Application Owner. Your account does not have access to view or manage financial verification queues.
+          </Text>
+          <TouchableOpacity
+            style={[styles.approveBtn, { backgroundColor: colors.primary, paddingHorizontal: Spacing.xl, minWidth: 200, justifyContent: 'center' }]}
+            onPress={() => router.replace('/app')}
+          >
+            <Ionicons name="home-outline" size={18} color="#fff" />
+            <Text style={styles.approveBtnText}>Return to Dashboard</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>

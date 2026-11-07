@@ -295,10 +295,25 @@ export async function initDb(): Promise<Pool> {
       -- ─── Guest Supporter & Pure 0 Initial State Migrations ───
       ALTER TABLE donations ALTER COLUMN donor_id DROP NOT NULL;
       ALTER TABLE tryland_sponsorships ALTER COLUMN sponsor_id DROP NOT NULL;
+      ALTER TABLE donate_campaigns ALTER COLUMN organizer_id DROP NOT NULL;
+      ALTER TABLE donate_campaigns DROP CONSTRAINT IF EXISTS donate_campaigns_organizer_id_fkey;
+      ALTER TABLE donate_campaigns ADD CONSTRAINT donate_campaigns_organizer_id_fkey FOREIGN KEY (organizer_id) REFERENCES users(id) ON DELETE SET NULL;
       ALTER TABLE donations ADD COLUMN IF NOT EXISTS guest_name TEXT;
       ALTER TABLE donations ADD COLUMN IF NOT EXISTS guest_email TEXT;
       ALTER TABLE tryland_sponsorships ADD COLUMN IF NOT EXISTS guest_name TEXT;
       ALTER TABLE tryland_sponsorships ADD COLUMN IF NOT EXISTS guest_email TEXT;
+
+      -- Ensure a system organizer user exists in users table so foreign keys never fail
+      INSERT INTO users (id, email, "passwordHash", username, role, email_verified)
+      VALUES (
+        'system_organizer',
+        'system@spr.app',
+        '$2a$10$wN1G1v2x0p8mN4k5j6l7.OU2Zc1QY1/dummyHashForSystemUserOnly',
+        'Student Welfare Union',
+        'admin',
+        true
+      )
+      ON CONFLICT (id) DO NOTHING;
 
       -- Reset all seeded figures to 0 (all numbers start clean from 0)
       UPDATE donate_campaigns SET amount_raised = 0 WHERE NOT EXISTS (
