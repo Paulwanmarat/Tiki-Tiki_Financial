@@ -15,6 +15,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SurveyResults } from './SurveyResults';
@@ -124,7 +125,7 @@ const S = {
 /* ───────────────────────────────────────────────────────────────── */
 export function WebLanding() {
   const router = useRouter();
-  const windowWidth = Dimensions.get('window').width;
+  const { width: windowWidth } = useWindowDimensions();
   const isMobile = windowWidth < 768;
   const isTablet = windowWidth >= 768 && windowWidth < 1024;
 
@@ -169,12 +170,11 @@ export function WebLanding() {
 
   return (
     <View style={pageStyles.root}>
-      {/* Studio Navigation Bar with Laser Progress */}
+      {/* Studio Navigation Bar */}
       <StudioNavBar
         isMobile={isMobile}
         scrollTo={scrollTo}
         onOpenApp={() => router.push('/app')}
-        scrollProgress={scrollProgress}
         activeKey={activeNavKey}
       />
 
@@ -283,40 +283,42 @@ function StudioNavBar({
   isMobile,
   scrollTo,
   onOpenApp,
-  scrollProgress = 0,
   activeKey = 'top',
 }: {
   isMobile: boolean;
   scrollTo: (key: string) => void;
   onOpenApp: () => void;
-  scrollProgress?: number;
   activeKey?: string;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { width: screenWidth } = useWindowDimensions();
 
-  const navItems = [
-    { label: 'The Problem', key: 'problem' },
+  const allNavItems = [
+    { label: 'Problem', key: 'problem' },
     { label: '3-Pillars', key: 'ledger' },
     { label: 'Ecosystem', key: 'ecosystem' },
     { label: 'Simulator', key: 'simulator' },
     { label: 'Piggy Vault', key: 'goals' },
-    { label: 'Menu OCR', key: 'ai' },
+    { label: 'AI Vision', key: 'ai' },
     { label: 'Research', key: 'research' },
     { label: 'Team', key: 'team' },
-    { label: 'Impact (฿)', key: 'impact' },
+    { label: 'Live Impact', key: 'impact' },
   ];
+
+  // On standard/narrower PC screens (<1220px), prioritize the core product pillars to eliminate collisions
+  const isCompactDesktop = !isMobile && screenWidth < 1220;
+  const desktopNavItems = isCompactDesktop
+    ? allNavItems.filter((i) => ['problem', 'ledger', 'ecosystem', 'simulator', 'goals', 'impact'].includes(i.key))
+    : allNavItems;
 
   return (
     <View style={navStyles.wrapper}>
-      {/* Reading Progress Line */}
-      <View style={[navStyles.progressLine, { width: `${scrollProgress}%` as any }]} />
-
       <View style={navStyles.container}>
         {/* Brand Emblem & Institutional Affiliation */}
         <TouchableOpacity
           style={navStyles.brand}
           onPress={() => scrollTo('top')}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
           <View style={navStyles.logoFrame}>
             <Image
@@ -325,10 +327,10 @@ function StudioNavBar({
               alt="Official SPR Piggy Logo"
             />
           </View>
-          <View>
+          <View style={navStyles.brandTextCol}>
             <View style={navStyles.brandRow}>
               <Text style={navStyles.brandTitle}>SPR</Text>
-              <Text style={navStyles.brandStudioBadge}>MONEY STUDIO</Text>
+              <Text style={navStyles.brandStudioBadge}>STUDIO</Text>
             </View>
             <Text style={navStyles.brandSub}>Student Pecuniary Routine</Text>
           </View>
@@ -345,7 +347,7 @@ function StudioNavBar({
                     alt="Saipanyarangsit School Logo"
                   />
                 </View>
-                <View>
+                <View style={navStyles.schoolTextCol}>
                   <Text style={navStyles.schoolBrandTitle}>Saipanyarangsit</Text>
                   <Text style={navStyles.schoolBrandSub}>MEP Faculty Project</Text>
                 </View>
@@ -354,16 +356,17 @@ function StudioNavBar({
           )}
         </TouchableOpacity>
 
-        {/* Desktop Links */}
+        {/* Desktop Links with adaptive spacing */}
         {!isMobile && (
           <View style={navStyles.links}>
-            {navItems.map((item) => {
+            {desktopNavItems.map((item) => {
               const isActive = activeKey === item.key;
               return (
                 <TouchableOpacity
                   key={item.key}
                   onPress={() => scrollTo(item.key)}
                   style={[navStyles.link, isActive && navStyles.linkActive]}
+                  activeOpacity={0.8}
                 >
                   <Text
                     style={[
@@ -387,7 +390,7 @@ function StudioNavBar({
             activeOpacity={0.85}
           >
             <Text style={navStyles.ctaBtnText}>Open App</Text>
-            <Ionicons name="arrow-forward" size={15} color="#FFF" />
+            <Ionicons name="arrow-forward" size={14} color="#FFF" />
           </TouchableOpacity>
 
           {isMobile && (
@@ -404,7 +407,7 @@ function StudioNavBar({
       {/* Mobile Menu Dropdown */}
       {isMobile && menuOpen && (
         <View style={navStyles.mobileMenu}>
-          {navItems.map((item) => (
+          {allNavItems.map((item) => (
             <TouchableOpacity
               key={item.key}
               onPress={() => {
@@ -431,6 +434,7 @@ function StudioNavBar({
 
 /* ───────────────────────────────────────────────────────────────── */
 /*  Institutional Navigation Styles                                 */
+/* ───────────────────────────────────────────────────────────────── */
 const navStyles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
@@ -438,41 +442,34 @@ const navStyles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 999,
-    backgroundColor: 'rgba(11, 15, 23, 0.97)',
+    backgroundColor: 'rgba(11, 15, 23, 0.96)',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(34, 47, 70, 0.9)',
+    borderBottomColor: 'rgba(34, 47, 70, 0.75)',
     ...(Platform.OS === 'web' ? {
-      backdropFilter: 'blur(14px)',
-      WebkitBackdropFilter: 'blur(14px)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
     } as any : {}),
-  },
-  progressLine: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    height: 2,
-    backgroundColor: S.piggyPink,
-    zIndex: 1000,
   },
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: '6%' as any,
-    height: 72,
-    maxWidth: 1320,
+    paddingHorizontal: 20,
+    height: 68,
+    maxWidth: 1400,
     width: '100%',
     alignSelf: 'center',
   },
   brand: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+    flexShrink: 0,
   },
   logoFrame: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: S.piggyPink,
@@ -483,47 +480,50 @@ const navStyles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
   },
+  brandTextCol: {
+    justifyContent: 'center',
+  },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   brandTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
     color: S.textLight,
     letterSpacing: 0.5,
   },
   brandStudioBadge: {
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '800',
     color: S.piggyPink,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     backgroundColor: S.piggyPinkSubtle,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
     borderRadius: 4,
   },
   brandSub: {
-    fontSize: 10,
+    fontSize: 9.5,
     color: S.textLightMuted,
     fontWeight: '600',
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
   brandDivider: {
     width: 1,
-    height: 28,
+    height: 22,
     backgroundColor: S.canvasDarkBorder,
-    marginHorizontal: 6,
+    marginHorizontal: 4,
   },
   schoolBrandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
   },
   schoolLogoFrame: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     borderRadius: 6,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
@@ -536,49 +536,68 @@ const navStyles = StyleSheet.create({
     height: '100%',
     resizeMode: 'contain',
   },
+  schoolTextCol: {
+    justifyContent: 'center',
+  },
   schoolBrandTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: S.textLight,
   },
   schoolBrandSub: {
-    fontSize: 9,
+    fontSize: 8.5,
     color: S.textLightMuted,
     letterSpacing: 0.2,
   },
   links: {
     flexDirection: 'row',
-    gap: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    flexShrink: 1,
+    marginHorizontal: 10,
   },
   link: {
-    paddingVertical: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 6,
   },
   linkText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: S.textLightSecondary,
+    letterSpacing: 0.15,
+  },
+  linkActive: {
+    backgroundColor: 'rgba(225, 29, 72, 0.14)',
+    borderBottomWidth: 0,
+  },
+  linkTextActive: {
+    color: S.piggyPink,
+    fontWeight: '800',
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flexShrink: 0,
   },
   ctaBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: S.piggyPink,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
     borderRadius: 99,
     shadowColor: S.piggyPink,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.35,
-    shadowRadius: 10,
+    shadowRadius: 8,
   },
   ctaBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12.5,
+    fontWeight: '800',
     color: '#FFF',
     letterSpacing: 0.3,
   },
@@ -600,14 +619,6 @@ const navStyles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: S.textLight,
-  },
-  linkActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: S.piggyPink,
-  },
-  linkTextActive: {
-    color: S.piggyPink,
-    fontWeight: '800',
   },
 });
 
