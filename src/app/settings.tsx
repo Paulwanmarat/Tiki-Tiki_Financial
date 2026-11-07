@@ -22,7 +22,7 @@ import { useCurrency, CURRENCIES, CurrencyDef } from '@/context/CurrencyContext'
 import * as aiHistoryDb from '@/services/database/aiHistory';
 import { checkAiBackendStatus, AI_CONFIG } from '@/services/ai/client';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
-import { PIGGY_LOGO } from '@/constants/assets';
+import { PIGGY_LOGO, SCHOOL_LOGO } from '@/constants/assets';
 import { confirmAction } from '@/utils/confirm';
 
 export default function SettingsScreen() {
@@ -232,10 +232,24 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </Card>
 
-        {/* Project Credits */}
+        {/* Project Credits & Institutional Attribution */}
         <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>ABOUT THE PROJECT</Text>
         <Card style={{ borderColor: colors.border, padding: Spacing.lg }}>
-          <Text style={[styles.aboutTitle, { color: colors.text }]}>Student Pecuniary Routine (SPR)</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.md }}>
+            {/* Primary Product Identity */}
+            <View style={{ width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: 2, borderColor: colors.primary }}>
+              <Image source={PIGGY_LOGO} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            </View>
+            {/* Supporting Institutional Affiliation */}
+            <View style={{ width: 40, height: 40, borderRadius: 8, overflow: 'hidden', backgroundColor: '#FFFFFF', padding: 3, borderWidth: 1, borderColor: colors.border }}>
+              <Image source={SCHOOL_LOGO} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.aboutTitle, { color: colors.text }]}>Student Pecuniary Routine</Text>
+              <Text style={{ fontSize: 11, color: colors.textTertiary }}>SPR Money Studio · MEP Edition</Text>
+            </View>
+          </View>
+
           <Text style={[styles.aboutDescription, { color: colors.textSecondary }]}>
             Engineered to empower secondary school and university students to overcome impulsive buying, set realistic savings milestones, and establish conscious pecuniary habits.
           </Text>
@@ -245,7 +259,23 @@ export default function SettingsScreen() {
             <Text style={[styles.creditSchool, { color: colors.textSecondary }]}>
               Saipanyarangsit School · Mini English Program (MEP)
             </Text>
-            <View style={[styles.advisorPill, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}>
+
+            {/* Team Members */}
+            <View style={{ marginTop: Spacing.sm, gap: 4 }}>
+              {[
+                { name: 'Witchayaporn Boriraj', role: 'Presentation Slide Maker' },
+                { name: 'Pimnara Boonyawatputthi', role: 'Researcher' },
+                { name: 'Wachrawit Jindawong', role: 'Presentation Slide Maker' },
+                { name: 'Phanyawat Wanmarat', role: 'Programmer' },
+              ].map((m, idx) => (
+                <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: FontSize.xs, color: colors.text, fontWeight: FontWeight.semibold }}>{m.name}</Text>
+                  <Text style={{ fontSize: 11, color: colors.textTertiary }}>{m.role}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={[styles.advisorPill, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30', marginTop: Spacing.md }]}>
               <Ionicons name="ribbon-outline" size={14} color={colors.primary} />
               <Text style={[styles.creditAdvisor, { color: colors.primary }]}>
                 Project Advisor: Mr. Anthony Jose B. Ferrer

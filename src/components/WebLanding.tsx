@@ -17,54 +17,54 @@ import {
 } from 'react-native';
 import { SurveyResults } from './SurveyResults';
 import { LiveWebImpactSection } from './impact/LiveWebImpactSection';
-import { PIGGY_LOGO, ANTHONY_PHOTO } from '@/constants/assets';
+import { PIGGY_LOGO, SCHOOL_LOGO, ANTHONY_PHOTO } from '@/constants/assets';
 
 /* ───────────────────────────────────────────────────────────────── */
 /*  SPR MONEY STUDIO — DESIGN SYSTEM TOKENS                          */
-/*  Colors sampled directly from official PiggyLogo.jpg             */
+/*  Refined Institutional Fintech Palette & Authentic Brand Assets   */
 /* ───────────────────────────────────────────────────────────────── */
 const S = {
-  // Deep Studio Canvas (Dark Ink)
-  canvasDark: '#0D0912',
-  canvasDarkAlt: '#140E1B',
-  canvasDarkCard: '#1C1525',
-  canvasDarkBorder: '#2E223B',
-  canvasDarkHover: '#261D32',
+  // Deep Obsidian & Slate Canvas (Authoritative Financial Canvas)
+  canvasDark: '#0B0F17',
+  canvasDarkAlt: '#111827',
+  canvasDarkCard: '#182234',
+  canvasDarkBorder: '#222F46',
+  canvasDarkHover: '#293548',
 
   // Tactile Paper Ledger Canvas (for sketch/ledger contrast)
   paper: '#FAF6F0',
   paperWarm: '#FFFDF9',
   paperMuted: '#F1EAE0',
-  paperBorder: '#E4DBD0',
-  paperRuled: '#D4C9BC',
+  paperBorder: '#E2E8F0',
+  paperRuled: '#CBD5E1',
 
-  // Mascot Piggy Palette (sampled directly from PiggyLogo.jpg)
-  piggyPink: '#F96A98',
-  piggyPinkLight: '#FF88AE',
-  piggyPinkDark: '#DF4C7B',
-  piggyPinkGlow: 'rgba(249, 106, 152, 0.22)',
-  piggyPinkSubtle: 'rgba(249, 106, 152, 0.12)',
-  piggyBlush: '#FDE8E3',
-  piggyBlushBg: '#FFF2EE',
-  piggyRose: '#EF427A',
+  // Mascot Piggy Palette (Dignified Rose sampled from PiggyLogo)
+  piggyPink: '#E11D48',
+  piggyPinkLight: '#F43F5E',
+  piggyPinkDark: '#BE123C',
+  piggyPinkGlow: 'rgba(225, 29, 72, 0.16)',
+  piggyPinkSubtle: 'rgba(225, 29, 72, 0.1)',
+  piggyBlush: '#FFE4E6',
+  piggyBlushBg: '#FFF1F2',
+  piggyRose: '#E11D48',
 
   // Studio Ledger Accents
-  amberCoin: '#F59E0B',
-  amberCoinLight: '#FBBF24',
-  amberCoinGlow: 'rgba(245, 158, 11, 0.2)',
+  amberCoin: '#D97706',
+  amberCoinLight: '#F59E0B',
+  amberCoinGlow: 'rgba(217, 119, 6, 0.18)',
   mintCash: '#10B981',
   mintCashBg: 'rgba(16, 185, 129, 0.14)',
   coralWarning: '#EF4444',
   coralWarningBg: 'rgba(239, 68, 68, 0.14)',
-  blueprintBlue: '#3B82F6',
+  blueprintBlue: '#2563EB',
 
-  // Typography Tones
-  inkPrimary: '#160E1A',
-  inkSecondary: '#54465B',
-  inkMuted: '#8A7B91',
-  textLight: '#FDF8F4',
-  textLightSecondary: '#B9ABC1',
-  textLightMuted: '#7D6E86',
+  // Typography Tones (High Contrast Institutional Slate)
+  inkPrimary: '#0F172A',
+  inkSecondary: '#475569',
+  inkMuted: '#64748B',
+  textLight: '#F8FAFC',
+  textLightSecondary: '#94A3B8',
+  textLightMuted: '#64748B',
 };
 
 /* ───────────────────────────────────────────────────────────────── */
@@ -152,6 +152,15 @@ export function WebLanding() {
           <ThreePillarLedgerSection isMobile={isMobile} isTablet={isTablet} />
         </View>
 
+        {/* SECTION 04: Complete Student Financial Ecosystem */}
+        <View onLayout={(e) => onLayout('ecosystem', e.nativeEvent.layout.y)}>
+          <StudioEcosystemSection
+            isMobile={isMobile}
+            isTablet={isTablet}
+            onNavigate={(route) => router.push(route as any)}
+          />
+        </View>
+
         {/* SECTION C: The Interactive Spending Simulator */}
         <View onLayout={(e) => onLayout('simulator', e.nativeEvent.layout.y)}>
           <InteractiveSpendingSimulatorSection isMobile={isMobile} isTablet={isTablet} />
@@ -216,6 +225,7 @@ function StudioNavBar({
   const navItems = [
     { label: 'The Problem', key: 'problem' },
     { label: '3-Pillars', key: 'ledger' },
+    { label: 'Ecosystem', key: 'ecosystem' },
     { label: 'Simulator', key: 'simulator' },
     { label: 'Piggy Vault', key: 'goals' },
     { label: 'Menu OCR', key: 'ai' },
@@ -227,7 +237,7 @@ function StudioNavBar({
   return (
     <View style={navStyles.wrapper}>
       <View style={navStyles.container}>
-        {/* Brand Emblem */}
+        {/* Brand Emblem & Institutional Affiliation */}
         <TouchableOpacity
           style={navStyles.brand}
           onPress={() => scrollTo('top')}
@@ -247,6 +257,26 @@ function StudioNavBar({
             </View>
             <Text style={navStyles.brandSub}>Student Pecuniary Routine</Text>
           </View>
+
+          {/* Hairline Divider & Saipanyarangsit Crest */}
+          {!isMobile && (
+            <>
+              <View style={navStyles.brandDivider} />
+              <View style={navStyles.schoolBrandRow}>
+                <View style={navStyles.schoolLogoFrame}>
+                  <Image
+                    source={SCHOOL_LOGO}
+                    style={navStyles.schoolLogoImage}
+                    alt="Saipanyarangsit School Logo"
+                  />
+                </View>
+                <View>
+                  <Text style={navStyles.schoolBrandTitle}>Saipanyarangsit</Text>
+                  <Text style={navStyles.schoolBrandSub}>MEP Faculty Project</Text>
+                </View>
+              </View>
+            </>
+          )}
         </TouchableOpacity>
 
         {/* Desktop Links */}
@@ -392,6 +422,42 @@ const navStyles = StyleSheet.create({
     color: S.textLightMuted,
     fontWeight: '600',
     letterSpacing: 0.4,
+  },
+  brandDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: S.canvasDarkBorder,
+    marginHorizontal: 6,
+  },
+  schoolBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  schoolLogoFrame: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    padding: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  schoolLogoImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
+  },
+  schoolBrandTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: S.textLight,
+  },
+  schoolBrandSub: {
+    fontSize: 9,
+    color: S.textLightMuted,
+    letterSpacing: 0.2,
   },
   links: {
     flexDirection: 'row',
@@ -1634,6 +1700,276 @@ const pillarStyles = StyleSheet.create({
   },
   highlightText: {
     fontSize: 12,
+    fontWeight: '700',
+  },
+});
+
+/* ───────────────────────────────────────────────────────────────── */
+/*  SECTION 04 · COMPLETE STUDENT FINANCIAL ECOSYSTEM               */
+/*  Four core mutual-aid & campus empowerment features               */
+/* ───────────────────────────────────────────────────────────────── */
+function StudioEcosystemSection({
+  isMobile,
+  isTablet,
+  onNavigate,
+}: {
+  isMobile: boolean;
+  isTablet: boolean;
+  onNavigate: (route: string) => void;
+}) {
+  const ecosystemPillars = [
+    {
+      id: 'marketplace',
+      route: '/marketplace',
+      eyebrow: 'CAMPUS COMMERCE',
+      badge: 'Zero Commissions',
+      badgeColor: S.piggyPink,
+      title: 'SPR Marketplace',
+      desc: 'Buy and sell second-hand academic textbooks, scientific calculators, dorm electronics, and lab equipment directly with peers.',
+      features: ['Search & category filters', 'In-person handover agreements', 'Verified safety & reporting'],
+      icon: 'cart-outline',
+      cta: 'Browse Marketplace',
+    },
+    {
+      id: 'projects',
+      route: '/projects',
+      eyebrow: 'INNOVATION & STEM',
+      badge: 'Step-by-Step Guides',
+      badgeColor: '#8B5CF6',
+      title: 'SPR Projects',
+      desc: 'Discover vetted project roadmaps in tech, robotics, sustainability, and creative arts with realistic bills of materials and budgets.',
+      features: ['Beginner to advanced roadmaps', 'Material cost calculators', 'AI project mentor assistance'],
+      icon: 'bulb-outline',
+      cta: 'Explore Projects',
+    },
+    {
+      id: 'tryland',
+      route: '/tryland',
+      eyebrow: 'MUTUAL AID & BILLS',
+      badge: 'PromptPay QR',
+      badgeColor: '#10B981',
+      title: '🌳RYLAND',
+      isTrylandWordmark: true,
+      desc: 'A peer-funded safety net where students submit essential academic bills (utilities, coursepacks, equipment) for verified sponsorship.',
+      features: ['Transparent funding progress', 'Static PromptPay QR (฿ THB)', 'Admin manual verification'],
+      icon: 'leaf-outline',
+      cta: 'Sponsor a Student',
+    },
+    {
+      id: 'donate',
+      route: '/donate',
+      eyebrow: 'COMMUNITY CAMPAIGNS',
+      badge: 'Verified Impact',
+      badgeColor: S.amberCoin,
+      title: 'SPR Donate',
+      desc: 'Empower student-led initiatives, hardship relief funds, and classroom drives through transparent, verified PromptPay donations.',
+      features: ['Campaign fundraising targets', 'Real-time database tally', 'Complete donor transparency'],
+      icon: 'heart-outline',
+      cta: 'Support a Campaign',
+    },
+  ];
+
+  return (
+    <View style={[ecoStyles.section, isMobile && ecoStyles.sectionMobile]}>
+      <View style={ecoStyles.container}>
+        <View style={ecoStyles.badgeWrap}>
+          <Text style={ecoStyles.badgeText}>SECTION 04 · STUDENT PECUNIARY ECOSYSTEM</Text>
+        </View>
+
+        <Text style={[ecoStyles.heading, isMobile && { fontSize: 28, lineHeight: 36 }]}>
+          Beyond Budgeting: A Full Student Mutual-Aid Economy
+        </Text>
+        <Text style={ecoStyles.subhead}>
+          SPR bridges individual allowance discipline with real peer-to-peer campus commerce,
+          computational project guides, and transparent mutual financial assistance.
+        </Text>
+
+        <View style={[ecoStyles.grid, isMobile && ecoStyles.gridMobile]}>
+          {ecosystemPillars.map((p) => (
+            <TouchableOpacity
+              key={p.id}
+              style={[ecoStyles.card, { borderColor: S.canvasDarkBorder }]}
+              onPress={() => onNavigate(p.route)}
+              activeOpacity={0.85}
+            >
+              <View style={ecoStyles.cardTopRow}>
+                <View style={[ecoStyles.iconWrap, { backgroundColor: p.badgeColor + '18' }]}>
+                  {p.isTrylandWordmark ? (
+                    <Text style={{ fontSize: 20 }}>🌳</Text>
+                  ) : (
+                    <Ionicons name={p.icon as any} size={22} color={p.badgeColor} />
+                  )}
+                </View>
+
+                <View style={[ecoStyles.pillBadge, { backgroundColor: p.badgeColor + '18', borderColor: p.badgeColor + '40' }]}>
+                  <Text style={[ecoStyles.pillText, { color: p.badgeColor }]}>{p.badge}</Text>
+                </View>
+              </View>
+
+              <Text style={ecoStyles.eyebrow}>{p.eyebrow}</Text>
+
+              {p.isTrylandWordmark ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                  <Text style={{ fontSize: 20, marginRight: 2 }}>🌳</Text>
+                  <Text style={[ecoStyles.cardTitle, { color: S.textLight, letterSpacing: 1 }]}>RYLAND</Text>
+                </View>
+              ) : (
+                <Text style={ecoStyles.cardTitle}>{p.title}</Text>
+              )}
+
+              <Text style={ecoStyles.cardDesc}>{p.desc}</Text>
+
+              <View style={ecoStyles.featureList}>
+                {p.features.map((feat, idx) => (
+                  <View key={idx} style={ecoStyles.featureItem}>
+                    <Ionicons name="checkmark-circle" size={14} color={p.badgeColor} />
+                    <Text style={ecoStyles.featureText}>{feat}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <View style={[ecoStyles.ctaRow, { borderTopColor: S.canvasDarkBorder }]}>
+                <Text style={[ecoStyles.ctaText, { color: p.badgeColor }]}>{p.cta}</Text>
+                <Ionicons name="arrow-forward" size={14} color={p.badgeColor} />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const ecoStyles = StyleSheet.create({
+  section: {
+    paddingVertical: 90,
+    paddingHorizontal: '6%' as any,
+    backgroundColor: S.canvasDarkAlt,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: S.canvasDarkBorder,
+  },
+  sectionMobile: {
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  container: {
+    maxWidth: 1200,
+    width: '100%',
+    alignItems: 'center',
+  },
+  badgeWrap: {
+    backgroundColor: S.canvasDarkCard,
+    borderWidth: 1,
+    borderColor: S.canvasDarkBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+    marginBottom: 14,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: S.mintCash,
+    letterSpacing: 1.5,
+  },
+  heading: {
+    fontSize: 38,
+    fontWeight: '900',
+    color: S.textLight,
+    textAlign: 'center',
+    marginBottom: 14,
+  },
+  subhead: {
+    fontSize: 16,
+    lineHeight: 26,
+    color: S.textLightSecondary,
+    textAlign: 'center',
+    maxWidth: 720,
+    marginBottom: 48,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 20,
+    width: '100%',
+  },
+  gridMobile: {
+    flexDirection: 'column',
+  },
+  card: {
+    flex: 1,
+    minWidth: 260,
+    backgroundColor: S.canvasDarkCard,
+    borderRadius: 18,
+    padding: 24,
+    borderWidth: 1,
+    justifyContent: 'space-between',
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  iconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 99,
+    borderWidth: 1,
+  },
+  pillText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  eyebrow: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: S.textLightMuted,
+    letterSpacing: 1.2,
+    marginBottom: 4,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: S.textLight,
+    marginBottom: 10,
+  },
+  cardDesc: {
+    fontSize: 13,
+    lineHeight: 21,
+    color: S.textLightSecondary,
+    marginBottom: 16,
+  },
+  featureList: {
+    gap: 8,
+    marginBottom: 20,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  featureText: {
+    fontSize: 12,
+    color: S.textLightSecondary,
+  },
+  ctaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 14,
+    borderTopWidth: 1,
+  },
+  ctaText: {
+    fontSize: 13,
     fontWeight: '700',
   },
 });
@@ -2978,6 +3314,31 @@ function StudioTeamSection({
             </View>
           </View>
         </View>
+
+        {/* Saipanyarangsit School Institutional Affiliation */}
+        <View style={teamStyles.schoolAffilWrap}>
+          <View style={teamStyles.schoolAffilCard}>
+            <View style={teamStyles.schoolLogoFrame}>
+              <Image
+                source={SCHOOL_LOGO}
+                style={teamStyles.schoolLogoImg}
+                alt="Official Seal of Saipanyarangsit School"
+                resizeMode="contain"
+              />
+            </View>
+            <View style={{ flex: 1, alignItems: isMobile ? 'center' : 'flex-start' }}>
+              <View style={teamStyles.schoolBadgeWrap}>
+                <Ionicons name="school-outline" size={14} color={S.mintCash} />
+                <Text style={teamStyles.schoolBadgeText}>INSTITUTIONAL AFFILIATION</Text>
+              </View>
+              <Text style={teamStyles.schoolTitle}>Saipanyarangsit School</Text>
+              <Text style={teamStyles.schoolSub}>Mini English Program (MEP) · Student Initiative</Text>
+              <Text style={teamStyles.schoolDesc}>
+                Student Pecuniary Routine (SPR) was conceived, designed, and programmed within the Mini English Program (MEP) curriculum at Saipanyarangsit School. This project demonstrates academic excellence in mathematics, behavioral economics, and software engineering under faculty advisory.
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -3144,6 +3505,68 @@ const teamStyles = StyleSheet.create({
     marginBottom: 8,
   },
   advisorDesc: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: S.textLightSecondary,
+  },
+  schoolAffilWrap: {
+    maxWidth: 820,
+    width: '100%',
+    marginTop: 20,
+  },
+  schoolAffilCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 24,
+    backgroundColor: S.canvasDarkCard,
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: S.canvasDarkBorder,
+  },
+  schoolLogoFrame: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    padding: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  schoolLogoImg: {
+    width: '100%',
+    height: '100%',
+  },
+  schoolBadgeWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: S.mintCashBg,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 100,
+    marginBottom: 6,
+  },
+  schoolBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: S.mintCash,
+    letterSpacing: 1.2,
+  },
+  schoolTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: S.textLight,
+    marginBottom: 2,
+  },
+  schoolSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: S.amberCoin,
+    marginBottom: 6,
+  },
+  schoolDesc: {
     fontSize: 12,
     lineHeight: 18,
     color: S.textLightSecondary,
@@ -3480,11 +3903,21 @@ function StudioFooter({
       <View style={[footStyles.container, isMobile && footStyles.containerMobile]}>
         <View style={footStyles.brandCol}>
           <View style={footStyles.logoRow}>
+            {/* Primary SPR Logo */}
             <View style={footStyles.logoSmall}>
               <Image
                 source={PIGGY_LOGO}
                 style={{ width: '100%', height: '100%' }}
-                alt="Logo"
+                alt="SPR Logo"
+              />
+            </View>
+            {/* Institutional School Logo */}
+            <View style={footStyles.schoolLogoSmall}>
+              <Image
+                source={SCHOOL_LOGO}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="contain"
+                alt="Saipanyarangsit School Seal"
               />
             </View>
             <Text style={footStyles.brandText}>SPR MONEY STUDIO</Text>
@@ -3500,6 +3933,9 @@ function StudioFooter({
           </TouchableOpacity>
           <TouchableOpacity onPress={() => scrollTo('ledger')} style={footStyles.footLink}>
             <Text style={footStyles.linkText}>3-Pillar Ledger</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => scrollTo('ecosystem')} style={footStyles.footLink}>
+            <Text style={footStyles.linkText}>Ecosystem</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => scrollTo('simulator')} style={footStyles.footLink}>
             <Text style={footStyles.linkText}>Spending Simulator</Text>
@@ -3555,6 +3991,7 @@ const footStyles = StyleSheet.create({
   brandCol: { flex: 1, gap: 6 },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
   logoSmall: { width: 32, height: 32, borderRadius: 16, overflow: 'hidden', borderWidth: 1.5, borderColor: S.piggyPink },
+  schoolLogoSmall: { width: 30, height: 30, borderRadius: 6, overflow: 'hidden', backgroundColor: '#FFFFFF', padding: 2, alignItems: 'center', justifyContent: 'center' },
   brandText: { fontSize: 15, fontWeight: '900', color: S.textLight, letterSpacing: 0.5 },
   brandNote: { fontSize: 13, color: S.textLightSecondary, fontWeight: '600' },
   schoolNote: { fontSize: 12, color: S.textLightMuted },

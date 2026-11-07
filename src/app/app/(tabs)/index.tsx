@@ -26,7 +26,7 @@ import { TransactionItem } from '@/components/transactions/TransactionItem';
 import { TrylandWordmark } from '@/components/ui/TrylandWordmark';
 import { formatPercentage, getUserDisplayName } from '@/utils/formatters';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
-import { PIGGY_LOGO } from '@/constants/assets';
+import { PIGGY_LOGO, SCHOOL_LOGO } from '@/constants/assets';
 
 export default function DashboardScreen() {
   const { colors, isDark } = useTheme();
@@ -125,6 +125,14 @@ export default function DashboardScreen() {
                   source={PIGGY_LOGO}
                   style={styles.logoImg}
                   alt="SPR Logo"
+                />
+              </View>
+              <View style={[styles.logoCircle, { borderColor: colors.border, backgroundColor: '#FFFFFF', padding: 2 }]}>
+                <Image
+                  source={SCHOOL_LOGO}
+                  style={styles.logoImg}
+                  alt="Saipanyarangsit MEP Seal"
+                  resizeMode="contain"
                 />
               </View>
               <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>TOTAL NET LIQUIDITY</Text>

@@ -15,7 +15,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useGoals } from '@/hooks/useGoals';
-import { PIGGY_LOGO } from '@/constants/assets';
+import { PIGGY_LOGO, SCHOOL_LOGO } from '@/constants/assets';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { formatPercentage, getUserDisplayName } from '@/utils/formatters';
 import { confirmAction } from '@/utils/confirm';
@@ -344,7 +344,16 @@ export function DesktopSidebar({ onNewGoal, collapsed = false, onToggleCollapse 
         </ScrollView>
       </View>
 
-      {/* 5. User Profile Drawer at Bottom */}
+      {/* 5. Institutional Affiliation */}
+      <View style={[styles.schoolAffilBar, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
+        <Image source={SCHOOL_LOGO} style={styles.schoolAffilLogo} resizeMode="contain" />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.schoolAffilTitle, { color: colors.textSecondary }]}>Saipanyarangsit School</Text>
+          <Text style={[styles.schoolAffilSub, { color: colors.textTertiary }]}>Mini English Program (MEP)</Text>
+        </View>
+      </View>
+
+      {/* 6. User Profile Drawer at Bottom */}
       <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
         <TouchableOpacity
           style={styles.profileRow}
@@ -584,6 +593,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
+  },
+  schoolAffilBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+  },
+  schoolAffilLogo: {
+    width: 22,
+    height: 22,
+  },
+  schoolAffilTitle: {
+    fontSize: 11,
+    fontWeight: FontWeight.semibold,
+  },
+  schoolAffilSub: {
+    fontSize: 9,
   },
   profileRow: {
     flexDirection: 'row',

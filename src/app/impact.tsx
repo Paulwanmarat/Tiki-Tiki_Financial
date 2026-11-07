@@ -13,6 +13,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +23,7 @@ import { getLiveImpactTotals } from '@/services/database/payments';
 import { LiveImpactTotals, RequestProgress, CampaignProgress } from '@/types/payments';
 import { Card } from '@/components/ui/Card';
 import { TrylandWordmark } from '@/components/ui/TrylandWordmark';
+import { PIGGY_LOGO, SCHOOL_LOGO } from '@/constants/assets';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
 
 const THB = (n: number) =>
@@ -116,6 +118,14 @@ export default function ImpactTotalsScreen() {
           <Text style={[styles.headerSub, { color: colors.textTertiary }]}>
             Live database figures · verified payments only
           </Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: Spacing.sm }}>
+          <View style={{ width: 28, height: 28, borderRadius: 14, overflow: 'hidden', borderWidth: 1.5, borderColor: colors.primary }}>
+            <Image source={PIGGY_LOGO} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          </View>
+          <View style={{ width: 26, height: 26, borderRadius: 6, overflow: 'hidden', backgroundColor: '#FFFFFF', padding: 2 }}>
+            <Image source={SCHOOL_LOGO} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+          </View>
         </View>
         <TouchableOpacity onPress={loadData} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="refresh" size={20} color={colors.primary} />

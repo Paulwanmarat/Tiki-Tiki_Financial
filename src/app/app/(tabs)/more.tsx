@@ -7,7 +7,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useCurrency, CURRENCIES, CurrencyDef } from '@/context/CurrencyContext';
 import { Card } from '@/components/ui/Card';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
-import { PIGGY_LOGO } from '@/constants/assets';
+import { PIGGY_LOGO, SCHOOL_LOGO } from '@/constants/assets';
 import { useAuth } from '@/context/AuthContext';
 import { confirmAction } from '@/utils/confirm';
 
@@ -143,19 +143,28 @@ export default function MoreScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Studio Header */}
       <View style={styles.header}>
-        <View>
+        <View style={{ flex: 1 }}>
           <View style={styles.eyebrowRow}>
             <View style={[styles.statusDot, { backgroundColor: colors.primary }]} />
-            <Text style={[styles.eyebrow, { color: colors.primary }]}>STUDIO UTILITIES</Text>
+            <Text style={[styles.eyebrow, { color: colors.primary }]}>STUDIO UTILITIES & ECOSYSTEM</Text>
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>More Options</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Platform Hub</Text>
         </View>
-        <View style={styles.headerMascotWrap}>
-          <Image
-            source={PIGGY_LOGO}
-            style={styles.headerMascot}
-            resizeMode="cover"
-          />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={styles.headerMascotWrap}>
+            <Image
+              source={PIGGY_LOGO}
+              style={styles.headerMascot}
+              resizeMode="cover"
+            />
+          </View>
+          <View style={[styles.headerMascotWrap, { backgroundColor: '#FFFFFF', padding: 2 }]}>
+            <Image
+              source={SCHOOL_LOGO}
+              style={styles.headerMascot}
+              resizeMode="contain"
+            />
+          </View>
         </View>
       </View>
 
