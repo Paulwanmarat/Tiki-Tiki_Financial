@@ -291,6 +291,65 @@ export async function initDb(): Promise<Pool> {
       ALTER TABLE donations ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
       CREATE INDEX IF NOT EXISTS idx_donations_status ON donations(status);
       CREATE INDEX IF NOT EXISTS idx_donations_ref ON donations(payment_reference);
+
+      -- ─── Guest Supporter & Pure 0 Initial State Migrations ───
+      ALTER TABLE donations ALTER COLUMN donor_id DROP NOT NULL;
+      ALTER TABLE tryland_sponsorships ALTER COLUMN sponsor_id DROP NOT NULL;
+      ALTER TABLE donations ADD COLUMN IF NOT EXISTS guest_name TEXT;
+      ALTER TABLE donations ADD COLUMN IF NOT EXISTS guest_email TEXT;
+      ALTER TABLE tryland_sponsorships ADD COLUMN IF NOT EXISTS guest_name TEXT;
+      ALTER TABLE tryland_sponsorships ADD COLUMN IF NOT EXISTS guest_email TEXT;
+
+      -- Reset all seeded figures to 0 (all numbers start clean from 0)
+      UPDATE donate_campaigns SET amount_raised = 0 WHERE NOT EXISTS (
+        SELECT 1 FROM donations WHERE campaign_id = donate_campaigns.id AND status = 'verified'
+      );
+      UPDATE tryland_requests SET amount_funded = 0, status = 'open' WHERE NOT EXISTS (
+        SELECT 1 FROM tryland_sponsorships WHERE request_id = tryland_requests.id AND status = 'verified'
+      );
+
+      -- Remove any test/made-up donations (such as 300 baht tester user)
+      DELETE FROM donations WHERE amount = 300 OR message ILIKE '%tester%' OR message ILIKE '%made up%';
+      DELETE FROM tryland_sponsorships WHERE amount = 300;
+    `);
+
+    // Ensure Campus Food Pantry Winter Supply campaign exists (from advisor's transfer slip)
+    await client.query(`
+      INSERT INTO donate_campaigns 
+        (id, organizer_id, organizer_name, title, description, objective, target_amount, amount_raised, cover_image, category, status)
+      VALUES (
+        'camp_pantry_winter',
+        'system_organizer',
+        'Student Welfare Union',
+        'Campus Food Pantry Winter Supply',
+        'Providing supplemental nutritious meals and emergency grocery packs to students living on campus during winter term.',
+        'Support campus dorm students with nutritious groceries and emergency meals.',
+        5000,
+        0,
+        'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800',
+        'Student Welfare',
+        'active'
+      )
+      ON CONFLICT (id) DO UPDATE SET title = 'Campus Food Pantry Winter Supply';
+
+      -- Ensure Mr. Anthony's ฿100 TrueMoney payment (ref 50060248100418) is recorded in pending verification
+      INSERT INTO donations
+        (id, campaign_id, donor_id, amount, message, is_anonymous, status, payment_reference, payment_method, slip_reference, transfer_time, guest_name)
+      VALUES (
+        'don_anthony_100',
+        'camp_pantry_winter',
+        NULL,
+        100.00,
+        'True Money',
+        false,
+        'pending',
+        'DON-2K38SK',
+        'promptpay_qr',
+        '50060248100418',
+        '2026-11-06T22:38:45+07:00',
+        'Anthony Jose Ferrer'
+      )
+      ON CONFLICT (payment_reference) DO NOTHING;
     `);
 
     // Seed initial projects if empty
@@ -581,7 +640,7 @@ async function seedCampaigns(client: any) {
       description: 'Fund purchase of expensive scientific graphing calculators, required engineering math textbooks, and protective lab gear lent completely free of charge to students facing unexpected financial emergencies.',
       objective: 'Equip over 40 students with semester-long access to essential STEM coursework materials without out-of-pocket costs.',
       target_amount: 15000,
-      amount_raised: 6200,
+      amount_raised: 0,
       cover_image: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800',
       category: 'Student Welfare'
     },
@@ -591,7 +650,7 @@ async function seedCampaigns(client: any) {
       description: 'Install an outdoor weather-resistant solar study table equipped with USB-C fast-charging ports, shaded desk space, and high-efficiency LED reading lamps beside the main student center lawn.',
       objective: 'Create sustainable outdoor study spaces with free solar charging for student laptops and devices between classes.',
       target_amount: 28000,
-      amount_raised: 19500,
+      amount_raised: 0,
       cover_image: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?w=800',
       category: 'Campus Green Initiative'
     },
@@ -601,7 +660,7 @@ async function seedCampaigns(client: any) {
       description: 'Collect and distribute wholesome pantry essentials, fresh fruit packs, and late-night exam-week nutritional care packages to dorm residents experiencing tight monthly allowances.',
       objective: 'Eliminate exam-week food insecurity for more than 100 on-campus student residents during finals.',
       target_amount: 8000,
-      amount_raised: 5400,
+      amount_raised: 0,
       cover_image: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800',
       category: 'Emergency Student Aid'
     }
@@ -638,17 +697,17 @@ async function seedTrylandRequests(client: any) {
       user_id: userId,
       bill_category: 'Essential Utilities',
       amount_requested: 1850,
-      amount_funded: 600,
+      amount_funded: 0,
       explanation: 'Dormitory summer term electric and water meter utility bill for shared room.',
       due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-      status: 'partially_funded'
+      status: 'open'
     },
     {
       id: 'req_engineering_cad',
       user_id: userId,
       bill_category: 'School Supplies',
       amount_requested: 3200,
-      amount_funded: 1500,
+      amount_funded: 0,
       explanation: 'Semester student license for SolidWorks 3D CAD and machine design coursework coursepack.',
       due_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
       status: 'open'
@@ -658,10 +717,10 @@ async function seedTrylandRequests(client: any) {
       user_id: userId,
       bill_category: 'Learning Equipment',
       amount_requested: 1200,
-      amount_funded: 1200,
+      amount_funded: 0,
       explanation: 'Semester public transit pass between suburban student dorm and engineering workshop campus.',
       due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      status: 'fully_funded'
+      status: 'open'
     }
   ];
 

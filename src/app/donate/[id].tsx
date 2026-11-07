@@ -84,25 +84,23 @@ export default function DonateDetailScreen() {
     slip_reference: string;
     transfer_time: string;
     note?: string;
+    guest_name?: string;
   }) => {
     if (!campaign) return;
     const numAmt = parseFloat(donationAmount);
     const baseAmt = convertToBase(numAmt);
     await submitDonation(campaign.id, {
       amount: baseAmt,
-      message: donationMessage.trim(),
+      message: donationMessage.trim() || confirmData.note,
       is_anonymous: isAnonymous,
       slip_reference: confirmData.slip_reference,
       transfer_time: confirmData.transfer_time,
       payment_reference: pendingPayRef,
+      guest_name: confirmData.guest_name,
     });
-    setShowQR(false);
+    // Modal will smoothly show Step 3 (Success) screen to reassure user
     setDonationAmount('250');
-    Alert.alert(
-      '💖 Donation Submitted',
-      'Your donation is Pending Verification. An administrator will review your bank slip within 24 hours. The campaign total will update after approval.',
-      [{ text: 'Got it', onPress: loadCampaign }]
-    );
+    loadCampaign();
   }, [campaign, donationAmount, donationMessage, isAnonymous, pendingPayRef, convertToBase, loadCampaign]);
 
   if (loading) {

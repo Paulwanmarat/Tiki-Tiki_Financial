@@ -118,9 +118,9 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
             onPress={() => setActiveTab('tryland')}
             activeOpacity={0.8}
           >
-            <Text style={{ fontSize: 14 }}>🌳</Text>
+            <Text style={{ fontSize: 14 }}>👑</Text>
             <Text style={[styles.tabBtnText, activeTab === 'tryland' && styles.tabBtnTextActive]}>
-              🌳RYLAND Sponsorships
+              👑 RK (Rich Kid) Bills
             </Text>
           </TouchableOpacity>
 
@@ -175,8 +175,8 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
                   <View style={[styles.splitRow, isMobile && { flexDirection: 'column', gap: 14 }]}>
                     <View style={styles.splitCol}>
                       <View style={styles.splitHeader}>
-                        <Text style={{ fontSize: 16 }}>🌳</Text>
-                        <Text style={[styles.splitTitle, { color: '#10B981' }]}>🌳RYLAND SPONSORSHIPS</Text>
+                        <Text style={{ fontSize: 16 }}>👑</Text>
+                        <Text style={[styles.splitTitle, { color: '#10B981' }]}>RK (RICH KID) BILLS</Text>
                       </View>
                       <Text style={[styles.splitValue, { color: '#10B981' }]}>
                         {THB(data.overall.totalVerifiedSponsorships)}

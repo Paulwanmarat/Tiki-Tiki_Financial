@@ -60,7 +60,7 @@ export function DesktopSidebar({ onNewGoal, collapsed = false, onToggleCollapse 
   const communityItems = [
     { label: 'Marketplace', icon: 'cart-outline', activeIcon: 'cart', route: '/marketplace' },
     { label: 'SPR Projects', icon: 'bulb-outline', activeIcon: 'bulb', route: '/projects' },
-    { label: '🌳RYLAND', icon: 'leaf-outline', activeIcon: 'leaf', route: '/tryland' },
+    { label: '👑 RK (Rich Kid)', icon: 'wallet-outline', activeIcon: 'wallet', route: '/tryland' },
     { label: 'Donate & Causes', icon: 'heart-outline', activeIcon: 'heart', route: '/donate' },
     { label: 'Live Impact (฿)', icon: 'analytics-outline', activeIcon: 'analytics', route: '/impact' },
     { label: 'Payment Admin', icon: 'shield-checkmark-outline', activeIcon: 'shield-checkmark', route: '/admin/payments' },

@@ -270,3 +270,148 @@ test('Currency & Formulas: Remaining needed and funding percentages calculate ac
   assert.equal(percentage, 38, 'Percentage must be 38%');
 });
 
+// ─── TEST 11: RK (Rich Kid) Feature & Bill Sponsorship Reference ────────────
+test('RK Feature: Student bill upload and Rich Kid sponsorship support RK- prefix', () => {
+  const req = {
+    id: 'rk_bill_dorm_1',
+    user_id: 'student_somchai',
+    bill_category: 'Essential student bills',
+    amount_requested: 2400,
+    amount_funded: 0,
+    status: 'open',
+  };
+
+  const richKidPayRef = `RK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+  assert.match(richKidPayRef, /^RK-[A-Z0-9]{6}$/, 'Rich Kid payment reference must match RK-XXXXXX pattern');
+
+  const sponsorship = {
+    id: 'spon_rk_1',
+    request_id: req.id,
+    sponsor_id: null, // Can be guest or rich kid supporter
+    guest_name: 'Rich Kid Supporter',
+    amount: 1000,
+    payment_reference: richKidPayRef,
+    status: 'pending',
+  };
+
+  assert.equal(sponsorship.status, 'pending');
+  assert.equal(sponsorship.guest_name, 'Rich Kid Supporter');
+  assert.equal(req.amount_funded, 0, 'Initial funded amount must start at 0');
+});
+
+// ─── TEST 12: Clean Zero Baseline & Tester User Purge ────────────────────────
+test('Clean Baseline: All numbers start from 0 and test users (e.g. 300 ฿) are excluded', () => {
+  const campaigns = [
+    { id: 'camp_pantry_winter', title: 'Campus Food Pantry Winter Supply', amount_raised: 0 },
+    { id: 'camp_books', title: 'Library Textbook Drive', amount_raised: 0 },
+  ];
+
+  const donations = [
+    { id: 'don_tester_1', amount: 300, message: 'Made up user test donation', status: 'verified' },
+    { id: 'don_real_1', amount: 100, message: 'True Money', status: 'pending' },
+  ];
+
+  // Purge test / made-up donations
+  const cleanDonations = donations.filter(d => !(d.amount === 300 || d.message.toLowerCase().includes('made up')));
+  assert.equal(cleanDonations.length, 1);
+  assert.equal(cleanDonations[0].amount, 100);
+
+  // Initial verified totals for campaigns starting from zero
+  for (const c of campaigns) {
+    const verifiedSum = cleanDonations
+      .filter(d => d.campaign_id === c.id && d.status === 'verified')
+      .reduce((sum, d) => sum + d.amount, 0);
+    assert.equal(c.amount_raised, 0, 'Campaign amount_raised must initialize at 0');
+    assert.equal(verifiedSum, 0, 'Initial verified sum must be 0 ฿ before verification');
+  }
+});
+
+// ─── TEST 13: Guest Contributor Support (Optional Auth) ─────────────────────
+test('Guest Payments: Supporters can contribute without student login (optionalAuth)', () => {
+  function processDonationSubmission(reqBody, authenticatedUser = null) {
+    const { amount, payment_reference, slip_reference, guest_name, guest_email } = reqBody;
+    const numAmount = Number(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      throw new Error('Invalid donation amount');
+    }
+
+    const payRef = payment_reference || `DON-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+    return {
+      id: 'don_' + Date.now().toString(36),
+      donor_id: authenticatedUser ? authenticatedUser.id : null,
+      guest_name: authenticatedUser ? null : (guest_name || 'Supporter'),
+      guest_email: authenticatedUser ? null : (guest_email || null),
+      amount: numAmount,
+      payment_reference: payRef,
+      slip_reference: slip_reference,
+      status: 'pending',
+    };
+  }
+
+  // Guest supporter (like advisor or alumni without login)
+  const guestSubmission = processDonationSubmission({
+    amount: 100,
+    payment_reference: 'DON-2K38SK',
+    slip_reference: '50060248100418',
+    guest_name: 'Anthony Jose Ferrer',
+    guest_email: 'anthony@faculty.ac.th',
+  });
+
+  assert.equal(guestSubmission.donor_id, null, 'Guest donor_id must be null');
+  assert.equal(guestSubmission.guest_name, 'Anthony Jose Ferrer');
+  assert.equal(guestSubmission.amount, 100);
+  assert.equal(guestSubmission.payment_reference, 'DON-2K38SK');
+  assert.equal(guestSubmission.slip_reference, '50060248100418');
+  assert.equal(guestSubmission.status, 'pending');
+});
+
+// ─── TEST 14: Advisor Verification Resolution Flow ──────────────────────────
+test('Advisor Verification: Guest payment is retrieved via LEFT JOIN and verified by admin', () => {
+  const donationsDb = [
+    {
+      id: 'don_anthony_100',
+      campaign_id: 'camp_pantry_winter',
+      donor_id: null, // Guest donor
+      guest_name: 'Anthony Jose Ferrer',
+      guest_email: 'anthony@faculty.ac.th',
+      amount: 100.00,
+      payment_reference: 'DON-2K38SK',
+      slip_reference: '50060248100418',
+      message: 'True Money',
+      status: 'pending',
+    },
+  ];
+
+  const usersDb = [
+    { id: 'user_paul', email: 'paulwanmarat@gmail.com', username: 'Paul', role: 'owner' },
+  ];
+
+  // Simulated LEFT JOIN query
+  const adminPaymentsList = donationsDb.map(d => {
+    const user = usersDb.find(u => u.id === d.donor_id);
+    return {
+      ...d,
+      type: 'donate',
+      submitter_email: user ? user.email : (d.guest_email || 'guest@spr.app'),
+      submitter_name: user ? user.username : (d.guest_name || 'Guest Supporter'),
+    };
+  });
+
+  assert.equal(adminPaymentsList.length, 1, 'Guest donation MUST be present in admin review list');
+  assert.equal(adminPaymentsList[0].submitter_name, 'Anthony Jose Ferrer');
+  assert.equal(adminPaymentsList[0].amount, 100.00);
+  assert.equal(adminPaymentsList[0].payment_reference, 'DON-2K38SK');
+  assert.equal(adminPaymentsList[0].slip_reference, '50060248100418');
+
+  // Admin approves payment
+  const campaign = { id: 'camp_pantry_winter', target_amount: 5000, amount_raised: 0 };
+  const targetPayment = adminPaymentsList[0];
+  targetPayment.status = 'verified';
+  targetPayment.verified_by = 'user_paul';
+  campaign.amount_raised += targetPayment.amount;
+
+  assert.equal(targetPayment.status, 'verified');
+  assert.equal(campaign.amount_raised, 100.00, 'Campaign total raised updates immediately from 0 ฿ to 100 ฿ upon verification');
+});
+

@@ -119,6 +119,7 @@ app.use('/api/profile', requireAuth, profileRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
 app.use('/api/projects', projectsRoutes);
 app.use('/api/tryland', trylandRoutes);
+app.use('/api/rk', trylandRoutes);
 app.use('/api/donate', donateRoutes);
 app.use('/api/admin/payments', adminPaymentsRoutes);
 app.use('/api/admin/users', adminUsersRoutes);

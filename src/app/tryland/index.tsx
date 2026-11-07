@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
-import { TrylandWordmark } from '@/components/ui/TrylandWordmark';
+import { RKWordmark } from '@/components/ui/RKWordmark';
 import { QRPaymentModal } from '@/components/ui/QRPaymentModal';
 import { getTrylandRequests, sponsorTrylandBill } from '@/services/database/tryland';
 import { TrylandRequest, TrylandCategory } from '@/types/tryland';
@@ -92,7 +92,7 @@ export default function TrylandHomeScreen() {
       return;
     }
     // Generate a unique payment reference for this sponsorship
-    const ref = `TRY-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const ref = `RK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     setPendingPayRef(ref);
     setShowQR(true);
   }, [activeRequest, sponsorAmount]);
@@ -102,6 +102,7 @@ export default function TrylandHomeScreen() {
     slip_reference: string;
     transfer_time: string;
     note?: string;
+    guest_name?: string;
   }) => {
     if (!activeRequest) return;
     const numAmt = parseFloat(sponsorAmount);
@@ -112,26 +113,20 @@ export default function TrylandHomeScreen() {
       slip_reference: confirmData.slip_reference,
       transfer_time: confirmData.transfer_time,
       payment_reference: pendingPayRef,
+      guest_name: confirmData.guest_name,
     });
-    setShowQR(false);
-    setActiveRequest(null);
-    setSponsorAmount('');
-    Alert.alert(
-      '🌳 Transfer Submitted',
-      'Your sponsorship is Pending Verification. An administrator will review your bank slip within 24 hours. The student\'s funding total will update after approval.',
-      [{ text: 'Got it', onPress: loadRequests }]
-    );
+    loadRequests();
   }, [activeRequest, sponsorAmount, sponsorNote, pendingPayRef, convertToBase, loadRequests]);
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* 1. Header with stylized 🌳RYLAND wordmark */}
+      {/* 1. Header with stylized 👑 RK wordmark */}
       <View style={[styles.topHeader, { borderBottomColor: colors.border }]}>
         <View style={styles.topHeaderLeft}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <TrylandWordmark size="md" showSubtitle />
+          <RKWordmark size="md" showSubtitle />
         </View>
 
         <View style={styles.topHeaderRight}>
@@ -147,19 +142,19 @@ export default function TrylandHomeScreen() {
             style={[styles.newRequestBtn, { backgroundColor: '#10B981' }]}
             onPress={() => router.push('/tryland/request' as any)}
           >
-            <Ionicons name="add" size={16} color="#FFF" />
-            <Text style={styles.newRequestBtnText}>Request Aid</Text>
+            <Ionicons name="cloud-upload-outline" size={16} color="#FFF" />
+            <Text style={styles.newRequestBtnText}>Upload Bill</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* 2. Philosophy & Safeguarding Mission Card */}
+      {/* 2. Mission Card */}
       <View style={[styles.missionBanner, { backgroundColor: '#10B981' + '12', borderColor: '#10B981' + '30' }]}>
         <Ionicons name="shield-checkmark" size={20} color="#10B981" />
         <View style={{ flex: 1 }}>
-          <Text style={[styles.missionTitle, { color: colors.text }]}>Dignified Student Bill Sponsorship</Text>
+          <Text style={[styles.missionTitle, { color: colors.text }]}>RK · Rich Kid Bill Sponsorship</Text>
           <Text style={[styles.missionDesc, { color: colors.textSecondary }]}>
-            Verified university bills sponsored directly by donors and alumni. Student personal identities and documents are kept strictly private.
+            Where students upload their bills and Rich Kids can pay them! Verified student bills sponsored directly via PromptPay QR. All requests are verified by administrators.
           </Text>
         </View>
       </View>
@@ -206,8 +201,8 @@ export default function TrylandHomeScreen() {
           </View>
         ) : requests.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Text style={{ fontSize: 48 }}>🌳</Text>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No requests in this category</Text>
+            <Text style={{ fontSize: 48 }}>👑</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No student bills in this category</Text>
             <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
               All submitted student requests in this category are fully funded or undergoing review.
             </Text>
@@ -215,7 +210,7 @@ export default function TrylandHomeScreen() {
               style={[styles.emptyBtn, { backgroundColor: '#10B981' }]}
               onPress={() => router.push('/tryland/request' as any)}
             >
-              <Text style={styles.emptyBtnText}>Submit a Bill for Review</Text>
+              <Text style={styles.emptyBtnText}>Upload a Student Bill</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -286,13 +281,13 @@ export default function TrylandHomeScreen() {
                         style={[styles.sponsorBtn, { backgroundColor: '#10B981' }]}
                         onPress={() => handleOpenSponsorModal(req)}
                       >
-                        <Ionicons name="heart" size={14} color="#FFF" />
-                        <Text style={styles.sponsorBtnText}>Sponsor Bill</Text>
+                        <Ionicons name="card" size={14} color="#FFF" />
+                        <Text style={styles.sponsorBtnText}>Pay Bill (Rich Kid)</Text>
                       </TouchableOpacity>
                     ) : (
                       <View style={styles.completedPill}>
                         <Ionicons name="checkmark-done" size={14} color={colors.success} />
-                        <Text style={[styles.completedPillText, { color: colors.success }]}>Goal Reached</Text>
+                        <Text style={[styles.completedPillText, { color: colors.success }]}>Fully Paid</Text>
                       </View>
                     )}
                   </View>
@@ -311,8 +306,8 @@ export default function TrylandHomeScreen() {
           <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={{ fontSize: 20 }}>🌳</Text>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Sponsor Student Bill</Text>
+                <Text style={{ fontSize: 20 }}>👑</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Pay Student Bill · Rich Kid</Text>
               </View>
               <TouchableOpacity onPress={() => setActiveRequest(null)}>
                 <Ionicons name="close" size={22} color={colors.textSecondary} />
@@ -387,7 +382,12 @@ export default function TrylandHomeScreen() {
       {activeRequest && (
         <QRPaymentModal
           visible={showQR}
-          onClose={() => { setShowQR(false); }}
+          onClose={() => {
+            setShowQR(false);
+            setActiveRequest(null);
+            setSponsorAmount('');
+            loadRequests();
+          }}
           mode="tryland"
           targetTitle={`${activeRequest.student_alias} · ${activeRequest.bill_category}`}
           amountTHB={convertToBase(parseFloat(sponsorAmount) || 0)}

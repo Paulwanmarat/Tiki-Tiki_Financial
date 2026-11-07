@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
-import { TrylandWordmark } from '@/components/ui/TrylandWordmark';
+import { RKWordmark } from '@/components/ui/RKWordmark';
 import { DatePickerField } from '@/components/ui/DatePickerField';
 import { submitTrylandRequest } from '@/services/database/tryland';
 import { TrylandCategory } from '@/types/tryland';
@@ -80,11 +80,11 @@ export default function TrylandRequestScreen() {
       });
 
       Alert.alert(
-        'Request Submitted 🌳',
-        result.message || 'Your bill was submitted for verification. Reviews take 24–48 hours.',
+        'Bill Uploaded 👑',
+        result.message || 'Your bill was submitted for verification. Rich Kids will be able to sponsor it once verified by an admin.',
         [
           {
-            text: 'Track My Requests',
+            text: 'Track My Bills',
             onPress: () => router.replace('/tryland/my-requests' as any),
           },
         ]
@@ -105,8 +105,8 @@ export default function TrylandRequestScreen() {
             <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={{ alignItems: 'center' }}>
-            <TrylandWordmark size="sm" />
-            <Text style={[styles.subHeading, { color: colors.textSecondary }]}>Request Bill Sponsorship</Text>
+            <RKWordmark size="sm" />
+            <Text style={[styles.subHeading, { color: colors.textSecondary }]}>Upload Bill · Rich Kids Pay</Text>
           </View>
           <TouchableOpacity
             style={[styles.submitBtn, { backgroundColor: '#10B981' }]}

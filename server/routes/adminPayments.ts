@@ -10,7 +10,7 @@ router.get('/', requireAuth, requireAdmin, async (req: Request, res: Response) =
     const { status = 'all', type = 'all', search } = req.query;
     const db = getDb();
 
-    // 1. Fetch Tryland Sponsorships
+    // 1. Fetch Tryland / RK Sponsorships (using LEFT JOIN so guest sponsors appear)
     let trylandQuery = `
       SELECT 
         s.id,
@@ -30,17 +30,17 @@ router.get('/', requireAuth, requireAdmin, async (req: Request, res: Response) =
         r.bill_category as target_title,
         r.amount_requested as target_total,
         r.amount_funded as target_current,
-        u.email as submitter_email,
-        u.username as submitter_name,
+        COALESCE(u.email, s.guest_email, 'guest@spr.app') as submitter_email,
+        COALESCE(u.username, s.guest_name, 'Guest Supporter') as submitter_name,
         v.email as verifier_email,
         v.username as verifier_name
       FROM tryland_sponsorships s
       JOIN tryland_requests r ON s.request_id = r.id
-      JOIN users u ON s.sponsor_id = u.id
+      LEFT JOIN users u ON s.sponsor_id = u.id
       LEFT JOIN users v ON s.verified_by = v.id
     `;
 
-    // 2. Fetch SPR Donate Donations
+    // 2. Fetch SPR Donate Donations (using LEFT JOIN so guest donors appear)
     let donateQuery = `
       SELECT 
         d.id,
@@ -60,13 +60,13 @@ router.get('/', requireAuth, requireAdmin, async (req: Request, res: Response) =
         c.title as target_title,
         c.target_amount as target_total,
         c.amount_raised as target_current,
-        u.email as submitter_email,
-        u.username as submitter_name,
+        COALESCE(u.email, d.guest_email, 'guest@spr.app') as submitter_email,
+        COALESCE(u.username, d.guest_name, 'Guest Supporter') as submitter_name,
         v.email as verifier_email,
         v.username as verifier_name
       FROM donations d
       JOIN donate_campaigns c ON d.campaign_id = c.id
-      JOIN users u ON d.donor_id = u.id
+      LEFT JOIN users u ON d.donor_id = u.id
       LEFT JOIN users v ON d.verified_by = v.id
     `;
 

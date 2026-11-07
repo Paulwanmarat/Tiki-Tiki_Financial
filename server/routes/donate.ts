@@ -41,7 +41,7 @@ router.get('/', optionalAuth, async (req: Request, res: Response) => {
     const query = `
       SELECT 
         c.*,
-        (SELECT COUNT(*) FROM donations WHERE campaign_id = c.id) as donor_count
+        (SELECT COUNT(*) FROM donations WHERE campaign_id = c.id AND status = 'verified') as donor_count
       FROM donate_campaigns c
       ${whereClause}
       ORDER BY c.created_at DESC
@@ -92,12 +92,12 @@ router.get('/:id', optionalAuth, async (req: Request, res: Response) => {
 
     const campaign = result.rows[0];
 
-    // Fetch recent donors (sanitizing anonymous donations)
+    // Fetch recent donors (sanitizing anonymous donations; strictly verified only)
     const donorsResult = await db.query(
-      `SELECT d.id, d.amount, d.message, d.is_anonymous, d.created_at, u.username
+      `SELECT d.id, d.amount, d.message, d.is_anonymous, d.created_at, u.username, d.guest_name
        FROM donations d
        LEFT JOIN users u ON d.donor_id = u.id
-       WHERE d.campaign_id = $1
+       WHERE d.campaign_id = $1 AND d.status = 'verified'
        ORDER BY d.created_at DESC
        LIMIT 30`,
       [id]
@@ -108,7 +108,7 @@ router.get('/:id', optionalAuth, async (req: Request, res: Response) => {
       amount: Number(d.amount),
       message: d.message,
       created_at: d.created_at,
-      donor_name: d.is_anonymous ? 'Kind Donor' : (d.username || 'Student Supporter'),
+      donor_name: d.is_anonymous ? 'Kind Donor' : (d.username || d.guest_name || 'Student Supporter'),
     }));
 
     res.json({
@@ -170,9 +170,9 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
 });
 
 // ─── POST /api/donate/:id/donate (Contribute via PromptPay QR) ──────────────
-router.post('/:id/donate', requireAuth, async (req: Request, res: Response) => {
+router.post('/:id/donate', optionalAuth, async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.id || null;
     const { id } = req.params;
     const {
       amount,
@@ -182,8 +182,9 @@ router.post('/:id/donate', requireAuth, async (req: Request, res: Response) => {
       slip_reference = '',
       transfer_time,
       payment_reference,
+      guest_name,
+      guest_email,
     } = req.body;
-    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const numAmount = Number(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
@@ -218,8 +219,8 @@ router.post('/:id/donate', requireAuth, async (req: Request, res: Response) => {
     // Total raised only increases after authorized admin verification!
     await db.query(
       `INSERT INTO donations 
-        (id, campaign_id, donor_id, amount, message, is_anonymous, status, payment_reference, payment_method, slip_url, slip_reference, transfer_time)
-       VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, 'promptpay_qr', $8, $9, $10)`,
+        (id, campaign_id, donor_id, amount, message, is_anonymous, status, payment_reference, payment_method, slip_url, slip_reference, transfer_time, guest_name, guest_email)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, 'promptpay_qr', $8, $9, $10, $11, $12)`,
       [
         donationId,
         id,
@@ -231,6 +232,8 @@ router.post('/:id/donate', requireAuth, async (req: Request, res: Response) => {
         slip_url.trim(),
         slip_reference.trim(),
         transfer_time ? new Date(transfer_time) : new Date(),
+        userId ? null : (guest_name?.trim() || 'Supporter'),
+        userId ? null : (guest_email?.trim() || null),
       ]
     );
 

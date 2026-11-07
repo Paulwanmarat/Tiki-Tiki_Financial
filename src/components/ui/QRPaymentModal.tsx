@@ -1,7 +1,7 @@
 /**
  * SPR QR Payment Modal
  * Shows the payment QR code, amount, unique transfer reference, and slip upload confirmation.
- * Works for both TRYLAND sponsorships and SPR Donate campaigns.
+ * Works for both RK (Rich Kid) bill sponsorships and SPR Donate campaigns.
  *
  * IMPORTANT SECURITY CONTRACT:
  * - Payments are submitted with status = 'pending'
@@ -35,7 +35,7 @@ interface QRPaymentModalProps {
   onClose: () => void;
   /**
    * What flow is this for?
-   * tryland: Student bill sponsorship
+   * tryland: RK (Rich Kid) student bill sponsorship
    * donate: Donation campaign
    */
   mode: 'tryland' | 'donate';
@@ -46,6 +46,8 @@ interface QRPaymentModalProps {
     slip_reference: string;
     transfer_time: string;
     note?: string;
+    guest_name?: string;
+    guest_email?: string;
   }) => Promise<void>;
 }
 
@@ -64,22 +66,27 @@ export function QRPaymentModal({
 }: QRPaymentModalProps) {
   const { colors, isDark } = useTheme();
 
-  const [step, setStep] = useState<'scan' | 'confirm'>('scan');
+  const [step, setStep] = useState<'scan' | 'confirm' | 'success'>('scan');
   const [slipReference, setSlipReference] = useState('');
   const [transferNote, setTransferNote] = useState('');
+  const [guestName, setGuestName] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleClose = useCallback(() => {
     setStep('scan');
     setSlipReference('');
     setTransferNote('');
+    setGuestName('');
+    setSubmitError(null);
     setSubmitting(false);
     onClose();
   }, [onClose]);
 
   const handleSubmitConfirmation = useCallback(async () => {
+    setSubmitError(null);
     if (!slipReference.trim() || slipReference.trim().length < 4) {
-      Alert.alert('Required', 'Please enter the bank transfer reference number from your receipt.');
+      setSubmitError('Please enter the bank transfer reference number from your bank app receipt (e.g. 50060248100418).');
       return;
     }
 
@@ -89,23 +96,27 @@ export function QRPaymentModal({
         slip_reference: slipReference.trim(),
         transfer_time: new Date().toISOString(),
         note: transferNote.trim() || undefined,
+        guest_name: guestName.trim() || undefined,
       });
-      setStep('scan');
-      setSlipReference('');
-      setTransferNote('');
-      handleClose();
+      // Move to success step with full confirmation details
+      setStep('success');
     } catch (err: any) {
-      Alert.alert('Submission Failed', err?.message || 'Could not submit payment confirmation. Please try again.');
+      console.error('Submit confirmation error:', err);
+      const msg = err?.message || 'Could not submit payment confirmation. Please try again.';
+      setSubmitError(msg);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Submission Issue', msg);
+      }
     } finally {
       setSubmitting(false);
     }
-  }, [slipReference, transferNote, onConfirmPayment, handleClose]);
+  }, [slipReference, transferNote, guestName, onConfirmPayment]);
 
   const isQR = PAYMENT_QR;
   const qrSize = Math.min(SCREEN_W - 96, 280);
 
   const badgeColor = mode === 'tryland' ? '#10B981' : '#F59E0B';
-  const badgeLabel = mode === 'tryland' ? '🌳RYLAND Sponsorship' : 'SPR Donate';
+  const badgeLabel = mode === 'tryland' ? '👑 RK (Rich Kid) Sponsorship' : '♥ SPR Donate';
 
   return (
     <Modal
@@ -123,110 +134,125 @@ export function QRPaymentModal({
               <View style={[styles.badge, { backgroundColor: badgeColor + '18' }]}>
                 <Text style={[styles.badgeText, { color: badgeColor }]}>{badgeLabel}</Text>
               </View>
-              <Text style={[styles.headerTitle, { color: colors.text }]}>PromptPay QR Payment</Text>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>
+                {step === 'success' ? 'Verification Submitted' : 'PromptPay QR Payment'}
+              </Text>
             </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="close" size={22} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            contentContainerStyle={styles.body}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {step === 'scan' ? (
+          <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+            {/* ══════════════════════════════════════════════════════════ */}
+            {/* STEP 1: SCAN QR CODE                                     */}
+            {/* ══════════════════════════════════════════════════════════ */}
+            {step === 'scan' && (
               <>
-                {/* Static QR Notice Banner */}
-                <View style={[styles.amountBox, { backgroundColor: isDark ? '#10B98118' : '#D1FAE5', borderColor: '#10B981' }]}>
-                  <Text style={[styles.amountLabel, { color: colors.textSecondary }]}>Amount to Transfer Manually</Text>
+                {/* Selected Amount Banner */}
+                <View style={[styles.amountBox, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}>
+                  <Text style={[styles.amountLabel, { color: colors.textSecondary }]}>Amount to Transfer</Text>
                   <Text style={[styles.amountValue, { color: '#10B981' }]}>{formatThb(amountTHB)}</Text>
-                  <Text style={[styles.amountTarget, { color: colors.textTertiary }]} numberOfLines={2}>
+                  <Text style={[styles.amountTarget, { color: colors.textTertiary }]} numberOfLines={1}>
                     For: {targetTitle}
                   </Text>
-                  <View style={[styles.staticPill, { backgroundColor: isDark ? '#F59E0B22' : '#FEF3C7', borderColor: '#F59E0B' }]}>
-                    <Ionicons name="information-circle" size={13} color="#F59E0B" />
-                    <Text style={[styles.staticPillText, { color: isDark ? '#FDE68A' : '#92400E' }]}>
-                      Static QR (฿0.00) — Type {formatThb(amountTHB)} in your bank app
+                  <View style={[styles.staticPill, { backgroundColor: '#F59E0B14', borderColor: '#F59E0B' }]}>
+                    <Ionicons name="alert-circle-outline" size={13} color="#D97706" />
+                    <Text style={[styles.staticPillText, { color: '#D97706' }]}>
+                      Static Thai PromptPay QR (฿0.00) — Enter exact amount in your bank app
                     </Text>
                   </View>
                 </View>
 
-                {/* Payment Reference */}
+                {/* Unique Payment Reference */}
                 <View style={[styles.refBox, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}>
-                  <Ionicons name="barcode-outline" size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
+                  <Ionicons name="barcode-outline" size={18} color={colors.textSecondary} style={{ marginRight: 8 }} />
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.refLabel, { color: colors.textTertiary }]}>Unique Payment Reference</Text>
-                    <Text style={[styles.refValue, { color: colors.text }]}>{paymentReference}</Text>
+                    <Text style={[styles.refLabel, { color: colors.textTertiary }]}>Your Unique Payment Reference</Text>
+                    <Text style={[styles.refValue, { color: colors.text }]} selectable>
+                      {paymentReference}
+                    </Text>
                   </View>
                 </View>
 
-                {/* QR Code */}
+                {/* QR Code Display */}
                 <View style={styles.qrContainer}>
-                  <View style={[styles.qrFrame, { borderColor: '#10B981', backgroundColor: '#fff' }]}>
+                  <View style={[styles.qrFrame, { backgroundColor: '#FFFFFF', borderColor: colors.border }]}>
                     <Image
                       source={isQR}
                       style={{ width: qrSize, height: qrSize }}
                       resizeMode="contain"
-                      accessibilityLabel="PromptPay QR Code — scan with your banking app"
                     />
                   </View>
                   <Text style={[styles.qrCaption, { color: colors.textSecondary }]}>
-                    Scan with any Thai banking app
+                    Scan with any Thai Banking App (K PLUS, SCB EASY, Krungthai NEXT, TrueMoney, etc.)
                   </Text>
                 </View>
 
-                {/* Instructions */}
+                {/* Clear Payment Instructions */}
                 <View style={[styles.instructionBox, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}>
-                  <Text style={[styles.instructionTitle, { color: colors.text }]}>📋 Payment Instructions (Static PromptPay QR)</Text>
-                  {[
-                    `Open your mobile banking app (K PLUS, SCB Easy, Krungthai NEXT, etc.)`,
-                    `Select "Scan QR" / "PromptPay"`,
-                    `Scan the official static PromptPay QR code shown above`,
-                    `CRITICAL: Manually enter the amount ${formatThb(amountTHB)} in your bank app (static QR default is ฿0.00)`,
-                    `In the transfer memo/note, enter reference: ${paymentReference}`,
-                    `Confirm transfer in your bank app and save your digital slip receipt`,
-                    `Tap Continue below to submit your bank slip reference for administrator verification`,
-                  ].map((step, i) => (
-                    <View key={i} style={styles.stepRow}>
-                      <View style={[styles.stepNumBg, { backgroundColor: '#10B98118' }]}>
-                        <Text style={[styles.stepNum, { color: '#10B981' }]}>{i + 1}</Text>
-                      </View>
-                      <Text style={[styles.stepText, { color: colors.textSecondary }]}>{step}</Text>
+                  <Text style={[styles.instructionTitle, { color: colors.text }]}>Instructions to Pay</Text>
+                  <View style={styles.stepRow}>
+                    <View style={[styles.stepNumBg, { backgroundColor: colors.primary }]}>
+                      <Text style={[styles.stepNum, { color: '#fff' }]}>1</Text>
                     </View>
-                  ))}
+                    <Text style={[styles.stepText, { color: colors.text }]}>
+                      Open your bank app, tap <Text style={{ fontWeight: FontWeight.bold }}>Scan QR</Text>, and point camera at the PromptPay QR code above.
+                    </Text>
+                  </View>
+                  <View style={styles.stepRow}>
+                    <View style={[styles.stepNumBg, { backgroundColor: colors.primary }]}>
+                      <Text style={[styles.stepNum, { color: '#fff' }]}>2</Text>
+                    </View>
+                    <Text style={[styles.stepText, { color: colors.text }]}>
+                      Enter the exact amount: <Text style={{ fontWeight: FontWeight.bold, color: '#10B981' }}>{formatThb(amountTHB)}</Text>.
+                    </Text>
+                  </View>
+                  <View style={styles.stepRow}>
+                    <View style={[styles.stepNumBg, { backgroundColor: colors.primary }]}>
+                      <Text style={[styles.stepNum, { color: '#fff' }]}>3</Text>
+                    </View>
+                    <Text style={[styles.stepText, { color: colors.text }]}>
+                      Put <Text style={{ fontWeight: FontWeight.bold }}>{paymentReference}</Text> in the transfer note for faster verification.
+                    </Text>
+                  </View>
+                  <View style={styles.stepRow}>
+                    <View style={[styles.stepNumBg, { backgroundColor: colors.primary }]}>
+                      <Text style={[styles.stepNum, { color: '#fff' }]}>4</Text>
+                    </View>
+                    <Text style={[styles.stepText, { color: colors.text }]}>
+                      Complete the transfer and save the receipt / bank slip.
+                    </Text>
+                  </View>
                 </View>
 
-                {/* Important notice */}
-                <View style={[styles.noticeBox, { backgroundColor: isDark ? '#F59E0B14' : '#FEF3C7', borderColor: '#F59E0B' }]}>
-                  <Ionicons name="information-circle-outline" size={16} color="#F59E0B" />
-                  <Text style={[styles.noticeText, { color: isDark ? '#FDE68A' : '#92400E' }]}>
-                    Your contribution is not counted toward funding until an administrator verifies your bank slip. This typically takes 1–24 hours on school days.
-                  </Text>
-                </View>
-
+                {/* Action Button to Proceed */}
                 <TouchableOpacity
                   style={[styles.primaryBtn, { backgroundColor: '#10B981' }]}
                   onPress={() => setStep('confirm')}
                   activeOpacity={0.85}
                 >
                   <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
-                  <Text style={styles.primaryBtnText}>I've Completed the Transfer →</Text>
+                  <Text style={styles.primaryBtnText}>I Have Transferred → Submit Slip</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={handleClose} style={styles.cancelLink}>
-                  <Text style={[styles.cancelLinkText, { color: colors.textTertiary }]}>Cancel — I'll pay later</Text>
+                  <Text style={[styles.cancelLinkText, { color: colors.textTertiary }]}>Cancel Payment</Text>
                 </TouchableOpacity>
               </>
-            ) : (
+            )}
+
+            {/* ══════════════════════════════════════════════════════════ */}
+            {/* STEP 2: CONFIRM TRANSFER & SUBMIT EVIDENCE               */}
+            {/* ══════════════════════════════════════════════════════════ */}
+            {step === 'confirm' && (
               <>
-                {/* Step 2: Confirm transfer */}
                 <View style={[styles.confirmHeader, { backgroundColor: '#10B98114', borderColor: '#10B981' }]}>
-                  <Ionicons name="receipt-outline" size={28} color="#10B981" />
-                  <View style={{ flex: 1, marginLeft: Spacing.sm }}>
-                    <Text style={[styles.confirmTitle, { color: '#10B981' }]}>Submit Transfer Confirmation</Text>
+                  <Ionicons name="document-text-outline" size={24} color="#10B981" style={{ marginRight: 10, marginTop: 2 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.confirmTitle, { color: colors.text }]}>Submit Transfer Confirmation</Text>
                     <Text style={[styles.confirmSub, { color: colors.textSecondary }]}>
-                      We need your bank slip reference to verify this payment.
+                      We need your bank slip reference to verify this payment against receiving records.
                     </Text>
                   </View>
                 </View>
@@ -252,18 +278,33 @@ export function QRPaymentModal({
                     Bank Slip Reference Number *
                   </Text>
                   <Text style={[styles.fieldHint, { color: colors.textTertiary }]}>
-                    Found at the top of your bank app receipt (e.g., REF12345678)
+                    Found at the top of your bank app receipt (e.g., 50060248100418)
                   </Text>
                   <View style={[styles.inputWrap, { borderColor: slipReference.trim().length >= 4 ? '#10B981' : colors.border, backgroundColor: colors.background }]}>
                     <Ionicons name="document-text-outline" size={18} color={colors.textSecondary} style={{ marginRight: Spacing.sm }} />
                     <TextInput
                       value={slipReference}
-                      onChangeText={setSlipReference}
-                      placeholder="e.g. REF20261106001"
+                      onChangeText={(t) => { setSlipReference(t); setSubmitError(null); }}
+                      placeholder="e.g. 50060248100418"
                       placeholderTextColor={colors.textTertiary}
                       style={[styles.input, { color: colors.text }]}
                       autoCapitalize="characters"
                       returnKeyType="done"
+                    />
+                  </View>
+                </View>
+
+                {/* Optional Supporter Name */}
+                <View style={styles.fieldGroup}>
+                  <Text style={[styles.fieldLabel, { color: colors.text }]}>Your Name / Supporter Name (optional)</Text>
+                  <View style={[styles.inputWrap, { borderColor: colors.border, backgroundColor: colors.background }]}>
+                    <Ionicons name="person-outline" size={18} color={colors.textSecondary} style={{ marginRight: Spacing.sm }} />
+                    <TextInput
+                      value={guestName}
+                      onChangeText={setGuestName}
+                      placeholder="e.g. Anthony Ferrer"
+                      placeholderTextColor={colors.textTertiary}
+                      style={[styles.input, { color: colors.text }]}
                     />
                   </View>
                 </View>
@@ -275,7 +316,7 @@ export function QRPaymentModal({
                     <TextInput
                       value={transferNote}
                       onChangeText={setTransferNote}
-                      placeholder="e.g. Transferred via KBank at 14:30"
+                      placeholder="e.g. TrueMoney wallet transfer"
                       placeholderTextColor={colors.textTertiary}
                       style={[styles.input, { color: colors.text }]}
                       multiline
@@ -284,6 +325,14 @@ export function QRPaymentModal({
                     />
                   </View>
                 </View>
+
+                {/* In-Modal Error Display */}
+                {submitError && (
+                  <View style={[styles.errorBox, { backgroundColor: '#EF444418', borderColor: '#EF4444' }]}>
+                    <Ionicons name="alert-circle" size={18} color="#EF4444" />
+                    <Text style={[styles.errorText, { color: '#EF4444' }]}>{submitError}</Text>
+                  </View>
+                )}
 
                 {/* Security notice */}
                 <View style={[styles.noticeBox, { backgroundColor: isDark ? '#3B82F614' : '#EFF6FF', borderColor: '#3B82F6', marginBottom: Spacing.lg }]}>
@@ -317,6 +366,66 @@ export function QRPaymentModal({
                   <Text style={[styles.cancelLinkText, { color: colors.textTertiary }]}> Back to QR Code</Text>
                 </TouchableOpacity>
               </>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════ */}
+            {/* STEP 3: SUCCESS CONFIRMATION SCREEN                      */}
+            {/* ══════════════════════════════════════════════════════════ */}
+            {step === 'success' && (
+              <View style={styles.successContainer}>
+                <View style={styles.successIconWrap}>
+                  <Ionicons name="checkmark-circle" size={64} color="#10B981" />
+                </View>
+                <Text style={[styles.successTitle, { color: colors.text }]}>Verification Submitted!</Text>
+                <Text style={[styles.successSub, { color: colors.textSecondary }]}>
+                  Thank you for your generous support! Your transfer confirmation has been securely queued.
+                </Text>
+
+                {/* Receipt Details Card */}
+                <View style={[styles.successCard, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}>
+                  <View style={styles.successRow}>
+                    <Text style={[styles.successLabel, { color: colors.textTertiary }]}>Target</Text>
+                    <Text style={[styles.successValue, { color: colors.text }]} numberOfLines={1}>{targetTitle}</Text>
+                  </View>
+                  <View style={styles.successRow}>
+                    <Text style={[styles.successLabel, { color: colors.textTertiary }]}>Amount</Text>
+                    <Text style={[styles.successValue, { color: '#10B981', fontWeight: FontWeight.bold }]}>{formatThb(amountTHB)}</Text>
+                  </View>
+                  <View style={styles.successRow}>
+                    <Text style={[styles.successLabel, { color: colors.textTertiary }]}>Payment Ref</Text>
+                    <Text style={[styles.successValueMono, { color: colors.text }]}>{paymentReference}</Text>
+                  </View>
+                  {slipReference ? (
+                    <View style={styles.successRow}>
+                      <Text style={[styles.successLabel, { color: colors.textTertiary }]}>Slip Ref</Text>
+                      <Text style={[styles.successValueMono, { color: colors.text }]}>{slipReference}</Text>
+                    </View>
+                  ) : null}
+                  <View style={[styles.successRow, { borderBottomWidth: 0 }]}>
+                    <Text style={[styles.successLabel, { color: colors.textTertiary }]}>Initial Status</Text>
+                    <View style={[styles.statusTag, { backgroundColor: '#F59E0B20' }]}>
+                      <Text style={{ color: '#D97706', fontSize: 11, fontWeight: FontWeight.bold }}>⏳ Pending Verification</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Helpful explanatory banner */}
+                <View style={[styles.noticeBox, { backgroundColor: isDark ? '#10B98114' : '#ECFDF5', borderColor: '#10B981', marginBottom: Spacing.xl }]}>
+                  <Ionicons name="shield-checkmark" size={18} color="#10B981" />
+                  <Text style={[styles.noticeText, { color: isDark ? '#A7F3D0' : '#065F46' }]}>
+                    An administrator will verify your receipt against the receiving bank account. The funding totals will update immediately upon approval.
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.primaryBtn, { backgroundColor: '#10B981' }]}
+                  onPress={handleClose}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="checkmark-outline" size={20} color="#fff" />
+                  <Text style={styles.primaryBtnText}>Done</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </ScrollView>
         </View>
@@ -499,5 +608,74 @@ const styles = StyleSheet.create({
   },
   textAreaWrap: { alignItems: 'flex-start', paddingTop: Spacing.md },
   input: { flex: 1, fontSize: FontSize.md },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    marginBottom: Spacing.md,
+  },
+  errorText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.medium,
+    flex: 1,
+  },
+  // Step 3 (Success)
+  successContainer: {
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+  },
+  successIconWrap: {
+    marginBottom: Spacing.md,
+  },
+  successTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.extrabold,
+    marginBottom: Spacing.xs,
+    textAlign: 'center',
+  },
+  successSub: {
+    fontSize: FontSize.sm,
+    textAlign: 'center',
+    marginBottom: Spacing.xl,
+    lineHeight: 20,
+    maxWidth: 320,
+  },
+  successCard: {
+    width: '100%',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  successRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(150,150,150,0.15)',
+  },
+  successLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.medium,
+  },
+  successValue: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    maxWidth: '65%',
+    textAlign: 'right',
+  },
+  successValueMono: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  },
+  statusTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
 });
-

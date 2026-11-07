@@ -242,9 +242,9 @@ router.post('/request', requireAuth, async (req: Request, res: Response) => {
 });
 
 // ─── POST /api/tryland/:id/sponsor (Sponsor a bill via PromptPay QR) ──────────
-router.post('/:id/sponsor', requireAuth, async (req: Request, res: Response) => {
+router.post('/:id/sponsor', optionalAuth, async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.id || null;
     const { id } = req.params;
     const {
       amount,
@@ -253,8 +253,9 @@ router.post('/:id/sponsor', requireAuth, async (req: Request, res: Response) => 
       slip_reference = '',
       transfer_time,
       payment_reference,
+      guest_name,
+      guest_email,
     } = req.body;
-    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const numAmount = Number(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
@@ -270,7 +271,7 @@ router.post('/:id/sponsor', requireAuth, async (req: Request, res: Response) => 
     const reqData = requestResult.rows[0];
 
     // Anti-self-sponsorship check: User cannot sponsor their own bill
-    if (reqData.user_id === userId) {
+    if (userId && reqData.user_id === userId) {
       return res.status(400).json({ error: 'You cannot sponsor your own request' });
     }
 
@@ -288,9 +289,9 @@ router.post('/:id/sponsor', requireAuth, async (req: Request, res: Response) => 
     const actualContribution = Math.min(numAmount, remainingNeeded);
 
     // Generate unique payment reference if not supplied
-    const payRef = (payment_reference && typeof payment_reference === 'string' && payment_reference.startsWith('TRY-'))
+    const payRef = (payment_reference && typeof payment_reference === 'string' && (payment_reference.startsWith('TRY-') || payment_reference.startsWith('RK-')))
       ? payment_reference
-      : `TRY-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      : `RK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
     // Prevent duplicate payment reference collision
     const refCheck = await db.query('SELECT id FROM tryland_sponsorships WHERE payment_reference = $1', [payRef]);
@@ -304,8 +305,8 @@ router.post('/:id/sponsor', requireAuth, async (req: Request, res: Response) => 
     // Total funding progress only increases after authorized admin verification!
     await db.query(
       `INSERT INTO tryland_sponsorships 
-        (id, request_id, sponsor_id, amount, note, status, payment_reference, payment_method, slip_url, slip_reference, transfer_time)
-       VALUES ($1, $2, $3, $4, $5, 'pending', $6, 'promptpay_qr', $7, $8, $9)`,
+        (id, request_id, sponsor_id, amount, note, status, payment_reference, payment_method, slip_url, slip_reference, transfer_time, guest_name, guest_email)
+       VALUES ($1, $2, $3, $4, $5, 'pending', $6, 'promptpay_qr', $7, $8, $9, $10, $11)`,
       [
         sponId,
         id,
@@ -316,6 +317,8 @@ router.post('/:id/sponsor', requireAuth, async (req: Request, res: Response) => 
         slip_url.trim(),
         slip_reference.trim(),
         transfer_time ? new Date(transfer_time) : new Date(),
+        userId ? null : (guest_name?.trim() || 'Rich Kid Supporter'),
+        userId ? null : (guest_email?.trim() || null),
       ]
     );
 

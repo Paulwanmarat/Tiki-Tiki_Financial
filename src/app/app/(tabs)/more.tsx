@@ -58,12 +58,12 @@ export default function MoreScreen() {
       badge: 'INNOVATION',
     },
     {
-      icon: 'leaf',
-      title: '🌳RYLAND',
-      description: 'Dignified student bill sponsorship & mutual aid platform',
+      icon: 'wallet',
+      title: '👑 RK (Rich Kid)',
+      description: 'Where students upload bills & Rich Kids can pay them',
       route: '/tryland',
       color: '#10B981',
-      badge: 'SPONSORSHIP',
+      badge: 'BILLS & SPONSORS',
     },
     {
       icon: 'heart',

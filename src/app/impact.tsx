@@ -22,7 +22,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { getLiveImpactTotals } from '@/services/database/payments';
 import { LiveImpactTotals, RequestProgress, CampaignProgress } from '@/types/payments';
 import { Card } from '@/components/ui/Card';
-import { TrylandWordmark } from '@/components/ui/TrylandWordmark';
+import { RKWordmark } from '@/components/ui/RKWordmark';
 import { PIGGY_LOGO, SCHOOL_LOGO } from '@/constants/assets';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
 
@@ -178,7 +178,7 @@ export default function ImpactTotalsScreen() {
                 </Text>
                 <View style={[styles.heroSplit, { borderTopColor: colors.border }]}>
                   <View style={styles.heroSplitItem}>
-                    <Text style={[styles.heroSplitLabel, { color: '#10B981' }]}>🌳RYLAND</Text>
+                    <Text style={[styles.heroSplitLabel, { color: '#10B981' }]}>👑 RK (Rich Kid)</Text>
                     <Text style={[styles.heroSplitValue, { color: '#10B981' }]}>
                       {THB(data.overall.totalVerifiedSponsorships)}
                     </Text>
@@ -215,11 +215,11 @@ export default function ImpactTotalsScreen() {
                 />
               </View>
 
-              {/* ═══ 🌳RYLAND SECTION ══════════════════════════════════════ */}
+              {/* ═══ RK (Rich Kid) SECTION ══════════════════════════════════════ */}
               <View style={styles.sectionHeader}>
-                <TrylandWordmark size="sm" />
+                <RKWordmark size="sm" />
                 <Text style={[styles.sectionTitleSecondary, { color: colors.textSecondary }]}>
-                  Student Bill Sponsorship
+                  Rich Kid Bill Sponsorship
                 </Text>
               </View>
 

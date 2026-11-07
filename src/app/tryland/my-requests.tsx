@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
-import { TrylandWordmark } from '@/components/ui/TrylandWordmark';
+import { RKWordmark } from '@/components/ui/RKWordmark';
 import {
   getMyTrylandRequests,
   getMyTrylandSponsorships,
@@ -78,7 +78,7 @@ export default function MyTrylandRequestsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <TrylandWordmark size="sm" />
+        <RKWordmark size="sm" />
         <TouchableOpacity
           style={[styles.newBtn, { backgroundColor: '#10B981' }]}
           onPress={() => router.push('/tryland/request' as any)}
@@ -139,16 +139,16 @@ export default function MyTrylandRequestsScreen() {
         ) : activeTab === 'requests' ? (
           requests.length === 0 ? (
             <View style={styles.emptyBox}>
-              <Text style={{ fontSize: 44 }}>🌳</Text>
+              <Text style={{ fontSize: 44 }}>👑</Text>
               <Text style={[styles.emptyTitle, { color: colors.text }]}>No Bill Requests Yet</Text>
               <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
-                If you have an upcoming educational expense or tuition invoice, submit it for community review.
+                If you have an upcoming educational expense or tuition invoice, upload it for Rich Kids to pay!
               </Text>
               <TouchableOpacity
                 style={[styles.actionBtn, { backgroundColor: '#10B981' }]}
                 onPress={() => router.push('/tryland/request' as any)}
               >
-                <Text style={styles.actionBtnText}>Submit First Request</Text>
+                <Text style={styles.actionBtnText}>Upload First Bill</Text>
               </TouchableOpacity>
             </View>
           ) : (

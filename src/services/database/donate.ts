@@ -48,6 +48,8 @@ export async function submitDonation(
     slip_reference?: string;
     transfer_time?: string;
     payment_reference?: string;
+    guest_name?: string;
+    guest_email?: string;
   }
 ): Promise<{
   success: boolean;

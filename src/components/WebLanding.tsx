@@ -1745,15 +1745,15 @@ function StudioEcosystemSection({
     {
       id: 'tryland',
       route: '/tryland',
-      eyebrow: 'MUTUAL AID & BILLS',
+      eyebrow: 'STUDENT BILL SPONSORSHIP',
       badge: 'PromptPay QR',
       badgeColor: '#10B981',
-      title: '🌳RYLAND',
+      title: '👑 RK (Rich Kid)',
       isTrylandWordmark: true,
-      desc: 'A peer-funded safety net where students submit essential academic bills (utilities, coursepacks, equipment) for verified sponsorship.',
-      features: ['Transparent funding progress', 'Static PromptPay QR (฿ THB)', 'Admin manual verification'],
-      icon: 'leaf-outline',
-      cta: 'Sponsor a Student',
+      desc: 'Where students upload their bills and Rich Kids can pay them! A transparent safety net connecting verified student academic bills with generous supporters.',
+      features: ['Students upload bills for review', 'Static PromptPay QR (฿ THB)', 'Admin manual verification against bank records'],
+      icon: 'card-outline',
+      cta: 'Sponsor a Student Bill',
     },
     {
       id: 'donate',
@@ -1795,7 +1795,7 @@ function StudioEcosystemSection({
               <View style={ecoStyles.cardTopRow}>
                 <View style={[ecoStyles.iconWrap, { backgroundColor: p.badgeColor + '18' }]}>
                   {p.isTrylandWordmark ? (
-                    <Text style={{ fontSize: 20 }}>🌳</Text>
+                    <Text style={{ fontSize: 20 }}>👑</Text>
                   ) : (
                     <Ionicons name={p.icon as any} size={22} color={p.badgeColor} />
                   )}
@@ -1809,9 +1809,12 @@ function StudioEcosystemSection({
               <Text style={ecoStyles.eyebrow}>{p.eyebrow}</Text>
 
               {p.isTrylandWordmark ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <Text style={{ fontSize: 20, marginRight: 2 }}>🌳</Text>
-                  <Text style={[ecoStyles.cardTitle, { color: S.textLight, letterSpacing: 1 }]}>RYLAND</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 4 }}>
+                  <Text style={{ fontSize: 20 }}>👑</Text>
+                  <Text style={[ecoStyles.cardTitle, { color: S.textLight, letterSpacing: 1 }]}>RK</Text>
+                  <View style={{ backgroundColor: '#F59E0B22', borderWidth: 1, borderColor: '#F59E0B', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1, marginLeft: 2 }}>
+                    <Text style={{ color: '#D97706', fontSize: 10, fontWeight: '700' }}>RICH KID</Text>
+                  </View>
                 </View>
               ) : (
                 <Text style={ecoStyles.cardTitle}>{p.title}</Text>

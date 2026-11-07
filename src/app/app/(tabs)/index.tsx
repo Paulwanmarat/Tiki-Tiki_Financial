@@ -23,7 +23,7 @@ import { EmptyState, LoadingState } from '@/components/ui/States';
 import { SavingPig } from '@/components/ui/SavingPig';
 import { DailyLimitCard } from '@/components/ui/DailyLimitCard';
 import { TransactionItem } from '@/components/transactions/TransactionItem';
-import { TrylandWordmark } from '@/components/ui/TrylandWordmark';
+import { RKWordmark } from '@/components/ui/RKWordmark';
 import { formatPercentage, getUserDisplayName } from '@/utils/formatters';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
 import { PIGGY_LOGO, SCHOOL_LOGO } from '@/constants/assets';
@@ -293,12 +293,12 @@ export default function DashboardScreen() {
               activeOpacity={0.7}
             >
               <View style={[styles.hubIconBg, { backgroundColor: '#10B98118' }]}>
-                <Text style={{ fontSize: 18 }}>🌳</Text>
+                <Text style={{ fontSize: 18 }}>👑</Text>
               </View>
               <View style={styles.hubTextCol}>
-                <TrylandWordmark size="sm" />
+                <RKWordmark size="sm" />
                 <Text style={[styles.hubDesc, { color: colors.textSecondary, marginTop: 2 }]} numberOfLines={1}>
-                  Student bill sponsorship
+                  Upload bills · Rich Kids pay
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />

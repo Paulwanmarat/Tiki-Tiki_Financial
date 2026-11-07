@@ -84,28 +84,38 @@ export default function AdminPaymentsScreen() {
     }
   }, [activeSection, loadUsers]);
 
+  // Toast / Status Message
+  const [actionToast, setActionToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Approval modal state
+  const [approveTarget, setApproveTarget] = useState<PaymentSubmission | null>(null);
+
+  // Reject modal state
+  const [rejectTarget, setRejectTarget] = useState<PaymentSubmission | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+
+  // Role management modal state (Appoint / Revoke Admin)
+  const [roleModalTarget, setRoleModalTarget] = useState<{ email: string; role: 'admin' | 'user'; username?: string } | null>(null);
+  const [verifying, setVerifying] = useState<string | null>(null);
+
   const handleAssignRole = useCallback(async (targetEmail: string, roleToAssign: 'admin' | 'user') => {
     if (!isOwner) {
-      Alert.alert('Permission Denied', 'Only the Application Owner (paulwanmarat@gmail.com) can manage administrators.');
+      setActionToast({ message: 'Only the Application Owner (paulwanmarat@gmail.com) can manage administrators.', type: 'error' });
       return;
     }
     setAssigningRole(true);
     try {
       const res = await assignUserRole(targetEmail, roleToAssign);
-      Alert.alert('Role Updated', res.message);
+      setActionToast({ message: res.message, type: 'success' });
+      setRoleModalTarget(null);
       setNewAdminEmail('');
       await loadUsers();
     } catch (err: any) {
-      Alert.alert('Role Assignment Failed', err?.message || 'Could not update user role.');
+      setActionToast({ message: err?.message || 'Could not update user role.', type: 'error' });
     } finally {
       setAssigningRole(false);
     }
   }, [isOwner, loadUsers]);
-
-  // Reject modal state
-  const [rejectTarget, setRejectTarget] = useState<PaymentSubmission | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
-  const [verifying, setVerifying] = useState<string | null>(null);
 
   const loadPayments = useCallback(async () => {
     try {
@@ -134,45 +144,40 @@ export default function AdminPaymentsScreen() {
     await loadPayments();
   }, [loadPayments]);
 
-  const handleApprove = useCallback(async (payment: PaymentSubmission) => {
-    Alert.alert(
-      'Verify Payment',
-      `Approve ${formatThb(payment.amount)} from ${payment.submitter_name || payment.submitter_email}?\n\nRef: ${payment.payment_reference}\n\nThis will update the funding total immediately.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Approve & Verify',
-          style: 'default',
-          onPress: async () => {
-            setVerifying(payment.id);
-            try {
-              await verifyAdminPayment(payment.type, payment.id, 'approve');
-              await loadPayments();
-            } catch (err: any) {
-              Alert.alert('Error', err?.message || 'Failed to verify payment.');
-            } finally {
-              setVerifying(null);
-            }
-          },
-        },
-      ]
-    );
-  }, [loadPayments]);
+  const handleApprove = useCallback((payment: PaymentSubmission) => {
+    setApproveTarget(payment);
+  }, []);
+
+  const handleApproveConfirm = useCallback(async () => {
+    if (!approveTarget) return;
+    setVerifying(approveTarget.id);
+    try {
+      const res = await verifyAdminPayment(approveTarget.type, approveTarget.id, 'approve');
+      setActionToast({ message: res.message || 'Payment successfully verified!', type: 'success' });
+      setApproveTarget(null);
+      await loadPayments();
+    } catch (err: any) {
+      setActionToast({ message: err?.message || 'Failed to verify payment.', type: 'error' });
+    } finally {
+      setVerifying(null);
+    }
+  }, [approveTarget, loadPayments]);
 
   const handleRejectConfirm = useCallback(async () => {
     if (!rejectTarget) return;
     if (!rejectReason.trim()) {
-      Alert.alert('Required', 'Please enter a rejection reason.');
+      setActionToast({ message: 'Please enter a rejection reason.', type: 'error' });
       return;
     }
     setVerifying(rejectTarget.id);
     try {
-      await verifyAdminPayment(rejectTarget.type, rejectTarget.id, 'reject', rejectReason.trim());
+      const res = await verifyAdminPayment(rejectTarget.type, rejectTarget.id, 'reject', rejectReason.trim());
+      setActionToast({ message: res.message || 'Payment rejected.', type: 'success' });
       setRejectTarget(null);
       setRejectReason('');
       await loadPayments();
     } catch (err: any) {
-      Alert.alert('Error', err?.message || 'Failed to reject payment.');
+      setActionToast({ message: err?.message || 'Failed to reject payment.', type: 'error' });
     } finally {
       setVerifying(null);
     }
@@ -211,6 +216,30 @@ export default function AdminPaymentsScreen() {
           </View>
         )}
       </View>
+
+      {/* Action Toast Banner */}
+      {actionToast && (
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: actionToast.type === 'success' ? '#10B981' : '#EF4444',
+          paddingVertical: 10,
+          paddingHorizontal: Spacing.lg,
+          gap: Spacing.sm,
+        }}>
+          <Ionicons
+            name={actionToast.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
+            size={18}
+            color="#fff"
+          />
+          <Text style={{ color: '#fff', fontSize: FontSize.sm, fontWeight: FontWeight.semibold, flex: 1 }}>
+            {actionToast.message}
+          </Text>
+          <TouchableOpacity onPress={() => setActionToast(null)}>
+            <Ionicons name="close" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Top Tab Bar: Payments vs Admins */}
       <View style={[styles.topTabs, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
@@ -309,18 +338,7 @@ export default function AdminPaymentsScreen() {
                 disabled={!newAdminEmail.trim() || assigningRole}
                 onPress={() => {
                   const target = newAdminEmail.trim();
-                  Alert.alert(
-                    'Confirm Admin Appointment',
-                    `Grant Administrator privileges to "${target}"?\n\nThey will be able to verify QR code payments and review financial submissions.`,
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Grant Admin Role',
-                        style: 'default',
-                        onPress: () => handleAssignRole(target, 'admin'),
-                      },
-                    ]
-                  );
+                  setRoleModalTarget({ email: target, role: 'admin' });
                 }}
               >
                 {assigningRole ? (
@@ -416,20 +434,7 @@ export default function AdminPaymentsScreen() {
                         {userIsAdmin ? (
                           <TouchableOpacity
                             style={[styles.roleActionBtn, { borderColor: '#EF4444', backgroundColor: '#EF444414' }]}
-                            onPress={() => {
-                              Alert.alert(
-                                'Revoke Admin Role',
-                                `Revoke administrator privileges from ${u.email}? They will return to standard user permissions.`,
-                                [
-                                  { text: 'Cancel', style: 'cancel' },
-                                  {
-                                    text: 'Revoke Admin',
-                                    style: 'destructive',
-                                    onPress: () => handleAssignRole(u.email, 'user'),
-                                  },
-                                ]
-                              );
-                            }}
+                            onPress={() => setRoleModalTarget({ email: u.email, role: 'user', username: u.username })}
                             disabled={assigningRole}
                           >
                             <Ionicons name="close-circle-outline" size={14} color="#EF4444" />
@@ -440,20 +445,7 @@ export default function AdminPaymentsScreen() {
                         ) : (
                           <TouchableOpacity
                             style={[styles.roleActionBtn, { borderColor: colors.primary, backgroundColor: colors.primary + '14' }]}
-                            onPress={() => {
-                              Alert.alert(
-                                'Make Administrator',
-                                `Promote ${u.email} to Administrator?`,
-                                [
-                                  { text: 'Cancel', style: 'cancel' },
-                                  {
-                                    text: 'Promote',
-                                    style: 'default',
-                                    onPress: () => handleAssignRole(u.email, 'admin'),
-                                  },
-                                ]
-                              );
-                            }}
+                            onPress={() => setRoleModalTarget({ email: u.email, role: 'admin', username: u.username })}
                             disabled={assigningRole}
                           >
                             <Ionicons name="shield-outline" size={14} color={colors.primary} />
@@ -518,7 +510,7 @@ export default function AdminPaymentsScreen() {
                   onPress={() => setTypeFilter(t)}
                 >
                   <Text style={[styles.chipText, { color: typeFilter === t ? colors.primary : colors.textSecondary }]}>
-                    {t === 'all' ? 'All Types' : t === 'tryland' ? '🌳RYLAND' : 'Donate'}
+                    {t === 'all' ? 'All Types' : t === 'tryland' ? '👑 RK (Rich Kid)' : 'Donate'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -559,7 +551,7 @@ export default function AdminPaymentsScreen() {
             <View style={styles.cardTopRow}>
               <View style={[styles.typeBadge, { backgroundColor: payment.type === 'tryland' ? '#10B98118' : '#F59E0B18' }]}>
                 <Text style={[styles.typeBadgeText, { color: payment.type === 'tryland' ? '#10B981' : '#F59E0B' }]}>
-                  {payment.type === 'tryland' ? '🌳RYLAND' : '♥ Donate'}
+                  {payment.type === 'tryland' ? '👑 RK (Rich Kid)' : '♥ Donate'}
                 </Text>
               </View>
               <View style={[styles.statusPill, { backgroundColor: statusColor(payment.status) + '20' }]}>
@@ -708,6 +700,168 @@ export default function AdminPaymentsScreen() {
                 disabled={!!verifying}
               >
                 {verifying ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.approveBtnText}>Reject</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Approve Payment Modal (Replaces flaky Alert.alert on web/mobile Safari) */}
+      <Modal
+        visible={!!approveTarget}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setApproveTarget(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.rejectModal, { backgroundColor: colors.surface }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: Spacing.xs }}>
+              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+              <Text style={[styles.rejectModalTitle, { color: colors.text }]}>Verify Bank Transfer</Text>
+            </View>
+            <Text style={[styles.rejectModalSub, { color: colors.textSecondary }]}>
+              Ref: {approveTarget?.payment_reference}
+            </Text>
+
+            <View style={[styles.amountRow, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border, marginVertical: Spacing.sm }]}>
+              <View>
+                <Text style={[styles.cardAmountLabel, { color: colors.textTertiary }]}>Amount</Text>
+                <Text style={[styles.cardAmount, { color: '#10B981' }]}>
+                  {approveTarget ? formatThb(approveTarget.amount) : '—'}
+                </Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={[styles.cardAmountLabel, { color: colors.textTertiary }]}>Category</Text>
+                <Text style={[styles.refMono, { color: colors.text }]}>
+                  {approveTarget?.type === 'tryland' ? '👑 RK Bill' : '♥ Donate'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={{ paddingVertical: 4 }}>
+              <Text style={{ fontSize: FontSize.xs, color: colors.textSecondary, marginBottom: 4 }}>
+                Target: <Text style={{ fontWeight: FontWeight.semibold, color: colors.text }}>{approveTarget?.target_title}</Text>
+              </Text>
+              <Text style={{ fontSize: FontSize.xs, color: colors.textSecondary, marginBottom: 4 }}>
+                From: <Text style={{ fontWeight: FontWeight.semibold, color: colors.text }}>{approveTarget?.submitter_name || 'Supporter'} ({approveTarget?.submitter_email})</Text>
+              </Text>
+              {approveTarget?.slip_reference ? (
+                <Text style={{ fontSize: FontSize.xs, color: colors.textSecondary, marginBottom: 4 }}>
+                  Bank Slip Ref: <Text style={{ fontWeight: FontWeight.bold, color: '#10B981' }}>{approveTarget?.slip_reference}</Text>
+                </Text>
+              ) : null}
+              {approveTarget?.message ? (
+                <Text style={{ fontSize: FontSize.xs, color: colors.textTertiary, fontStyle: 'italic', marginTop: 2 }}>
+                  Note: "{approveTarget?.message}"
+                </Text>
+              ) : null}
+            </View>
+
+            <View style={[styles.noticeBox, { backgroundColor: '#10B98114', borderColor: '#10B981', marginVertical: Spacing.md }]}>
+              <Ionicons name="shield-checkmark" size={16} color="#10B981" />
+              <Text style={[styles.noticeText, { color: '#065F46', fontSize: 11 }]}>
+                Confirm that this transfer matches your receiving PromptPay bank account records. Approving will update public funding totals immediately.
+              </Text>
+            </View>
+
+            <View style={styles.rejectModalBtns}>
+              <TouchableOpacity
+                style={[styles.chip, { flex: 1, justifyContent: 'center', borderColor: colors.border }]}
+                onPress={() => setApproveTarget(null)}
+                disabled={!!verifying}
+              >
+                <Text style={{ color: colors.textSecondary }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.approveBtn, { flex: 1.5, backgroundColor: '#10B981', justifyContent: 'center' }]}
+                onPress={handleApproveConfirm}
+                disabled={!!verifying}
+              >
+                {verifying ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-outline" size={18} color="#fff" />
+                    <Text style={styles.approveBtnText}>Approve & Verify</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Role Management Modal (Appoint / Revoke Admin) */}
+      <Modal
+        visible={!!roleModalTarget}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRoleModalTarget(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.rejectModal, { backgroundColor: colors.surface }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: Spacing.xs }}>
+              <Ionicons
+                name={roleModalTarget?.role === 'admin' ? 'shield-checkmark' : 'close-circle'}
+                size={24}
+                color={roleModalTarget?.role === 'admin' ? colors.primary : '#EF4444'}
+              />
+              <Text style={[styles.rejectModalTitle, { color: colors.text }]}>
+                {roleModalTarget?.role === 'admin' ? 'Appoint Administrator' : 'Revoke Admin Role'}
+              </Text>
+            </View>
+
+            <Text style={[styles.rejectModalSub, { color: colors.textSecondary, marginTop: Spacing.xs }]}>
+              User: <Text style={{ fontWeight: FontWeight.bold, color: colors.text }}>{roleModalTarget?.email}</Text>
+            </Text>
+
+            <View style={[styles.noticeBox, {
+              backgroundColor: roleModalTarget?.role === 'admin' ? colors.primary + '14' : '#EF444414',
+              borderColor: roleModalTarget?.role === 'admin' ? colors.primary : '#EF4444',
+              marginVertical: Spacing.md
+            }]}>
+              <Ionicons
+                name={roleModalTarget?.role === 'admin' ? 'information-circle' : 'warning'}
+                size={16}
+                color={roleModalTarget?.role === 'admin' ? colors.primary : '#EF4444'}
+              />
+              <Text style={[styles.noticeText, {
+                color: roleModalTarget?.role === 'admin' ? colors.text : '#EF4444',
+                fontSize: 12
+              }]}>
+                {roleModalTarget?.role === 'admin'
+                  ? 'This user will be granted full administrative authority to verify QR payments and review financial submissions.'
+                  : 'This user will be demoted back to standard user permissions and lose administrative access.'}
+              </Text>
+            </View>
+
+            <View style={styles.rejectModalBtns}>
+              <TouchableOpacity
+                style={[styles.chip, { flex: 1, justifyContent: 'center', borderColor: colors.border }]}
+                onPress={() => setRoleModalTarget(null)}
+                disabled={assigningRole}
+              >
+                <Text style={{ color: colors.textSecondary }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.approveBtn,
+                  {
+                    flex: 1.5,
+                    backgroundColor: roleModalTarget?.role === 'admin' ? colors.primary : '#EF4444',
+                    justifyContent: 'center',
+                  },
+                ]}
+                onPress={() => roleModalTarget && handleAssignRole(roleModalTarget.email, roleModalTarget.role)}
+                disabled={assigningRole}
+              >
+                {assigningRole ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.approveBtnText}>
+                    {roleModalTarget?.role === 'admin' ? 'Confirm Admin' : 'Confirm Revoke'}
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -870,6 +1024,19 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
+  },
+  noticeBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+  },
+  noticeText: {
+    fontSize: FontSize.xs,
+    flex: 1,
+    lineHeight: 16,
   },
 });
 
