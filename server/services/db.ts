@@ -298,6 +298,34 @@ export async function initDb(): Promise<Pool> {
       ALTER TABLE donate_campaigns ALTER COLUMN organizer_id DROP NOT NULL;
       ALTER TABLE donate_campaigns DROP CONSTRAINT IF EXISTS donate_campaigns_organizer_id_fkey;
       ALTER TABLE donate_campaigns ADD CONSTRAINT donate_campaigns_organizer_id_fkey FOREIGN KEY (organizer_id) REFERENCES users(id) ON DELETE SET NULL;
+      DO $$ 
+      DECLARE 
+        r RECORD;
+      BEGIN
+        FOR r IN (
+          SELECT conname 
+          FROM pg_constraint 
+          WHERE conrelid = 'donations'::regclass 
+            AND contype = 'c' 
+            AND pg_get_constraintdef(oid) ILIKE '%status%'
+        ) LOOP
+          EXECUTE 'ALTER TABLE donations DROP CONSTRAINT IF EXISTS ' || quote_ident(r.conname);
+        END LOOP;
+        FOR r IN (
+          SELECT conname 
+          FROM pg_constraint 
+          WHERE conrelid = 'tryland_sponsorships'::regclass 
+            AND contype = 'c' 
+            AND pg_get_constraintdef(oid) ILIKE '%status%'
+        ) LOOP
+          EXECUTE 'ALTER TABLE tryland_sponsorships DROP CONSTRAINT IF EXISTS ' || quote_ident(r.conname);
+        END LOOP;
+      END $$;
+
+      ALTER TABLE donations DROP CONSTRAINT IF EXISTS donations_status_check;
+      ALTER TABLE donations ADD CONSTRAINT donations_status_check CHECK (status IN ('pending', 'verified', 'rejected', 'pledged', 'cancelled'));
+      ALTER TABLE tryland_sponsorships DROP CONSTRAINT IF EXISTS tryland_sponsorships_status_check;
+      ALTER TABLE tryland_sponsorships ADD CONSTRAINT tryland_sponsorships_status_check CHECK (status IN ('pending', 'verified', 'rejected', 'pledged', 'cancelled'));
       ALTER TABLE donations ADD COLUMN IF NOT EXISTS guest_name TEXT;
       ALTER TABLE donations ADD COLUMN IF NOT EXISTS guest_email TEXT;
       ALTER TABLE tryland_sponsorships ADD COLUMN IF NOT EXISTS guest_name TEXT;
