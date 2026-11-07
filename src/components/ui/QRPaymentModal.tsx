@@ -24,9 +24,11 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '@/context/ThemeContext';
 import { PAYMENT_QR } from '@/constants/assets';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
+import { scanBankSlip } from '@/services/ocr/scanner';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -48,6 +50,7 @@ interface QRPaymentModalProps {
     note?: string;
     guest_name?: string;
     guest_email?: string;
+    slip_url?: string;
   }) => Promise<void>;
 }
 
@@ -70,6 +73,10 @@ export function QRPaymentModal({
   const [slipReference, setSlipReference] = useState('');
   const [transferNote, setTransferNote] = useState('');
   const [guestName, setGuestName] = useState('');
+  const [slipImageUri, setSlipImageUri] = useState<string | null>(null);
+  const [slipUrl, setSlipUrl] = useState<string | null>(null);
+  const [scanningSlip, setScanningSlip] = useState(false);
+  const [ocrResultMsg, setOcrResultMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -78,15 +85,85 @@ export function QRPaymentModal({
     setSlipReference('');
     setTransferNote('');
     setGuestName('');
+    setSlipImageUri(null);
+    setSlipUrl(null);
+    setScanningSlip(false);
+    setOcrResultMsg(null);
     setSubmitError(null);
     setSubmitting(false);
     onClose();
   }, [onClose]);
 
+  const handlePickSlip = useCallback(async (useCamera: boolean = false) => {
+    setSubmitError(null);
+    try {
+      let result: ImagePicker.ImagePickerResult;
+      if (useCamera) {
+        if (Platform.OS !== 'web') {
+          const permission = await ImagePicker.requestCameraPermissionsAsync();
+          if (!permission.granted) {
+            Alert.alert('Permission Needed', 'Camera access is required to take a picture of your bank receipt.');
+            return;
+          }
+        }
+        result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          quality: 0.9,
+        });
+      } else {
+        if (Platform.OS !== 'web') {
+          const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (!permission.granted) {
+            Alert.alert('Permission Needed', 'Photo gallery access is required to select your bank receipt.');
+            return;
+          }
+        }
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          quality: 0.9,
+        });
+      }
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const uri = result.assets[0].uri;
+        setSlipImageUri(uri);
+        setScanningSlip(true);
+        setOcrResultMsg(null);
+
+        try {
+          const scanResult = await scanBankSlip(uri);
+          if (scanResult && scanResult.reference_number) {
+            setSlipReference(scanResult.reference_number);
+            if (scanResult.sender_name && !guestName) {
+              setGuestName(scanResult.sender_name);
+            }
+            if (scanResult.channel && !transferNote) {
+              setTransferNote(scanResult.channel);
+            }
+            if (scanResult.slip_url) {
+              setSlipUrl(scanResult.slip_url);
+            }
+            setOcrResultMsg(`✓ Reference #${scanResult.reference_number} auto-detected`);
+          } else {
+            setOcrResultMsg('Receipt attached. Please verify or type the reference number below.');
+          }
+        } catch (err: any) {
+          console.warn('Bank slip scan error:', err);
+          setOcrResultMsg('Receipt attached. You can type the reference number below.');
+        } finally {
+          setScanningSlip(false);
+        }
+      }
+    } catch (e: any) {
+      console.error('Image selection error:', e);
+      setSubmitError('Could not load image. You can still manually enter the reference number below.');
+    }
+  }, [guestName, transferNote]);
+
   const handleSubmitConfirmation = useCallback(async () => {
     setSubmitError(null);
     if (!slipReference.trim() || slipReference.trim().length < 4) {
-      setSubmitError('Please enter the bank transfer reference number from your bank app receipt (e.g. 50060248100418).');
+      setSubmitError('Please enter the bank transfer reference number or attach your bank receipt above.');
       return;
     }
 
@@ -97,6 +174,7 @@ export function QRPaymentModal({
         transfer_time: new Date().toISOString(),
         note: transferNote.trim() || undefined,
         guest_name: guestName.trim() || undefined,
+        slip_url: slipUrl || undefined,
       });
       // Move to success step with full confirmation details
       setStep('success');
@@ -110,13 +188,13 @@ export function QRPaymentModal({
     } finally {
       setSubmitting(false);
     }
-  }, [slipReference, transferNote, guestName, onConfirmPayment]);
+  }, [slipReference, transferNote, guestName, slipUrl, onConfirmPayment]);
 
   const isQR = PAYMENT_QR;
   const qrSize = Math.min(SCREEN_W - 96, 280);
 
   const badgeColor = mode === 'tryland' ? '#10B981' : '#F59E0B';
-  const badgeLabel = mode === 'tryland' ? '👑 RK (Rich Kid) Sponsorship' : '♥ SPR Donate';
+  const badgeLabel = mode === 'tryland' ? 'RK (Rich Kid) Sponsorship' : '♥ SPR Donate';
 
   return (
     <Modal
@@ -131,7 +209,10 @@ export function QRPaymentModal({
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <View style={styles.headerLeft}>
-              <View style={[styles.badge, { backgroundColor: badgeColor + '18' }]}>
+              <View style={[styles.badge, { backgroundColor: badgeColor + '18', flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                {mode === 'tryland' && (
+                  <Ionicons name="happy" size={13} color={badgeColor} />
+                )}
                 <Text style={[styles.badgeText, { color: badgeColor }]}>{badgeLabel}</Text>
               </View>
               <Text style={[styles.headerTitle, { color: colors.text }]}>
@@ -272,16 +353,83 @@ export function QRPaymentModal({
                   </View>
                 </View>
 
+                {/* File Attachment & Auto-Read Bank Receipt */}
+                <View style={[styles.slipAttachCard, { backgroundColor: colors.surfaceHighlight, borderColor: slipImageUri ? '#10B981' : colors.border }]}>
+                  <View style={styles.slipCardHeader}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                      <Ionicons name="receipt-outline" size={18} color="#10B981" />
+                      <Text style={[styles.slipCardTitle, { color: colors.text }]}>Attach Bank Slip (Auto-Read)</Text>
+                    </View>
+                    <View style={[styles.autoBadge, { backgroundColor: '#10B9811A' }]}>
+                      <Ionicons name="flash" size={11} color="#10B981" />
+                      <Text style={styles.autoBadgeText}>AI Auto-Scan</Text>
+                    </View>
+                  </View>
+                  <Text style={[styles.slipCardSub, { color: colors.textTertiary }]}>
+                    Attach your bank transfer receipt screenshot. We will automatically read and fill the reference number without errors.
+                  </Text>
+
+                  {slipImageUri ? (
+                    <View style={styles.previewContainer}>
+                      <Image source={{ uri: slipImageUri }} style={styles.slipPreview} resizeMode="cover" />
+                      <View style={{ flex: 1, justifyContent: 'center' }}>
+                        {scanningSlip ? (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <ActivityIndicator size="small" color="#10B981" />
+                            <Text style={[styles.scanningText, { color: colors.textSecondary }]}>Reading receipt reference...</Text>
+                          </View>
+                        ) : ocrResultMsg ? (
+                          <View style={{ gap: 4 }}>
+                            <Text style={[styles.ocrResultText, { color: ocrResultMsg.startsWith('✓') ? '#10B981' : colors.textSecondary }]}>
+                              {ocrResultMsg}
+                            </Text>
+                            <TouchableOpacity onPress={() => { setSlipImageUri(null); setOcrResultMsg(null); }} style={styles.changeSlipBtn}>
+                              <Text style={{ color: '#EF4444', fontSize: FontSize.xs, fontWeight: FontWeight.semibold }}>Remove / Choose Another</Text>
+                            </TouchableOpacity>
+                          </View>
+                        ) : null}
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.attachBtnRow}>
+                      <TouchableOpacity
+                        style={[styles.attachBtn, { backgroundColor: colors.background, borderColor: colors.border }]}
+                        onPress={() => handlePickSlip(false)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="images-outline" size={18} color="#10B981" />
+                        <Text style={[styles.attachBtnText, { color: colors.text }]}>Attach Receipt Slip</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.attachBtn, { backgroundColor: colors.background, borderColor: colors.border }]}
+                        onPress={() => handlePickSlip(true)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="camera-outline" size={18} color="#10B981" />
+                        <Text style={[styles.attachBtnText, { color: colors.text }]}>Camera</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+
                 {/* Bank Slip Reference Input */}
                 <View style={styles.fieldGroup}>
-                  <Text style={[styles.fieldLabel, { color: colors.text }]}>
-                    Bank Slip Reference Number *
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <Text style={[styles.fieldLabel, { color: colors.text, marginBottom: 0 }]}>
+                      Bank Slip Reference Number *
+                    </Text>
+                    {slipReference.trim().length >= 4 && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                        <Text style={{ fontSize: FontSize.xs, color: '#10B981', fontWeight: FontWeight.semibold }}>Valid Reference</Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={[styles.fieldHint, { color: colors.textTertiary }]}>
-                    Found at the top of your bank app receipt (e.g., 50060248100418)
+                    Auto-filled from attached receipt, or enter manually below (e.g., 50060248100418)
                   </Text>
                   <View style={[styles.inputWrap, { borderColor: slipReference.trim().length >= 4 ? '#10B981' : colors.border, backgroundColor: colors.background }]}>
-                    <Ionicons name="document-text-outline" size={18} color={colors.textSecondary} style={{ marginRight: Spacing.sm }} />
+                    <Ionicons name="document-text-outline" size={18} color={slipReference.trim().length >= 4 ? '#10B981' : colors.textSecondary} style={{ marginRight: Spacing.sm }} />
                     <TextInput
                       value={slipReference}
                       onChangeText={(t) => { setSlipReference(t); setSubmitError(null); }}
@@ -595,6 +743,81 @@ const styles = StyleSheet.create({
   },
   amountMiniLabel: { fontSize: FontSize.sm },
   amountMiniValue: { fontSize: FontSize.lg, fontWeight: FontWeight.bold },
+  slipAttachCard: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  slipCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  slipCardTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+  },
+  slipCardSub: {
+    fontSize: FontSize.xs,
+    marginBottom: Spacing.sm,
+    lineHeight: 16,
+  },
+  autoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+  },
+  autoBadgeText: {
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    color: '#10B981',
+  },
+  attachBtnRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  attachBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+  },
+  attachBtnText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+  },
+  previewContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingTop: Spacing.xs,
+  },
+  slipPreview: {
+    width: 64,
+    height: 64,
+    borderRadius: BorderRadius.md,
+    backgroundColor: '#E5E7EB',
+  },
+  ocrResultText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+  },
+  scanningText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.medium,
+  },
+  changeSlipBtn: {
+    marginTop: 4,
+  },
   fieldGroup: { marginBottom: Spacing.md },
   fieldLabel: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, marginBottom: 4 },
   fieldHint: { fontSize: FontSize.xs, marginBottom: Spacing.sm, lineHeight: 16 },

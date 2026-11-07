@@ -120,7 +120,7 @@ export default function TrylandHomeScreen() {
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* 1. Header with stylized 👑 RK wordmark */}
+      {/* 1. Header with stylized RK wordmark */}
       <View style={[styles.topHeader, { borderBottomColor: colors.border }]}>
         <View style={styles.topHeaderLeft}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -201,7 +201,7 @@ export default function TrylandHomeScreen() {
           </View>
         ) : requests.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Text style={{ fontSize: 48 }}>👑</Text>
+            <Ionicons name="happy" size={52} color="#10B981" />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>No student bills in this category</Text>
             <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
               All submitted student requests in this category are fully funded or undergoing review.
@@ -306,7 +306,7 @@ export default function TrylandHomeScreen() {
           <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={{ fontSize: 20 }}>👑</Text>
+                <Ionicons name="happy" size={22} color="#10B981" />
                 <Text style={[styles.modalTitle, { color: colors.text }]}>Pay Student Bill · Rich Kid</Text>
               </View>
               <TouchableOpacity onPress={() => setActiveRequest(null)}>

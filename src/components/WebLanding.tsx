@@ -1848,7 +1848,7 @@ function StudioEcosystemSection({
       eyebrow: 'STUDENT BILL SPONSORSHIP',
       badge: 'PromptPay QR',
       badgeColor: '#10B981',
-      title: '👑 RK (Rich Kid)',
+      title: 'RK (Rich Kid)',
       isTrylandWordmark: true,
       desc: 'Where students upload their bills and Rich Kids can pay them! A transparent safety net connecting verified student academic bills with generous supporters.',
       features: ['Students upload bills for review', 'Static PromptPay QR (฿ THB)', 'Admin manual verification against bank records'],
@@ -1895,7 +1895,7 @@ function StudioEcosystemSection({
               <View style={ecoStyles.cardTopRow}>
                 <View style={[ecoStyles.iconWrap, { backgroundColor: p.badgeColor + '18' }]}>
                   {p.isTrylandWordmark ? (
-                    <Text style={{ fontSize: 20 }}>👑</Text>
+                    <Ionicons name="happy" size={22} color={p.badgeColor} />
                   ) : (
                     <Ionicons name={p.icon as any} size={22} color={p.badgeColor} />
                   )}
@@ -1909,8 +1909,8 @@ function StudioEcosystemSection({
               <Text style={ecoStyles.eyebrow}>{p.eyebrow}</Text>
 
               {p.isTrylandWordmark ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 4 }}>
-                  <Text style={{ fontSize: 20 }}>👑</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+                  <Ionicons name="happy" size={20} color="#10B981" />
                   <Text style={[ecoStyles.cardTitle, { color: S.textLight, letterSpacing: 1 }]}>RK</Text>
                   <View style={{ backgroundColor: '#F59E0B22', borderWidth: 1, borderColor: '#F59E0B', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1, marginLeft: 2 }}>
                     <Text style={{ color: '#D97706', fontSize: 10, fontWeight: '700' }}>RICH KID</Text>

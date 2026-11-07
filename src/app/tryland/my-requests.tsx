@@ -139,7 +139,7 @@ export default function MyTrylandRequestsScreen() {
         ) : activeTab === 'requests' ? (
           requests.length === 0 ? (
             <View style={styles.emptyBox}>
-              <Text style={{ fontSize: 44 }}>👑</Text>
+              <Ionicons name="happy" size={48} color="#10B981" />
               <Text style={[styles.emptyTitle, { color: colors.text }]}>No Bill Requests Yet</Text>
               <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
                 If you have an upcoming educational expense or tuition invoice, upload it for Rich Kids to pay!

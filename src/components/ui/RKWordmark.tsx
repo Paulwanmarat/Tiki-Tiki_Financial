@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { FontSize, FontWeight } from '@/constants/theme';
 
@@ -21,7 +22,7 @@ export function RKWordmark({ size = 'md', showSubtitle = false }: RKWordmarkProp
   return (
     <View style={styles.container}>
       <View style={[styles.wordmarkRow, { gap: config.gap }]}>
-        <Text style={{ fontSize: config.iconSize, lineHeight: config.iconSize + 4 }}>👑</Text>
+        <Ionicons name="happy" size={config.iconSize} color="#10B981" />
         <Text
           style={[
             styles.wordmarkText,

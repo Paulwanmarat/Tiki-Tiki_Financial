@@ -80,7 +80,7 @@ export default function TrylandRequestScreen() {
       });
 
       Alert.alert(
-        'Bill Uploaded 👑',
+        'Bill Uploaded',
         result.message || 'Your bill was submitted for verification. Rich Kids will be able to sponsor it once verified by an admin.',
         [
           {

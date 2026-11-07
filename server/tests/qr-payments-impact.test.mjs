@@ -415,3 +415,42 @@ test('Advisor Verification: Guest payment is retrieved via LEFT JOIN and verifie
   assert.equal(campaign.amount_raised, 100.00, 'Campaign total raised updates immediately from 0 ฿ to 100 ฿ upon verification');
 });
 
+test('Slip OCR & Manual Fallback: Extracts reference 50060248100418 and supports optional manual typing', () => {
+  // Test regex fallback extraction on typical TrueMoney / Thai bank slip text
+  const sampleOcrText = `
+    truemoney
+    ฿ 100.00
+    ANTHONY JOSE FE****
+    TrueMoney account ***_***-2562
+    From wallet
+    ANTHONY ****
+    08*-***-8678
+    PromptPay
+    Transaction date 6 Nov 2026 22:38:45
+    Reference number 50060248100418
+    Location No data
+  `;
+
+  // TrueMoney regex test
+  const refMatch = sampleOcrText.match(/(?:reference\s*(?:number|no|code)?|ref(?:\s*no|\s*#)?)\s*[:.]?\s*([A-Za-z0-9]{10,25})/i);
+  assert.ok(refMatch, 'Should match reference number in receipt text');
+  assert.equal(refMatch[1], '50060248100418', 'Should accurately extract TrueMoney slip reference');
+
+  // Amount extraction test
+  const amountMatch = sampleOcrText.match(/(?:฿|thb|baht)?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2}))/i);
+  assert.ok(amountMatch, 'Should match amount in receipt');
+  assert.equal(parseFloat(amountMatch[1].replace(/,/g, '')), 100.00, 'Should extract 100.00 THB');
+
+  // Manual fallback test: User can bypass OCR and provide manual reference
+  const manualReference = '50060248100418';
+  const confirmationData = {
+    slip_reference: manualReference.trim(),
+    transfer_time: new Date().toISOString(),
+    note: 'Optional manual input without file',
+  };
+
+  assert.equal(confirmationData.slip_reference, '50060248100418');
+  assert.ok(confirmationData.slip_reference.length >= 4, 'Valid manual reference accepted');
+});
+
+

@@ -178,7 +178,7 @@ export default function ImpactTotalsScreen() {
                 </Text>
                 <View style={[styles.heroSplit, { borderTopColor: colors.border }]}>
                   <View style={styles.heroSplitItem}>
-                    <Text style={[styles.heroSplitLabel, { color: '#10B981' }]}>👑 RK (Rich Kid)</Text>
+                    <Text style={[styles.heroSplitLabel, { color: '#10B981' }]}>RK (Rich Kid)</Text>
                     <Text style={[styles.heroSplitValue, { color: '#10B981' }]}>
                       {THB(data.overall.totalVerifiedSponsorships)}
                     </Text>

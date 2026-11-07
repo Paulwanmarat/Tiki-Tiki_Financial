@@ -563,7 +563,7 @@ export default function AdminPaymentsScreen() {
                   onPress={() => setTypeFilter(t)}
                 >
                   <Text style={[styles.chipText, { color: typeFilter === t ? colors.primary : colors.textSecondary }]}>
-                    {t === 'all' ? 'All Types' : t === 'tryland' ? '👑 RK (Rich Kid)' : 'Donate'}
+                    {t === 'all' ? 'All Types' : t === 'tryland' ? 'RK (Rich Kid)' : 'Donate'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -604,7 +604,7 @@ export default function AdminPaymentsScreen() {
             <View style={styles.cardTopRow}>
               <View style={[styles.typeBadge, { backgroundColor: payment.type === 'tryland' ? '#10B98118' : '#F59E0B18' }]}>
                 <Text style={[styles.typeBadgeText, { color: payment.type === 'tryland' ? '#10B981' : '#F59E0B' }]}>
-                  {payment.type === 'tryland' ? '👑 RK (Rich Kid)' : '♥ Donate'}
+                  {payment.type === 'tryland' ? 'RK (Rich Kid)' : '♥ Donate'}
                 </Text>
               </View>
               <View style={[styles.statusPill, { backgroundColor: statusColor(payment.status) + '20' }]}>
@@ -786,7 +786,7 @@ export default function AdminPaymentsScreen() {
               <View style={{ alignItems: 'flex-end' }}>
                 <Text style={[styles.cardAmountLabel, { color: colors.textTertiary }]}>Category</Text>
                 <Text style={[styles.refMono, { color: colors.text }]}>
-                  {approveTarget?.type === 'tryland' ? '👑 RK Bill' : '♥ Donate'}
+                  {approveTarget?.type === 'tryland' ? 'RK Bill' : '♥ Donate'}
                 </Text>
               </View>
             </View>

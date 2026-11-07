@@ -118,9 +118,9 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
             onPress={() => setActiveTab('tryland')}
             activeOpacity={0.8}
           >
-            <Text style={{ fontSize: 14 }}>👑</Text>
+            <Ionicons name="happy" size={15} color={activeTab === 'tryland' ? '#10B981' : '#8A7B91'} />
             <Text style={[styles.tabBtnText, activeTab === 'tryland' && styles.tabBtnTextActive]}>
-              👑 RK (Rich Kid) Bills
+              RK (Rich Kid) Bills
             </Text>
           </TouchableOpacity>
 
@@ -168,14 +168,14 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
                     {THB(data.overall.totalMoneyRaised)}
                   </Text>
                   <Text style={styles.heroImpactSub}>
-                    Combined sum of verified 🌳RYLAND student bill sponsorships and SPR Donate contributions
+                    Combined sum of verified RK (Rich Kid) student bill sponsorships and SPR Donate contributions
                   </Text>
 
                   {/* Split banner */}
                   <View style={[styles.splitRow, isMobile && { flexDirection: 'column', gap: 14 }]}>
                     <View style={styles.splitCol}>
                       <View style={styles.splitHeader}>
-                        <Text style={{ fontSize: 16 }}>👑</Text>
+                        <Ionicons name="happy" size={16} color="#10B981" />
                         <Text style={[styles.splitTitle, { color: '#10B981' }]}>RK (RICH KID) BILLS</Text>
                       </View>
                       <Text style={[styles.splitValue, { color: '#10B981' }]}>

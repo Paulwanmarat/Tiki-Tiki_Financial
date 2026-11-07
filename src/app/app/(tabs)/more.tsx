@@ -68,8 +68,8 @@ export default function MoreScreen() {
       badge: 'INNOVATION',
     },
     {
-      icon: 'wallet',
-      title: '👑 RK (Rich Kid)',
+      icon: 'happy',
+      title: 'RK (Rich Kid)',
       description: 'Where students upload bills & Rich Kids can pay them',
       route: '/tryland',
       color: '#10B981',

@@ -293,7 +293,7 @@ export default function DashboardScreen() {
               activeOpacity={0.7}
             >
               <View style={[styles.hubIconBg, { backgroundColor: '#10B98118' }]}>
-                <Text style={{ fontSize: 18 }}>👑</Text>
+                <Ionicons name="happy" size={20} color="#10B981" />
               </View>
               <View style={styles.hubTextCol}>
                 <RKWordmark size="sm" />
