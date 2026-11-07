@@ -18,8 +18,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
+import { useAuth } from '@/context/AuthContext';
+import { confirmAction } from '@/utils/confirm';
 import { QRPaymentModal } from '@/components/ui/QRPaymentModal';
-import { getDonateCampaignById, submitDonation } from '@/services/database/donate';
+import { getDonateCampaignById, submitDonation, deleteDonateCampaign } from '@/services/database/donate';
 import { DonateCampaign } from '@/types/donate';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { formatDate } from '@/utils/formatters';
@@ -27,6 +29,7 @@ import { formatDate } from '@/utils/formatters';
 export default function DonateDetailScreen() {
   const { colors, isDark } = useTheme();
   const { formatCurrency, currency, convertToBase } = useCurrency();
+  const { user } = useAuth();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { width } = useWindowDimensions();
@@ -35,6 +38,37 @@ export default function DonateDetailScreen() {
   const [campaign, setCampaign] = useState<DonateCampaign | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const isAdmin = Boolean(
+    user && (
+      user.role === 'admin' ||
+      user.role === 'owner' ||
+      user.email?.toLowerCase() === 'paulwanmarat@gmail.com' ||
+      user.email?.toLowerCase() === 'admin@spr.app'
+    )
+  );
+
+  const isCreator = Boolean(user && campaign && (campaign.organizer_id === user.id || isAdmin));
+  const canDelete = isCreator && Number(campaign?.amount_raised || 0) === 0;
+
+  const handleDeleteCampaign = () => {
+    if (!campaign || !canDelete) return;
+    confirmAction(
+      'Remove Campaign',
+      `Are you sure you want to remove "${campaign.title}"? Since this campaign has not received any contributions, it will be deleted.`,
+      'Remove Campaign',
+      async () => {
+        try {
+          await deleteDonateCampaign(campaign.id);
+          Alert.alert('Campaign Removed', 'Your campaign has been removed successfully.');
+          router.replace('/donate' as any);
+        } catch (err: any) {
+          Alert.alert('Notice', err?.message || 'Failed to remove campaign');
+        }
+      },
+      true
+    );
+  };
 
   // Donation Modal State
   const [showDonateModal, setShowDonateModal] = useState(false);
@@ -175,9 +209,13 @@ export default function DonateDetailScreen() {
             <Text style={[styles.campaignTitle, { color: colors.text }]}>{campaign.title}</Text>
 
             <View style={styles.organizerRow}>
+              <View style={[styles.creatorPill, { backgroundColor: '#EC4899' + '18', borderColor: '#EC4899' + '35' }]}>
+                <Ionicons name="sparkles" size={12} color="#EC4899" />
+                <Text style={[styles.creatorPillText, { color: '#EC4899' }]}>CAMPAIGN CREATOR</Text>
+              </View>
               <Ionicons name="person-circle" size={18} color="#EC4899" />
               <Text style={[styles.organizerText, { color: colors.textSecondary }]}>
-                Organized by <Text style={{ fontWeight: FontWeight.bold, color: colors.text }}>{campaign.organizer_name}</Text>
+                Created by <Text style={{ fontWeight: FontWeight.bold, color: colors.text }}>{campaign.organizer_name}</Text>
               </Text>
             </View>
 
@@ -229,6 +267,20 @@ export default function DonateDetailScreen() {
                   This campaign reached its fundraising goal! Thank you to all donors.
                 </Text>
               </View>
+            )}
+
+            {/* Creator / Admin Delete Action (if not used) */}
+            {canDelete && (
+              <TouchableOpacity
+                style={[styles.removeCampaignBtn, { borderColor: colors.expense + '40', backgroundColor: colors.expense + '0A' }]}
+                onPress={handleDeleteCampaign}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="trash-outline" size={16} color={colors.expense} />
+                <Text style={[styles.removeCampaignText, { color: colors.expense }]}>
+                  Remove Campaign (Unused)
+                </Text>
+              </TouchableOpacity>
             )}
 
             {/* Objective & Description */}
@@ -724,6 +776,35 @@ const styles = StyleSheet.create({
   modalSubmitText: {
     color: '#FFF',
     fontSize: FontSize.xs + 1,
+    fontWeight: FontWeight.bold,
+  },
+  creatorPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+    marginRight: 4,
+  },
+  creatorPillText: {
+    fontSize: 10,
+    fontWeight: FontWeight.extrabold,
+    letterSpacing: 0.5,
+  },
+  removeCampaignBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    marginTop: Spacing.md,
+  },
+  removeCampaignText: {
+    fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
   },
 });

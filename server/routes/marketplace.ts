@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { getDb } from '../services/db';
-import { requireAuth, optionalAuth } from './auth';
+import { requireAuth, optionalAuth, isUserAdmin } from './auth';
 
 const router = express.Router();
 
@@ -357,16 +357,35 @@ router.delete('/:id', requireAuth, async (req: Request, res: Response) => {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const db = getDb();
-    const result = await db.query(
-      "UPDATE marketplace_listings SET status = 'removed', updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2 RETURNING id",
-      [id, userId]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Listing not found or unauthorized' });
+    const existing = await db.query('SELECT * FROM marketplace_listings WHERE id = $1', [id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'Listing not found' });
     }
 
-    res.json({ message: 'Listing removed successfully' });
+    const listing = existing.rows[0];
+
+    const userRes = await db.query('SELECT role, email FROM users WHERE id = $1', [userId]);
+    const userRole = userRes.rows[0]?.role;
+    const userEmail = userRes.rows[0]?.email;
+    const isAdmin = isUserAdmin({ role: userRole, email: userEmail });
+
+    // Check ownership: only creator (or admin/owner) can delete
+    const isOwner = listing.user_id === userId || isAdmin;
+    if (!isOwner) {
+      return res.status(403).json({ error: 'You can only remove listings that you created' });
+    }
+
+    // Check if not used: if already marked sold, cannot delete
+    if (listing.status === 'sold') {
+      return res.status(400).json({ error: 'Cannot remove an item that has already been sold and completed.' });
+    }
+
+    await db.query(
+      "UPDATE marketplace_listings SET status = 'removed', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+      [id]
+    );
+
+    res.json({ success: true, message: 'Listing removed successfully' });
   } catch (error) {
     console.error('Error removing listing:', error);
     res.status(500).json({ error: 'Failed to remove listing' });

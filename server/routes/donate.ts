@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { getDb } from '../services/db';
-import { requireAuth, optionalAuth, requireAdmin } from './auth';
+import { requireAuth, optionalAuth, requireAdmin, isUserAdmin } from './auth';
 
 const router = express.Router();
 
@@ -248,6 +248,58 @@ router.post('/:id/donate', optionalAuth, async (req: Request, res: Response) => 
   } catch (error) {
     console.error('Error processing donation:', error);
     res.status(500).json({ error: 'Failed to submit donation payment' });
+  }
+});
+
+// ─── DELETE /api/donate/:id (Remove unused campaign) ─────────────────────────
+router.delete('/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const db = getDb();
+    const campaignRes = await db.query('SELECT * FROM donate_campaigns WHERE id = $1', [id]);
+    if (campaignRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+
+    const campaign = campaignRes.rows[0];
+
+    const userRes = await db.query('SELECT role, email FROM users WHERE id = $1', [userId]);
+    const userRole = userRes.rows[0]?.role;
+    const userEmail = userRes.rows[0]?.email;
+    const isAdmin = isUserAdmin({ role: userRole, email: userEmail });
+
+    // Check ownership: only creator (or admin/owner) can delete
+    const isOwner = campaign.organizer_id === userId || isAdmin;
+    if (!isOwner) {
+      return res.status(403).json({ error: 'You can only remove campaigns that you created' });
+    }
+
+    // Check if not used: if amount_raised > 0, cannot delete
+    if (Number(campaign.amount_raised) > 0) {
+      return res.status(400).json({
+        error: 'Cannot remove a campaign that has already received donations. It can only be completed or cancelled.',
+      });
+    }
+
+    // Check if any non-rejected donations exist
+    const donCheck = await db.query(
+      "SELECT COUNT(*) FROM donations WHERE campaign_id = $1 AND status != 'rejected'",
+      [id]
+    );
+    if (parseInt(donCheck.rows[0]?.count || '0', 10) > 0) {
+      return res.status(400).json({
+        error: 'Cannot remove a campaign that has active or pending donation pledges in review.',
+      });
+    }
+
+    await db.query('DELETE FROM donate_campaigns WHERE id = $1', [id]);
+    res.json({ success: true, message: 'Campaign removed successfully' });
+  } catch (error) {
+    console.error('Error removing donate campaign:', error);
+    res.status(500).json({ error: 'Failed to remove campaign' });
   }
 });
 

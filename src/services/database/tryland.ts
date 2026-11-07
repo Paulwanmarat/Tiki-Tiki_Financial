@@ -75,6 +75,12 @@ export async function verifyTrylandRequest(
   });
 }
 
+export async function deleteTrylandRequest(id: string): Promise<{ success: boolean; message: string }> {
+  return fetchWithAuth(`/api/tryland/request/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 // ─── 🌳 TRYLAND Tree Planting Services ──────────────────────────────────────
 export interface TreeInitiative {
   id: string;

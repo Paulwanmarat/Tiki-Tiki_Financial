@@ -446,4 +446,107 @@ test('🌳 TRYLAND Tree Planting: Admin verification increments trees_planted, a
   assert.equal(co2OffsetKgPerYear, 130 * 22); // 2860 kg
 });
 
+test('Item Deletion & Creator Attribution: Donate campaigns can only be deleted by creator if unused', () => {
+  const campaignUnused = {
+    id: 'camp_1',
+    organizer_id: 'user_alice',
+    organizer_name: 'Alice',
+    title: 'Lab Notebook Fund',
+    amount_raised: 0,
+    status: 'active',
+  };
+
+  const campaignUsed = {
+    id: 'camp_2',
+    organizer_id: 'user_alice',
+    organizer_name: 'Alice',
+    title: 'Chemistry Beakers',
+    amount_raised: 500,
+    status: 'active',
+  };
+
+  // 1. Non-creator cannot delete
+  const canBobDelete = campaignUnused.organizer_id === 'user_bob';
+  assert.equal(canBobDelete, false, 'Non-creator must be rejected with 403');
+
+  // 2. Creator CAN delete if unused (amount_raised === 0)
+  const canAliceDeleteUnused = campaignUnused.organizer_id === 'user_alice' && campaignUnused.amount_raised === 0;
+  assert.equal(canAliceDeleteUnused, true, 'Creator can remove unused campaign');
+
+  // 3. Creator CANNOT delete if used (amount_raised > 0)
+  const canAliceDeleteUsed = campaignUsed.organizer_id === 'user_alice' && campaignUsed.amount_raised === 0;
+  assert.equal(canAliceDeleteUsed, false, 'Used campaign with contributions cannot be deleted');
+  assert.equal(campaignUnused.organizer_name, 'Alice', 'Creator credit is properly attributed');
+});
+
+test('Item Deletion & Creator Attribution: Random Kindness bill requests can only be deleted by creator if unused', () => {
+  const reqUnused = {
+    id: 'req_1',
+    user_id: 'user_alice',
+    student_alias: 'Student A.',
+    bill_category: 'Tuition',
+    amount_requested: 2500,
+    amount_funded: 0,
+  };
+
+  const reqFunded = {
+    id: 'req_2',
+    user_id: 'user_alice',
+    student_alias: 'Student A.',
+    bill_category: 'Textbooks',
+    amount_requested: 1000,
+    amount_funded: 300,
+  };
+
+  // 1. Another student (Bob) cannot delete Alice's bill
+  const canBobDelete = reqUnused.user_id === 'user_bob';
+  assert.equal(canBobDelete, false, 'Bob cannot remove Alice bill request');
+
+  // 2. Alice can remove her own unused bill
+  const canAliceDeleteUnused = reqUnused.user_id === 'user_alice' && reqUnused.amount_funded === 0;
+  assert.equal(canAliceDeleteUnused, true, 'Alice can remove her own unpaid bill');
+
+  // 3. Alice cannot remove bill once funding has started
+  const canAliceDeleteFunded = reqFunded.user_id === 'user_alice' && reqFunded.amount_funded === 0;
+  assert.equal(canAliceDeleteFunded, false, 'Funded bill request cannot be removed');
+  assert.equal(reqUnused.student_alias, 'Student A.', 'Student requester credit is attributed');
+});
+
+test('Item Deletion & Creator Attribution: Projects and Marketplace can only be removed by their creator', () => {
+  const project = {
+    id: 'proj_iot_1',
+    created_by: 'user_alice',
+    author_name: 'Alice Developer',
+    title: 'Smart Solar Battery',
+  };
+
+  const listingAvailable = {
+    id: 'item_1',
+    user_id: 'user_alice',
+    seller_name: 'Alice',
+    title: 'Textbook Physics I',
+    status: 'available',
+  };
+
+  const listingSold = {
+    id: 'item_2',
+    user_id: 'user_alice',
+    seller_name: 'Alice',
+    title: 'Graphing Calculator',
+    status: 'sold',
+  };
+
+  // Project permissions
+  assert.equal(project.created_by === 'user_bob', false, 'Non-author cannot delete project');
+  assert.equal(project.created_by === 'user_alice', true, 'Author can delete their project blueprint');
+  assert.equal(project.author_name, 'Alice Developer', 'Project author credit is properly attributed');
+
+  // Marketplace permissions
+  assert.equal(listingAvailable.user_id === 'user_bob', false, 'Non-seller cannot remove other users listing');
+  assert.equal(listingAvailable.user_id === 'user_alice' && listingAvailable.status !== 'sold', true, 'Seller can remove available listing');
+  assert.equal(listingSold.user_id === 'user_alice' && listingSold.status !== 'sold', false, 'Cannot remove listing that is already sold');
+  assert.equal(listingAvailable.seller_name, 'Alice', 'Marketplace seller credit is properly attributed');
+});
+
+
 

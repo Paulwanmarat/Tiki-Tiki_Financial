@@ -11,13 +11,16 @@ import {
   RefreshControl,
   useWindowDimensions,
   Platform,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
-import { getMarketplaceListings } from '@/services/database/marketplace';
+import { useAuth } from '@/context/AuthContext';
+import { confirmAction } from '@/utils/confirm';
+import { getMarketplaceListings, deleteMarketplaceListing } from '@/services/database/marketplace';
 import { MarketplaceListing, MarketplaceCategory } from '@/types/marketplace';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { PIGGY_LOGO } from '@/constants/assets';
@@ -36,9 +39,19 @@ const CATEGORIES: ('All' | MarketplaceCategory)[] = [
 export default function MarketplaceScreen() {
   const { colors, isDark } = useTheme();
   const { formatCurrency } = useCurrency();
+  const { user } = useAuth();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
+
+  const isAdmin = Boolean(
+    user && (
+      user.role === 'admin' ||
+      user.role === 'owner' ||
+      user.email?.toLowerCase() === 'paulwanmarat@gmail.com' ||
+      user.email?.toLowerCase() === 'admin@spr.app'
+    )
+  );
 
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +60,25 @@ export default function MarketplaceScreen() {
   const [selectedCategory, setSelectedCategory] = useState<'All' | MarketplaceCategory>('All');
   const [selectedCondition, setSelectedCondition] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'price_asc' | 'price_desc'>('newest');
+
+  const handleDeleteListing = (e: any, item: MarketplaceListing) => {
+    e?.stopPropagation?.();
+    confirmAction(
+      'Remove Listing',
+      `Are you sure you want to remove "${item.title}" from the marketplace?`,
+      'Remove Listing',
+      async () => {
+        try {
+          await deleteMarketplaceListing(item.id);
+          Alert.alert('Listing Removed', 'Your marketplace listing has been removed successfully.');
+          loadListings();
+        } catch (err: any) {
+          Alert.alert('Notice', err?.message || 'Failed to remove listing');
+        }
+      },
+      true
+    );
+  };
 
   const loadListings = useCallback(async () => {
     try {
@@ -279,18 +311,35 @@ export default function MarketplaceScreen() {
 
                     {/* Seller row */}
                     <View style={[styles.sellerRow, { borderTopColor: colors.border }]}>
-                      <Ionicons name="person-circle-outline" size={16} color={colors.textSecondary} />
-                      <Text style={[styles.sellerName, { color: colors.textSecondary }]} numberOfLines={1}>
-                        {item.seller_name || 'Verified Student'}
-                      </Text>
-                      {item.buyer_interest_count > 0 && (
-                        <View style={[styles.interestBadge, { backgroundColor: colors.primary + '15' }]}>
-                          <Ionicons name="chatbubble" size={10} color={colors.primary} />
-                          <Text style={[styles.interestText, { color: colors.primary }]}>
-                            {item.buyer_interest_count}
-                          </Text>
-                        </View>
-                      )}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 }}>
+                        <Ionicons name="person-circle-outline" size={16} color={colors.textSecondary} />
+                        <Text style={[styles.sellerName, { color: colors.textSecondary }]} numberOfLines={1}>
+                          Listed by <Text style={{ fontWeight: FontWeight.bold, color: colors.text }}>{item.seller_name || 'Verified Student'}</Text>
+                        </Text>
+                      </View>
+
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        {item.buyer_interest_count > 0 && (
+                          <View style={[styles.interestBadge, { backgroundColor: colors.primary + '15' }]}>
+                            <Ionicons name="chatbubble" size={10} color={colors.primary} />
+                            <Text style={[styles.interestText, { color: colors.primary }]}>
+                              {item.buyer_interest_count}
+                            </Text>
+                          </View>
+                        )}
+
+                        {/* Creator / Admin Delete (only if not sold) */}
+                        {(item.user_id === user?.id || isAdmin) && item.status !== 'sold' && (
+                          <TouchableOpacity
+                            style={[styles.itemDeleteBtn, { borderColor: colors.expense + '40', backgroundColor: colors.expense + '10' }]}
+                            onPress={(e) => handleDeleteListing(e, item)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Ionicons name="trash-outline" size={12} color={colors.expense} />
+                            <Text style={[styles.itemDeleteText, { color: colors.expense }]}>Remove</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -593,6 +642,19 @@ const styles = StyleSheet.create({
   },
   interestText: {
     fontSize: 9,
+    fontWeight: FontWeight.bold,
+  },
+  itemDeleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+  },
+  itemDeleteText: {
+    fontSize: 10,
     fontWeight: FontWeight.bold,
   },
 });

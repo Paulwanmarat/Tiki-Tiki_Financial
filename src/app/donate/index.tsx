@@ -11,6 +11,7 @@ import {
   RefreshControl,
   useWindowDimensions,
   Platform,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,7 +19,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useAuth } from '@/context/AuthContext';
-import { getDonateCampaigns } from '@/services/database/donate';
+import { confirmAction } from '@/utils/confirm';
+import { getDonateCampaigns, deleteDonateCampaign } from '@/services/database/donate';
 import { DonateCampaign } from '@/types/donate';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { PIGGY_LOGO } from '@/constants/assets';
@@ -79,6 +81,25 @@ export default function DonateHomeScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     loadCampaigns();
+  };
+
+  const handleDeleteCampaign = (e: any, camp: DonateCampaign) => {
+    e?.stopPropagation?.();
+    confirmAction(
+      'Remove Campaign',
+      `Are you sure you want to remove "${camp.title}"? Since this campaign has not received any contributions, it will be deleted.`,
+      'Remove Campaign',
+      async () => {
+        try {
+          await deleteDonateCampaign(camp.id);
+          Alert.alert('Campaign Removed', 'Your campaign has been removed successfully.');
+          loadCampaigns();
+        } catch (err: any) {
+          Alert.alert('Notice', err?.message || 'Failed to remove campaign');
+        }
+      },
+      true
+    );
   };
 
   return (
@@ -257,17 +278,31 @@ export default function DonateHomeScreen() {
                     {/* Organizer & Donors Footer */}
                     <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
                       <View style={styles.organizerRow}>
-                        <Ionicons name="person-outline" size={13} color={colors.textTertiary} />
-                        <Text style={[styles.organizerText, { color: colors.textTertiary }]} numberOfLines={1}>
-                          {camp.organizer_name}
+                        <Ionicons name="sparkles" size={12} color="#EC4899" />
+                        <Text style={[styles.organizerText, { color: colors.textSecondary }]} numberOfLines={1}>
+                          Created by <Text style={{ fontWeight: FontWeight.bold, color: colors.text }}>{camp.organizer_name}</Text>
                         </Text>
                       </View>
 
-                      <View style={styles.donorsCount}>
-                        <Ionicons name="heart" size={13} color="#EC4899" />
-                        <Text style={[styles.donorsText, { color: '#EC4899' }]}>
-                          {camp.donor_count || 0} donors
-                        </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <View style={styles.donorsCount}>
+                          <Ionicons name="heart" size={13} color="#EC4899" />
+                          <Text style={[styles.donorsText, { color: '#EC4899' }]}>
+                            {camp.donor_count || 0} donors
+                          </Text>
+                        </View>
+
+                        {/* Creator/Admin remove action if not used */}
+                        {(camp.organizer_id === user?.id || isAdmin) && Number(camp.amount_raised || 0) === 0 && (
+                          <TouchableOpacity
+                            style={[styles.cardDeleteBtn, { borderColor: colors.expense + '40', backgroundColor: colors.expense + '10' }]}
+                            onPress={(e) => handleDeleteCampaign(e, camp)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Ionicons name="trash-outline" size={12} color={colors.expense} />
+                            <Text style={[styles.cardDeleteText, { color: colors.expense }]}>Remove</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     </View>
                   </View>
@@ -526,6 +561,19 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   donorsText: {
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+  },
+  cardDeleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+  },
+  cardDeleteText: {
     fontSize: 10,
     fontWeight: FontWeight.bold,
   },

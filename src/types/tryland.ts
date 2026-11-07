@@ -16,6 +16,8 @@ export type TrylandStatus =
 
 export interface TrylandRequest {
   id: string;
+  user_id?: string;
+  creator_name?: string;
   bill_category: TrylandCategory | string;
   amount_requested: number;
   amount_funded: number;

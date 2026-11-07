@@ -15,10 +15,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { RKWordmark } from '@/components/ui/RKWordmark';
+import { confirmAction } from '@/utils/confirm';
 import {
   getMyTrylandRequests,
   getMyTrylandSponsorships,
   verifyTrylandRequest,
+  deleteTrylandRequest,
 } from '@/services/database/tryland';
 import { TrylandRequest, TrylandSponsorship } from '@/types/tryland';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
@@ -59,6 +61,24 @@ export default function MyRKRequestsScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
+  };
+
+  const handleDelete = (req: TrylandRequest) => {
+    confirmAction(
+      'Remove Bill Request',
+      `Are you sure you want to remove your ${req.bill_category} request (${formatCurrency(req.amount_requested)})? Since this request has not received any sponsorships, it will be deleted.`,
+      'Remove Request',
+      async () => {
+        try {
+          await deleteTrylandRequest(req.id);
+          Alert.alert('Request Removed', 'Your bill request has been successfully removed.');
+          loadData();
+        } catch (err: any) {
+          Alert.alert('Notice', err?.message || 'Failed to remove request');
+        }
+      },
+      true
+    );
   };
 
   const statusBadges: Record<string, { label: string; color: string }> = {
@@ -197,12 +217,24 @@ export default function MyRKRequestsScreen() {
                   ) : null}
 
                   <View style={[styles.footerRow, { borderTopColor: colors.border }]}>
-                    <Text style={[styles.metaText, { color: colors.textTertiary }]}>
-                      Submitted {formatDate(req.created_at)}
-                    </Text>
-                    <Text style={[styles.metaText, { color: colors.textTertiary }]}>
-                      Due: {formatDate(req.due_date)}
-                    </Text>
+                    <View>
+                      <Text style={[styles.metaText, { color: colors.textTertiary }]}>
+                        Submitted {formatDate(req.created_at)}
+                      </Text>
+                      <Text style={[styles.metaText, { color: colors.textTertiary }]}>
+                        Due: {formatDate(req.due_date)}
+                      </Text>
+                    </View>
+
+                    {Number(req.amount_funded || 0) === 0 && (
+                      <TouchableOpacity
+                        style={[styles.cancelReqBtn, { borderColor: colors.expense + '40', backgroundColor: colors.expense + '10' }]}
+                        onPress={() => handleDelete(req)}
+                      >
+                        <Ionicons name="trash-outline" size={13} color={colors.expense} />
+                        <Text style={[styles.cancelReqText, { color: colors.expense }]}>Remove Request</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
               );
@@ -436,6 +468,19 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 10,
+  },
+  cancelReqBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+  },
+  cancelReqText: {
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
   },
 });
 

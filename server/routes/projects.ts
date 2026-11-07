@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { getDb } from '../services/db';
-import { requireAuth, optionalAuth, requireAdmin } from './auth';
+import { requireAuth, optionalAuth, requireAdmin, isUserAdmin } from './auth';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = express.Router();
@@ -43,7 +43,7 @@ router.get('/', optionalAuth, async (req: Request, res: Response) => {
 
     const query = `
       SELECT id, title, description, category, difficulty, estimated_budget, estimated_days,
-             images, is_premium, created_at
+             images, is_premium, created_at, created_by, author_name
       FROM projects
       ${whereClause}
       ORDER BY created_at ASC
@@ -60,6 +60,7 @@ router.get('/', optionalAuth, async (req: Request, res: Response) => {
 // ─── POST /api/projects (Create project - Restricted to Owner & Admins) ────────
 router.post('/', requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.id;
     const {
       title,
       description = '',
@@ -88,10 +89,16 @@ router.post('/', requireAuth, requireAdmin, async (req: Request, res: Response) 
     const db = getDb();
     const id = generateId();
 
+    // Fetch user username to attribute authorship
+    const userRes = userId
+      ? await db.query('SELECT username, email FROM users WHERE id = $1', [userId])
+      : { rows: [] };
+    const authorName = userRes.rows[0]?.username || req.user?.email?.split('@')[0] || 'SPR Innovation Lab';
+
     const insertRes = await db.query(
       `INSERT INTO projects
-        (id, title, description, category, difficulty, estimated_budget, estimated_days, materials, steps, expected_outcome, resources, images, is_premium)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        (id, title, description, category, difficulty, estimated_budget, estimated_days, materials, steps, expected_outcome, resources, images, is_premium, created_by, author_name)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        RETURNING *`,
       [
         id,
@@ -107,6 +114,8 @@ router.post('/', requireAuth, requireAdmin, async (req: Request, res: Response) 
         typeof resources === 'string' ? resources : JSON.stringify(resources),
         Array.isArray(images) ? images : [],
         Boolean(is_premium),
+        userId || null,
+        authorName,
       ]
     );
 
@@ -114,6 +123,40 @@ router.post('/', requireAuth, requireAdmin, async (req: Request, res: Response) 
   } catch (error) {
     console.error('Error creating project:', error);
     res.status(500).json({ error: 'Failed to create project' });
+  }
+});
+
+// ─── DELETE /api/projects/:id (Remove project) ──────────────────────────────
+router.delete('/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const db = getDb();
+    const projRes = await db.query('SELECT * FROM projects WHERE id = $1', [id]);
+    if (projRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const project = projRes.rows[0];
+
+    const userRes = await db.query('SELECT role, email FROM users WHERE id = $1', [userId]);
+    const userRole = userRes.rows[0]?.role;
+    const userEmail = userRes.rows[0]?.email;
+    const isAdmin = isUserAdmin({ role: userRole, email: userEmail });
+
+    // Check ownership: only creator (or admin/owner) can delete
+    const isOwner = project.created_by === userId || isAdmin;
+    if (!isOwner) {
+      return res.status(403).json({ error: 'You can only remove projects that you created' });
+    }
+
+    await db.query('DELETE FROM projects WHERE id = $1', [id]);
+    res.json({ success: true, message: 'Project removed successfully' });
+  } catch (error) {
+    console.error('Error removing project:', error);
+    res.status(500).json({ error: 'Failed to remove project' });
   }
 });
 

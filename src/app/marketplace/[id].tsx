@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
+import { useAuth } from '@/context/AuthContext';
 import {
   getMarketplaceListingById,
   markMarketplaceItemSold,
@@ -33,12 +34,23 @@ import { formatDate } from '@/utils/formatters';
 export default function MarketplaceDetailScreen() {
   const { colors, isDark } = useTheme();
   const { formatCurrency } = useCurrency();
+  const { user } = useAuth();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
 
+  const isAdmin = Boolean(
+    user && (
+      user.role === 'admin' ||
+      user.role === 'owner' ||
+      user.email?.toLowerCase() === 'paulwanmarat@gmail.com' ||
+      user.email?.toLowerCase() === 'admin@spr.app'
+    )
+  );
+
   const [item, setItem] = useState<MarketplaceDetail | null>(null);
+  const canManage = Boolean(item && (item.isOwner || isAdmin));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -275,7 +287,7 @@ export default function MarketplaceDetailScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.sellerName, { color: colors.text }]}>
-                  {item.seller_name || 'Verified University Student'}
+                  Listed by <Text style={{ fontWeight: FontWeight.bold }}>{item.seller_name || 'Verified University Student'}</Text>
                 </Text>
                 <Text style={[styles.sellerVerified, { color: colors.success }]}>
                   ✓ Verified Campus Account
@@ -285,13 +297,13 @@ export default function MarketplaceDetailScreen() {
           </View>
 
           {/* ───────────────────────────────────────────────────────── */}
-          {/* SELLER MANAGEMENT CONTROLS (If owner)                     */}
+          {/* SELLER MANAGEMENT CONTROLS (If creator or admin)           */}
           {/* ───────────────────────────────────────────────────────── */}
-          {item.isOwner ? (
+          {canManage ? (
             <View style={[styles.ownerSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Text style={[styles.sectionHeading, { color: colors.primary }]}>SELLER CONTROLS</Text>
               <Text style={[styles.ownerDesc, { color: colors.textSecondary }]}>
-                You are the creator of this listing.
+                You have creator and moderation authority over this listing.
               </Text>
 
               {!isSold ? (

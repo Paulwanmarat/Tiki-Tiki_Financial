@@ -20,11 +20,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useAuth } from '@/context/AuthContext';
+import { confirmAction } from '@/utils/confirm';
 import {
   getProjects,
   getSubscriptionStatus,
   activatePilotSubscription,
   createProject,
+  deleteProject,
 } from '@/services/database/projects';
 import { Project, ProjectDifficulty, SubscriptionStatus } from '@/types/projects';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
@@ -141,6 +143,25 @@ export default function ProjectsScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
+  };
+
+  const handleDeleteProject = (e: any, proj: Project) => {
+    e?.stopPropagation?.();
+    confirmAction(
+      'Remove Project Blueprint',
+      `Are you sure you want to remove "${proj.title}"? This will remove the blueprint from the catalog.`,
+      'Remove Blueprint',
+      async () => {
+        try {
+          await deleteProject(proj.id);
+          Alert.alert('Project Removed', 'Project blueprint removed successfully.');
+          loadData();
+        } catch (err: any) {
+          Alert.alert('Notice', err?.message || 'Failed to remove project');
+        }
+      },
+      true
+    );
   };
 
   const handleActivatePilot = async () => {
@@ -403,6 +424,27 @@ export default function ProjectsScreen() {
                           ~{proj.estimated_days} days
                         </Text>
                       </View>
+                    </View>
+
+                    {/* Author credit & delete button */}
+                    <View style={[styles.authorFooterRow, { borderTopColor: colors.border }]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1 }}>
+                        <Ionicons name="sparkles" size={12} color={colors.primary} />
+                        <Text style={[styles.authorCreditText, { color: colors.textSecondary }]} numberOfLines={1}>
+                          Launched by <Text style={{ fontWeight: FontWeight.bold, color: colors.text }}>{proj.author_name || 'SPR Innovation Lab'}</Text>
+                        </Text>
+                      </View>
+
+                      {(proj.created_by === user?.id || isAdmin) && (
+                        <TouchableOpacity
+                          style={[styles.projDeleteBtn, { borderColor: colors.expense + '40', backgroundColor: colors.expense + '10' }]}
+                          onPress={(e) => handleDeleteProject(e, proj)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <Ionicons name="trash-outline" size={12} color={colors.expense} />
+                          <Text style={[styles.projDeleteText, { color: colors.expense }]}>Remove</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -811,6 +853,30 @@ const styles = StyleSheet.create({
   metricText: {
     fontSize: 11,
     fontWeight: FontWeight.semibold,
+  },
+  authorFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    marginTop: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  authorCreditText: {
+    fontSize: 10,
+  },
+  projDeleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+  },
+  projDeleteText: {
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
   },
 });
 

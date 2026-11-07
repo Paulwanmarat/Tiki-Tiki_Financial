@@ -19,9 +19,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
+import { useAuth } from '@/context/AuthContext';
+import { confirmAction } from '@/utils/confirm';
 import { RKWordmark } from '@/components/ui/RKWordmark';
 import { QRPaymentModal } from '@/components/ui/QRPaymentModal';
-import { getTrylandRequests, sponsorTrylandBill } from '@/services/database/tryland';
+import { getTrylandRequests, sponsorTrylandBill, deleteTrylandRequest } from '@/services/database/tryland';
 import { TrylandRequest, TrylandCategory } from '@/types/tryland';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
 import { formatDate } from '@/utils/formatters';
@@ -38,9 +40,19 @@ const CATEGORIES: ('All' | TrylandCategory)[] = [
 export default function RKHomeScreen() {
   const { colors, isDark } = useTheme();
   const { formatCurrency, currency, convertToBase } = useCurrency();
+  const { user } = useAuth();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
+
+  const isAdmin = Boolean(
+    user && (
+      user.role === 'admin' ||
+      user.role === 'owner' ||
+      user.email?.toLowerCase() === 'paulwanmarat@gmail.com' ||
+      user.email?.toLowerCase() === 'admin@spr.app'
+    )
+  );
 
   const [requests, setRequests] = useState<TrylandRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +66,25 @@ export default function RKHomeScreen() {
   const [showQR, setShowQR] = useState(false);
   const [pendingPayRef, setPendingPayRef] = useState('');
   const [submittingPledge, setSubmittingPledge] = useState(false);
+
+  const handleDeleteRequest = (e: any, req: TrylandRequest) => {
+    e?.stopPropagation?.();
+    confirmAction(
+      'Remove Bill Request',
+      `Are you sure you want to remove your ${req.bill_category} request (${formatCurrency(req.amount_requested)})? Since this request has not received any sponsorships, it will be removed.`,
+      'Remove Request',
+      async () => {
+        try {
+          await deleteTrylandRequest(req.id);
+          Alert.alert('Request Removed', 'Your bill request has been removed successfully.');
+          loadRequests();
+        } catch (err: any) {
+          Alert.alert('Notice', err?.message || 'Failed to remove bill request');
+        }
+      },
+      true
+    );
+  };
 
   const loadRequests = useCallback(async () => {
     try {
@@ -231,21 +262,35 @@ export default function RKHomeScreen() {
                     isDesktop && styles.desktopCard,
                   ]}
                 >
-                  {/* Card Header: Category & Student Alias */}
+                  {/* Card Header: Category & Student / Creator Credit */}
                   <View style={styles.reqCardHeader}>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.categoryBadge, { color: '#10B981', backgroundColor: '#10B981' + '18' }]}>
                         {req.bill_category.toUpperCase()}
                       </Text>
                       <Text style={[styles.studentAlias, { color: colors.text }]}>
-                        👤 {req.student_alias}
+                        👤 Requested by <Text style={{ fontWeight: FontWeight.bold }}>{req.creator_name || req.student_alias}</Text>
                       </Text>
                     </View>
 
-                    <View style={[styles.statusBadge, { backgroundColor: isFullyFunded ? colors.success + '20' : '#10B981' + '18' }]}>
-                      <Text style={[styles.statusBadgeText, { color: isFullyFunded ? colors.success : '#10B981' }]}>
-                        {isFullyFunded ? 'FULLY FUNDED' : `${pct}% FUNDED`}
-                      </Text>
+                    <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                      <View style={[styles.statusBadge, { backgroundColor: isFullyFunded ? colors.success + '20' : '#10B981' + '18' }]}>
+                        <Text style={[styles.statusBadgeText, { color: isFullyFunded ? colors.success : '#10B981' }]}>
+                          {isFullyFunded ? 'FULLY FUNDED' : `${pct}% FUNDED`}
+                        </Text>
+                      </View>
+
+                      {/* Creator / Admin Delete (if not used: amount_funded === 0) */}
+                      {(req.user_id === user?.id || isAdmin) && Number(req.amount_funded || 0) === 0 && (
+                        <TouchableOpacity
+                          style={[styles.removeReqBtn, { borderColor: colors.expense + '40', backgroundColor: colors.expense + '10' }]}
+                          onPress={(e) => handleDeleteRequest(e, req)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <Ionicons name="trash-outline" size={12} color={colors.expense} />
+                          <Text style={[styles.removeReqText, { color: colors.expense }]}>Remove</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
 
@@ -592,6 +637,19 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: FontWeight.extrabold,
     letterSpacing: 0.5,
+  },
+  removeReqBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+  },
+  removeReqText: {
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
   },
   explanationText: {
     fontSize: FontSize.xs + 1,

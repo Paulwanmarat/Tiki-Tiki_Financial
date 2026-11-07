@@ -25,6 +25,8 @@ export interface Project {
   resources: string[];
   images: string[];
   is_premium: boolean;
+  created_by?: string;
+  author_name?: string;
   created_at: string;
 }
 

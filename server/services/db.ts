@@ -163,6 +163,8 @@ export async function initDb(): Promise<Pool> {
 
       CREATE INDEX IF NOT EXISTS idx_projects_category ON projects(category);
       CREATE INDEX IF NOT EXISTS idx_projects_difficulty ON projects(difficulty);
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS "created_by" TEXT REFERENCES users(id) ON DELETE SET NULL;
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS "author_name" TEXT DEFAULT 'SPR Innovation Lab';
 
       CREATE TABLE IF NOT EXISTS user_subscriptions (
         user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

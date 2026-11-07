@@ -17,11 +17,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
+import { useAuth } from '@/context/AuthContext';
+import { confirmAction } from '@/utils/confirm';
 import {
   getProjectById,
   activatePilotSubscription,
   getProjectAIHistory,
   askProjectAI,
+  deleteProject,
 } from '@/services/database/projects';
 import { ProjectDetail, ProjectAIMessage } from '@/types/projects';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
@@ -30,6 +33,7 @@ import { PIGGY_LOGO } from '@/constants/assets';
 export default function ProjectDetailScreen() {
   const { colors, isDark } = useTheme();
   const { formatCurrency } = useCurrency();
+  const { user } = useAuth();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { width } = useWindowDimensions();
@@ -39,6 +43,36 @@ export default function ProjectDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activatingPass, setActivatingPass] = useState(false);
+
+  const isAdmin = Boolean(
+    user && (
+      user.role === 'admin' ||
+      user.role === 'owner' ||
+      user.email?.toLowerCase() === 'paulwanmarat@gmail.com' ||
+      user.email?.toLowerCase() === 'admin@spr.app'
+    )
+  );
+
+  const isCreator = Boolean(user && project && (project.created_by === user.id || isAdmin));
+
+  const handleDeleteProject = () => {
+    if (!project || !isCreator) return;
+    confirmAction(
+      'Remove Project Blueprint',
+      `Are you sure you want to remove "${project.title}"? This action cannot be undone.`,
+      'Remove Blueprint',
+      async () => {
+        try {
+          await deleteProject(project.id);
+          Alert.alert('Project Removed', 'The project blueprint has been removed successfully.');
+          router.replace('/projects' as any);
+        } catch (err: any) {
+          Alert.alert('Notice', err?.message || 'Failed to remove project');
+        }
+      },
+      true
+    );
+  };
 
   // AI Project Assistant State
   const [showAiDrawer, setShowAiDrawer] = useState(false);
@@ -205,6 +239,18 @@ export default function ProjectDetailScreen() {
 
               <Text style={[styles.projTitle, { color: colors.text }]}>{project.title}</Text>
 
+              {/* Author & Launch Credit */}
+              <View style={styles.authorDetailRow}>
+                <View style={[styles.authorPill, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '35' }]}>
+                  <Ionicons name="sparkles" size={12} color={colors.primary} />
+                  <Text style={[styles.authorPillText, { color: colors.primary }]}>BLUEPRINT CREATOR</Text>
+                </View>
+                <Ionicons name="person-circle" size={18} color={colors.primary} />
+                <Text style={[styles.authorDetailText, { color: colors.textSecondary }]}>
+                  Launched by <Text style={{ fontWeight: FontWeight.bold, color: colors.text }}>{project.author_name || 'SPR Innovation Lab'}</Text>
+                </Text>
+              </View>
+
               {/* Stats Bar */}
               <View style={[styles.statsRow, { backgroundColor: colors.surfaceHighlight }]}>
                 <View style={styles.statBox}>
@@ -226,6 +272,20 @@ export default function ProjectDetailScreen() {
                   </Text>
                 </View>
               </View>
+
+              {/* Remove Blueprint Button (Creator or Admin) */}
+              {isCreator && (
+                <TouchableOpacity
+                  style={[styles.removeBlueprintBtn, { borderColor: colors.expense + '40', backgroundColor: colors.expense + '0A' }]}
+                  onPress={handleDeleteProject}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="trash-outline" size={16} color={colors.expense} />
+                  <Text style={[styles.removeBlueprintText, { color: colors.expense }]}>
+                    Remove Project Blueprint
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* 1. Introduction & Objective */}
@@ -816,6 +876,44 @@ const styles = StyleSheet.create({
   },
   backBtnActionText: {
     color: '#FFF',
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+  },
+  authorDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: Spacing.md,
+    flexWrap: 'wrap',
+  },
+  authorPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.xs,
+    borderWidth: 1,
+  },
+  authorPillText: {
+    fontSize: 10,
+    fontWeight: FontWeight.extrabold,
+    letterSpacing: 0.5,
+  },
+  authorDetailText: {
+    fontSize: FontSize.xs,
+  },
+  removeBlueprintBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    marginTop: Spacing.md,
+  },
+  removeBlueprintText: {
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
   },

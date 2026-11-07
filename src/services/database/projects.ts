@@ -50,3 +50,9 @@ export async function createProject(data: Partial<ProjectDetail>): Promise<Proje
   });
 }
 
+export async function deleteProject(id: string): Promise<{ success: boolean; message: string }> {
+  return fetchWithAuth(`/api/projects/${id}`, {
+    method: 'DELETE',
+  });
+}
+

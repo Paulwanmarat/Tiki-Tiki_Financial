@@ -12,7 +12,7 @@ const router = express.Router();
 declare global {
   namespace Express {
     interface Request {
-      user?: { id: string; email: string };
+      user?: { id: string; email: string; role?: string };
     }
   }
 }

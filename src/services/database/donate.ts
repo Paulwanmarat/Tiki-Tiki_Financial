@@ -65,3 +65,9 @@ export async function submitDonation(
   });
 }
 
+export async function deleteDonateCampaign(id: string): Promise<{ success: boolean; message: string }> {
+  return fetchWithAuth(`/api/donate/${id}`, {
+    method: 'DELETE',
+  });
+}
+

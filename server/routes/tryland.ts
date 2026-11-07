@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { getDb } from '../services/db';
-import { requireAuth, optionalAuth } from './auth';
+import { requireAuth, optionalAuth, isUserAdmin } from './auth';
 
 const router = express.Router();
 
@@ -169,6 +169,7 @@ router.get('/', optionalAuth, async (req: Request, res: Response) => {
     const query = `
       SELECT 
         r.id,
+        r.user_id,
         r.bill_category,
         r.amount_requested,
         r.amount_funded,
@@ -191,6 +192,7 @@ router.get('/', optionalAuth, async (req: Request, res: Response) => {
     // Sanitize records so sensitive personal info is completely protected
     const sanitizedRows = result.rows.map((row: any) => ({
       id: row.id,
+      user_id: row.user_id,
       bill_category: row.bill_category,
       amount_requested: Number(row.amount_requested),
       amount_funded: Number(row.amount_funded),
@@ -200,6 +202,7 @@ router.get('/', optionalAuth, async (req: Request, res: Response) => {
       created_at: row.created_at,
       sponsors_count: parseInt(row.sponsors_count, 10) || 0,
       student_alias: sanitizeStudentName(row.username, row.email),
+      creator_name: sanitizeStudentName(row.username, row.email),
     }));
 
     res.json(sanitizedRows);
@@ -492,6 +495,58 @@ router.post('/:id/verify', requireAuth, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error verifying request:', error);
     res.status(500).json({ error: 'Failed to verify request' });
+  }
+});
+
+// ─── DELETE /api/tryland/request/:id (Remove unused request) ────────────────
+router.delete('/request/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const db = getDb();
+    const reqResult = await db.query('SELECT * FROM tryland_requests WHERE id = $1', [id]);
+    if (reqResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Bill request not found' });
+    }
+
+    const reqData = reqResult.rows[0];
+
+    const userRes = await db.query('SELECT role, email FROM users WHERE id = $1', [userId]);
+    const userRole = userRes.rows[0]?.role;
+    const userEmail = userRes.rows[0]?.email;
+    const isAdmin = isUserAdmin({ role: userRole, email: userEmail });
+
+    // Check ownership: only creator (or admin/owner) can delete
+    const isOwner = reqData.user_id === userId || isAdmin;
+    if (!isOwner) {
+      return res.status(403).json({ error: 'You can only remove bill requests that you created' });
+    }
+
+    // Check if not used: if amount_funded > 0, cannot delete
+    if (Number(reqData.amount_funded) > 0) {
+      return res.status(400).json({
+        error: 'Cannot remove a bill request that has already received sponsorship funding.',
+      });
+    }
+
+    // Check if active non-rejected sponsorships exist
+    const sponCheck = await db.query(
+      "SELECT COUNT(*) FROM tryland_sponsorships WHERE request_id = $1 AND status != 'rejected'",
+      [id]
+    );
+    if (parseInt(sponCheck.rows[0]?.count || '0', 10) > 0) {
+      return res.status(400).json({
+        error: 'Cannot remove a bill request that has active sponsorship pledges in review.',
+      });
+    }
+
+    await db.query('DELETE FROM tryland_requests WHERE id = $1', [id]);
+    res.json({ success: true, message: 'Bill request removed successfully' });
+  } catch (error) {
+    console.error('Error removing Tryland request:', error);
+    res.status(500).json({ error: 'Failed to remove bill request' });
   }
 });
 
