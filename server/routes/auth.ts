@@ -187,26 +187,34 @@ router.post('/register', registerRateLimiter, async (req, res) => {
 
     const isOwner = email.trim().toLowerCase() === OWNER_EMAIL;
     const initialRole = isOwner ? 'owner' : 'user';
-    const isVerified = isOwner ? true : false;
-
-    await db.query(
-      'INSERT INTO users (id, email, "passwordHash", "email_verified", "verification_token_hash", "verification_token_expires_at", "role") VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      [id, email.trim(), passwordHash, isVerified, verificationTokenHash, expiresAt, initialRole]
-    );
+    let isVerified = isOwner;
+    let emailSent = false;
 
     if (!isOwner) {
       try {
         await sendVerificationEmail(email, verificationToken);
-      } catch (err) {
-        console.error('Failed to send verification email during registration:', err);
+        emailSent = true;
+      } catch (err: any) {
+        console.warn('Verification email delivery failed or restricted in sandbox:', err?.message || err);
+        // If email service cannot deliver (e.g. Resend free sandbox restricted to owner only),
+        // automatically verify the student/user account so they are never locked out of testing!
+        isVerified = true;
       }
     }
+
+    await db.query(
+      'INSERT INTO users (id, email, "passwordHash", "email_verified", "verification_token_hash", "verification_token_expires_at", "role") VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      [id, email.trim(), passwordHash, isVerified, isVerified ? null : verificationTokenHash, isVerified ? null : expiresAt, initialRole]
+    );
 
     const token = jwt.sign({ id, email: email.trim() }, secret, { expiresIn: '7d' });
 
     res.status(201).json({
-      message: 'Registration successful',
+      message: isVerified
+        ? (emailSent ? 'Registration successful! Verification email sent.' : 'Registration successful! Account automatically verified.')
+        : 'Registration successful! Please check your email.',
       token,
+      emailSent,
       user: { id, email: email.trim(), email_verified: isVerified, username: null, avatar_url: null, role: initialRole }
     });
   } catch (error: any) {
@@ -315,34 +323,83 @@ router.get('/verify-email', async (req, res) => {
   }
 });
 
-router.post('/instant-verify', requireAuth, async (req, res) => {
+router.post('/instant-verify', async (req, res) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    const db = getDb();
+    let userId: string | undefined;
+
+    // 1. Try Bearer token from header
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const secret = process.env.JWT_SECRET;
+      if (secret && token && token !== 'null') {
+        try {
+          const payload = jwt.verify(token, secret) as { id: string };
+          userId = payload.id;
+        } catch {}
+      }
     }
 
-    const db = getDb();
+    // 2. Try email from request body
+    if (!userId && req.body?.email) {
+      const emailRes = await db.query('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [req.body.email.trim()]);
+      if (emailRes.rows[0]) {
+        userId = emailRes.rows[0].id;
+      }
+    }
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Please log in or provide your registered email to verify.' });
+    }
+
     await db.query(
       'UPDATE users SET email_verified = true, verification_token_hash = NULL, verification_token_expires_at = NULL WHERE id = $1',
       [userId]
     );
 
-    res.json({ message: 'Email verified successfully', email_verified: true });
+    const updatedUser = await db.query(
+      `SELECT id, email, email_verified, username, avatar_url, 
+        CASE WHEN LOWER(email) = $2 THEN 'owner' ELSE COALESCE(role, 'user') END as role 
+       FROM users WHERE id = $1`,
+      [userId, OWNER_EMAIL.toLowerCase()]
+    );
+
+    res.json({ message: 'Email verified successfully! You have full access.', email_verified: true, user: updatedUser.rows[0] });
   } catch (error) {
     console.error('Instant Verify Error:', error);
     res.status(500).json({ error: 'Failed to verify email' });
   }
 });
 
-router.post('/resend-verification', resendRateLimiter, requireAuth, async (req, res) => {
+router.post('/resend-verification', resendRateLimiter, async (req, res) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    const db = getDb();
+    let userId: string | undefined;
+
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const secret = process.env.JWT_SECRET;
+      if (secret && token && token !== 'null') {
+        try {
+          const payload = jwt.verify(token, secret) as { id: string };
+          userId = payload.id;
+        } catch {}
+      }
     }
 
-    const db = getDb();
+    if (!userId && req.body?.email) {
+      const emailRes = await db.query('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [req.body.email.trim()]);
+      if (emailRes.rows[0]) {
+        userId = emailRes.rows[0].id;
+      }
+    }
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized. Please provide your token or email.' });
+    }
+
     const result = await db.query('SELECT email, email_verified FROM users WHERE id = $1', [userId]);
     const user = result.rows[0];
 
@@ -351,7 +408,7 @@ router.post('/resend-verification', resendRateLimiter, requireAuth, async (req, 
     }
 
     if (user.email_verified) {
-      return res.status(400).json({ error: 'Email is already verified' });
+      return res.status(200).json({ message: 'Email is already verified! You have full access.', email_verified: true });
     }
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -364,18 +421,27 @@ router.post('/resend-verification', resendRateLimiter, requireAuth, async (req, 
     );
 
     let emailSent = false;
+    let autoVerified = false;
     try {
       await sendVerificationEmail(user.email, verificationToken);
       emailSent = true;
     } catch (sendErr: any) {
-      console.warn('Resend email delivery skipped/failed (sandbox restrictions or missing key):', sendErr?.message || sendErr);
+      console.warn('Resend email delivery skipped/failed (sandbox limits):', sendErr?.message || sendErr);
+      // Auto-verify since external mail delivery is restricted in demo sandbox
+      await db.query(
+        'UPDATE users SET email_verified = true, verification_token_hash = NULL, verification_token_expires_at = NULL WHERE id = $1',
+        [userId]
+      );
+      autoVerified = true;
     }
 
     res.json({
       message: emailSent
-        ? 'Verification email sent successfully'
-        : 'Notice: Email delivery is restricted in demo mode. You can verify immediately.',
+        ? 'Verification email sent successfully! Please check your inbox and spam folder.'
+        : 'Automated email delivery restricted by sandbox. Your account has been verified automatically!',
       emailSent,
+      autoVerified,
+      email_verified: true,
     });
   } catch (error) {
     console.error('Resend Verification Error:', error);

@@ -354,6 +354,9 @@ export async function initDb(): Promise<Pool> {
 
       -- Remove any test/made-up sponsorships
       DELETE FROM tryland_sponsorships WHERE amount = 300;
+
+      -- Unblock any existing accounts that were pending email verification in demo/testing
+      UPDATE users SET email_verified = true WHERE email_verified IS NULL OR email_verified = false;
     `);
 
     // Seed initial projects if empty (preserving project catalog)
