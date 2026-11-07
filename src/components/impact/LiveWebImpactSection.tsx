@@ -4,7 +4,7 @@
  * Displays live figures in Thai Baht (฿) for:
  * 1. Overall SPR Impact
  * 2. 🌳 TRYLAND Tree Planting (Save The Planet)
- * 3. 👦 RK (Rich Kid) Student Bill Sponsorships
+ * 3. 👦 RK (Random Kindness) Student Bill Sponsorships
  * 4. ♥ SPR Donate Campaigns
  *
  * Strict Rule: Only verified payments count toward these totals!
@@ -130,7 +130,7 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
           >
             <Ionicons name="happy" size={15} color={activeTab === 'rk' ? '#3B82F6' : '#8A7B91'} />
             <Text style={[styles.tabBtnText, activeTab === 'rk' && styles.tabBtnTextActive]}>
-              RK (Rich Kid) Bills
+              RK (Random Kindness) Bills
             </Text>
           </TouchableOpacity>
 
@@ -178,7 +178,7 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
                     {THB(data.overall.totalMoneyRaised)}
                   </Text>
                   <Text style={styles.heroImpactSub}>
-                    Combined sum of verified RK (Rich Kid) student bill sponsorships and SPR Donate contributions
+                    Combined sum of verified RK (Random Kindness) student bill sponsorships and SPR Donate contributions
                   </Text>
 
                   {/* Split banner */}
@@ -201,7 +201,7 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
                     <View style={styles.splitCol}>
                       <View style={styles.splitHeader}>
                         <Ionicons name="happy" size={16} color="#3B82F6" />
-                        <Text style={[styles.splitTitle, { color: '#3B82F6' }]}>RK (RICH KID) BILLS</Text>
+                        <Text style={[styles.splitTitle, { color: '#3B82F6' }]}>RK (RANDOM KINDNESS) BILLS</Text>
                       </View>
                       <Text style={[styles.splitValue, { color: '#3B82F6' }]}>
                         {THB(data.overall.totalVerifiedSponsorships)}
@@ -350,7 +350,7 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
               </View>
             )}
 
-            {/* 3. RK (RICH KID) BILLS TAB */}
+            {/* 3. RK (RANDOM KINDNESS) BILLS TAB */}
             {activeTab === 'rk' && (
               <View style={styles.tabContent}>
                 <View style={[styles.statsOverviewRow, isMobile && { flexDirection: 'column' }]}>
@@ -436,7 +436,7 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
                     activeOpacity={0.85}
                   >
                     <Ionicons name="happy" size={18} color="#fff" />
-                    <Text style={styles.primaryCtaBtnText}>Browse & Sponsor Bills on RK →</Text>
+                    <Text style={styles.primaryCtaBtnText}>Browse & Sponsor Bills on RK (Random Kindness) →</Text>
                   </TouchableOpacity>
                 </View>
               </View>

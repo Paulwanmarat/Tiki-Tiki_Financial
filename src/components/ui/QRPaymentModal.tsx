@@ -1,7 +1,7 @@
 /**
  * SPR QR Payment Modal
  * Shows the payment QR code, amount, unique transfer reference, and slip upload confirmation.
- * Works for both RK (Rich Kid) bill sponsorships and SPR Donate campaigns.
+ * Works for both RK (Random Kindness) bill sponsorships and SPR Donate campaigns.
  *
  * IMPORTANT SECURITY CONTRACT:
  * - Payments are submitted with status = 'pending'
@@ -38,7 +38,7 @@ interface QRPaymentModalProps {
   /**
    * What flow is this for?
    * tryland: 🌳 TRYLAND Save the planet initiative (Plant Trees)
-   * rk: RK (Rich Kid) student bill sponsorship
+   * rk: RK (Random Kindness) student bill sponsorship
    * donate: SPR Donate campaign
    */
   mode: 'tryland' | 'rk' | 'donate';
@@ -199,7 +199,7 @@ export function QRPaymentModal({
     mode === 'tryland'
       ? '🌳 TRYLAND · Plant Trees'
       : mode === 'rk'
-      ? 'RK (Rich Kid) Sponsorship'
+      ? 'RK (Random Kindness) Sponsorship'
       : '♥ SPR Donate';
 
   return (

@@ -71,7 +71,7 @@ export function DesktopSidebar({ onNewGoal, collapsed = false, onToggleCollapse 
     { label: 'Marketplace', icon: 'cart-outline', activeIcon: 'cart', route: '/marketplace' },
     { label: 'SPR Projects', icon: 'bulb-outline', activeIcon: 'bulb', route: '/projects' },
     { label: '🌳 TRYLAND (Plant Trees)', icon: 'leaf-outline', activeIcon: 'leaf', route: '/tryland' },
-    { label: 'RK (Rich Kid Bills)', icon: 'happy-outline', activeIcon: 'happy', route: '/rk' },
+    { label: 'RK (Random Kindness)', icon: 'happy-outline', activeIcon: 'happy', route: '/rk' },
     { label: 'Donate & Causes', icon: 'heart-outline', activeIcon: 'heart', route: '/donate' },
     { label: 'Live Impact (฿)', icon: 'analytics-outline', activeIcon: 'analytics', route: '/impact' },
     ...(isUserAdmin ? [{ label: 'Payment Admin', icon: 'shield-checkmark-outline', activeIcon: 'shield-checkmark', route: '/admin/payments' }] : []),

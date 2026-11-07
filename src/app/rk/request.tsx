@@ -81,7 +81,7 @@ export default function RKRequestScreen() {
 
       Alert.alert(
         'Bill Uploaded',
-        result.message || 'Your bill was submitted for verification. Rich Kids will be able to sponsor it once verified by an admin.',
+        result.message || 'Your bill was submitted for verification. Random Kindness supporters will be able to sponsor it once verified by an admin.',
         [
           {
             text: 'Track My Bills',
@@ -106,7 +106,7 @@ export default function RKRequestScreen() {
           </TouchableOpacity>
           <View style={{ alignItems: 'center' }}>
             <RKWordmark size="sm" />
-            <Text style={[styles.subHeading, { color: colors.textSecondary }]}>Upload Bill · Rich Kids Pay</Text>
+            <Text style={[styles.subHeading, { color: colors.textSecondary }]}>Upload Bill · Random Kindness Pays</Text>
           </View>
           <TouchableOpacity
             style={[styles.submitBtn, { backgroundColor: '#10B981' }]}

@@ -36,12 +36,12 @@ export function RKWordmark({ size = 'md', showSubtitle = false }: RKWordmarkProp
           RK
         </Text>
         <View style={styles.badge}>
-          <Text style={[styles.badgeText, { fontSize: config.tagSize }]}>RICH KID</Text>
+          <Text style={[styles.badgeText, { fontSize: config.tagSize }]}>RANDOM KINDNESS</Text>
         </View>
       </View>
       {showSubtitle && (
         <Text style={[styles.subtitle, { fontSize: config.subSize, color: colors.textSecondary }]}>
-          Where students upload bills · Rich Kids pay
+          Where students upload bills · Random Kindness pays
         </Text>
       )}
     </View>

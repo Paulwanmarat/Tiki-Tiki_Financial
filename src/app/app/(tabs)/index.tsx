@@ -306,7 +306,7 @@ export default function DashboardScreen() {
               <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
             </TouchableOpacity>
 
-            {/* RK (Rich Kid) */}
+            {/* RK (Random Kindness) */}
             <TouchableOpacity
               style={[styles.hubCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
               onPress={() => router.push('/rk' as any)}
@@ -318,7 +318,7 @@ export default function DashboardScreen() {
               <View style={styles.hubTextCol}>
                 <RKWordmark size="sm" />
                 <Text style={[styles.hubDesc, { color: colors.textSecondary, marginTop: 2 }]} numberOfLines={1}>
-                  Upload bills · Rich Kids pay
+                  Upload bills · Random Kindness pays
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />

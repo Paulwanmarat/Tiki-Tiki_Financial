@@ -142,7 +142,7 @@ export default function MyRKRequestsScreen() {
               <Ionicons name="happy" size={48} color="#10B981" />
               <Text style={[styles.emptyTitle, { color: colors.text }]}>No Bill Requests Yet</Text>
               <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
-                If you have an upcoming educational expense or tuition invoice, upload it for Rich Kids to pay!
+                If you have an upcoming educational expense or tuition invoice, upload it for Random Kindness supporters to sponsor!
               </Text>
               <TouchableOpacity
                 style={[styles.actionBtn, { backgroundColor: '#10B981' }]}

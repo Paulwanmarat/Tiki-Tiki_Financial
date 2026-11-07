@@ -438,7 +438,7 @@ router.post('/:id/sponsor', optionalAuth, async (req: Request, res: Response) =>
         slip_url.trim(),
         slip_reference.trim(),
         transfer_time ? new Date(transfer_time) : new Date(),
-        userId ? null : (guest_name?.trim() || 'Rich Kid Supporter'),
+        userId ? null : (guest_name?.trim() || 'Random Kindness Supporter'),
         userId ? null : (guest_email?.trim() || null),
       ]
     );

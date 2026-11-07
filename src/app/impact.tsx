@@ -186,7 +186,7 @@ export default function ImpactTotalsScreen() {
                   </View>
                   <View style={[styles.heroSplitDivider, { backgroundColor: colors.border }]} />
                   <View style={styles.heroSplitItem}>
-                    <Text style={[styles.heroSplitLabel, { color: '#3B82F6' }]}>👦 RK Bills</Text>
+                    <Text style={[styles.heroSplitLabel, { color: '#3B82F6' }]}>👦 RK (Random Kindness)</Text>
                     <Text style={[styles.heroSplitValue, { color: '#3B82F6' }]}>
                       {THB(data.overall.totalVerifiedSponsorships)}
                     </Text>
@@ -294,11 +294,11 @@ export default function ImpactTotalsScreen() {
                 </View>
               )}
 
-              {/* ═══ RK (Rich Kid) SECTION ══════════════════════════════════════ */}
+              {/* ═══ RK (Random Kindness) SECTION ══════════════════════════════════════ */}
               <View style={styles.sectionHeader}>
                 <RKWordmark size="sm" />
                 <Text style={[styles.sectionTitleSecondary, { color: colors.textSecondary }]}>
-                  Rich Kid Bill Sponsorship
+                  Random Kindness Bill Sponsorship
                 </Text>
               </View>
 

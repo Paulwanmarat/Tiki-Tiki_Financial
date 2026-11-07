@@ -270,8 +270,8 @@ test('Currency & Formulas: Remaining needed and funding percentages calculate ac
   assert.equal(percentage, 38, 'Percentage must be 38%');
 });
 
-// ─── TEST 11: RK (Rich Kid) Feature & Bill Sponsorship Reference ────────────
-test('RK Feature: Student bill upload and Rich Kid sponsorship support RK- prefix', () => {
+// ─── TEST 11: RK (Random Kindness) Feature & Bill Sponsorship Reference ────────────
+test('RK Feature: Student bill upload and Random Kindness sponsorship support RK- prefix', () => {
   const req = {
     id: 'rk_bill_dorm_1',
     user_id: 'student_somchai',
@@ -282,20 +282,20 @@ test('RK Feature: Student bill upload and Rich Kid sponsorship support RK- prefi
   };
 
   const richKidPayRef = `RK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-  assert.match(richKidPayRef, /^RK-[A-Z0-9]{6}$/, 'Rich Kid payment reference must match RK-XXXXXX pattern');
+  assert.match(richKidPayRef, /^RK-[A-Z0-9]{6}$/, 'Random Kindness payment reference must match RK-XXXXXX pattern');
 
   const sponsorship = {
     id: 'spon_rk_1',
     request_id: req.id,
-    sponsor_id: null, // Can be guest or rich kid supporter
-    guest_name: 'Rich Kid Supporter',
+    sponsor_id: null, // Can be guest or Random Kindness supporter
+    guest_name: 'Random Kindness Supporter',
     amount: 1000,
     payment_reference: richKidPayRef,
     status: 'pending',
   };
 
   assert.equal(sponsorship.status, 'pending');
-  assert.equal(sponsorship.guest_name, 'Rich Kid Supporter');
+  assert.equal(sponsorship.guest_name, 'Random Kindness Supporter');
   assert.equal(req.amount_funded, 0, 'Initial funded amount must start at 0');
 });
 

@@ -154,9 +154,9 @@ export default function RKHomeScreen() {
       <View style={[styles.missionBanner, { backgroundColor: '#10B981' + '12', borderColor: '#10B981' + '30' }]}>
         <Ionicons name="shield-checkmark" size={20} color="#10B981" />
         <View style={{ flex: 1 }}>
-          <Text style={[styles.missionTitle, { color: colors.text }]}>RK · Rich Kid Bill Sponsorship</Text>
+          <Text style={[styles.missionTitle, { color: colors.text }]}>RK · Random Kindness Bill Sponsorship</Text>
           <Text style={[styles.missionDesc, { color: colors.textSecondary }]}>
-            Where students upload their bills and Rich Kids can pay them! Verified student bills sponsored directly via PromptPay QR. All requests are verified by administrators.
+            Where students upload their bills and Random Kindness pays them! Verified student bills sponsored directly via PromptPay QR. All requests are verified by administrators.
           </Text>
         </View>
       </View>
@@ -284,7 +284,7 @@ export default function RKHomeScreen() {
                         onPress={() => handleOpenSponsorModal(req)}
                       >
                         <Ionicons name="card" size={14} color="#FFF" />
-                        <Text style={styles.sponsorBtnText}>Pay Bill (Rich Kid)</Text>
+                        <Text style={styles.sponsorBtnText}>Pay Bill (Random Kindness)</Text>
                       </TouchableOpacity>
                     ) : (
                       <View style={styles.completedPill}>
@@ -323,7 +323,7 @@ export default function RKHomeScreen() {
                 <View style={styles.modalHeader}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Ionicons name="happy" size={22} color="#10B981" />
-                    <Text style={[styles.modalTitle, { color: colors.text }]}>Pay Student Bill · Rich Kid</Text>
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>Pay Student Bill · Random Kindness</Text>
                   </View>
                   <TouchableOpacity onPress={() => setActiveRequest(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <Ionicons name="close" size={22} color={colors.textSecondary} />

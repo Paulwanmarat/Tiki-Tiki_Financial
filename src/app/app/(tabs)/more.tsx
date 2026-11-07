@@ -77,8 +77,8 @@ export default function MoreScreen() {
     },
     {
       icon: 'happy',
-      title: 'RK (Rich Kid)',
-      description: 'Where students upload bills & Rich Kids can pay them',
+      title: 'RK (Random Kindness)',
+      description: 'Where students upload bills & Random Kindness pays them',
       route: '/rk',
       color: '#10B981',
       badge: 'BILLS & SPONSORS',
