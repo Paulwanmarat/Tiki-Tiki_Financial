@@ -31,7 +31,7 @@ const CATEGORIES: TrylandCategory[] = [
   'Essential student bills',
 ];
 
-export default function TrylandRequestScreen() {
+export default function RKRequestScreen() {
   const { colors, isDark } = useTheme();
   const { currency, convertToBase } = useCurrency();
   const router = useRouter();

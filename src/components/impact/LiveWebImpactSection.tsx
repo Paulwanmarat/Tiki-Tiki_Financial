@@ -3,8 +3,9 @@
  * Real-time database financial overview on the SPR Website.
  * Displays live figures in Thai Baht (฿) for:
  * 1. Overall SPR Impact
- * 2. 🌳RYLAND Student Bill Sponsorships
- * 3. SPR Donate Campaigns
+ * 2. 🌳 TRYLAND Tree Planting (Save The Planet)
+ * 3. 👦 RK (Rich Kid) Student Bill Sponsorships
+ * 4. ♥ SPR Donate Campaigns
  *
  * Strict Rule: Only verified payments count toward these totals!
  */

@@ -11,6 +11,8 @@ import {
   Alert,
   useWindowDimensions,
   Platform,
+  Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -146,14 +148,10 @@ export default function TrylandTreePlantingScreen() {
         </View>
 
         <View style={styles.topHeaderRight}>
-          <TouchableOpacity
-            style={[styles.rkShortcutBtn, { backgroundColor: '#10B98118', borderColor: '#10B981' }]}
-            onPress={() => router.push('/rk' as any)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="happy-outline" size={16} color="#10B981" />
-            <Text style={styles.rkShortcutText}>RK Bills</Text>
-          </TouchableOpacity>
+          <View style={[styles.ecoPill, { backgroundColor: '#05966918', borderColor: '#059669' }]}>
+            <Text style={{ fontSize: 13 }}>🌱</Text>
+            <Text style={[styles.ecoPillText, { color: '#059669' }]}>Save The Planet</Text>
+          </View>
         </View>
       </View>
 
@@ -274,122 +272,135 @@ export default function TrylandTreePlantingScreen() {
           </View>
         )}
 
-        {/* Cross Promotion: Rich Kid (RK) feature */}
-        <View style={[styles.crossCard, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-            <View style={[styles.crossIconBg, { backgroundColor: '#10B98118' }]}>
-              <Ionicons name="happy" size={24} color="#10B981" />
+        {/* Save The Planet Ecological Card */}
+        <View style={[styles.ecoCard, { backgroundColor: isDark ? '#064E3B20' : '#ECFDF5', borderColor: '#05966940' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+            <View style={[styles.ecoIconBg, { backgroundColor: '#05966920' }]}>
+              <Text style={{ fontSize: 24 }}>🌿</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.crossTitle, { color: colors.text }]}>RK (Rich Kid) Bill Sponsorship</Text>
-              <Text style={[styles.crossSub, { color: colors.textSecondary }]}>
-                Have student bills to sponsor or educational expenses to upload? Visit Rich Kid!
+              <Text style={[styles.ecoCardTitle, { color: colors.text }]}>Every Tree Makes a Difference</Text>
+              <Text style={[styles.ecoCardSub, { color: colors.textSecondary }]}>
+                A single mature native tree absorbs approximately 22 kg of CO₂ per year, filters urban heat, and provides lasting green shade for students.
               </Text>
             </View>
           </View>
-          <TouchableOpacity
-            style={[styles.crossBtn, { backgroundColor: '#10B981' }]}
-            onPress={() => router.push('/rk' as any)}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.crossBtnText}>Go to Rich Kid →</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
       {/* Step 1: Tree Quantity Selection Modal */}
-      {selectedInitiative && !showQR && (
+      <Modal
+        visible={!!selectedInitiative && !showQR}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedInitiative(null)}
+      >
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={styles.modalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={{ fontSize: 20 }}>🌳</Text>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Plant Trees · TRYLAND</Text>
-              </View>
-              <TouchableOpacity onPress={() => setSelectedInitiative(null)}>
-                <Ionicons name="close" size={22} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={[styles.modalSub, { color: colors.textSecondary }]}>
-              Sponsoring trees for <Text style={{ fontWeight: FontWeight.bold, color: colors.text }}>{selectedInitiative.title}</Text> at ฿{selectedInitiative.cost_per_tree} per tree.
-            </Text>
-
-            {/* Tree Tier Presets */}
-            <Text style={[styles.inputLabel, { color: colors.text }]}>Select How Many Trees to Plant</Text>
-            <View style={styles.tierGrid}>
-              {TREE_TIERS.map((t) => {
-                const isSelected = treeCount === t.trees;
-                return (
-                  <TouchableOpacity
-                    key={t.trees}
-                    style={[
-                      styles.tierCard,
-                      {
-                        backgroundColor: isSelected ? '#05966914' : colors.surfaceHighlight,
-                        borderColor: isSelected ? '#059669' : colors.border,
-                      },
-                    ]}
-                    onPress={() => handleSelectTier(t)}
-                  >
-                    <Text style={[styles.tierLabel, { color: isSelected ? '#059669' : colors.text }]}>{t.label}</Text>
-                    <Text style={[styles.tierPrice, { color: '#059669' }]}>฿{t.trees * selectedInitiative.cost_per_tree}</Text>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.keyboardWrap}
+          >
+            <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.modalScrollContent}
+                keyboardShouldPersistTaps="handled"
+              >
+                <View style={styles.modalHeader}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ fontSize: 20 }}>🌳</Text>
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>Plant Trees · TRYLAND</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setSelectedInitiative(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="close" size={22} color={colors.textSecondary} />
                   </TouchableOpacity>
-                );
-              })}
-            </View>
+                </View>
 
-            {/* Total Amount Input */}
-            <View style={styles.amountWrap}>
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Total Contribution (฿ THB)</Text>
-              <View style={[styles.amountInputRow, { borderColor: colors.border, backgroundColor: colors.background }]}>
-                <Text style={[styles.currPrefix, { color: '#059669' }]}>฿</Text>
-                <TextInput
-                  value={customAmount}
-                  onChangeText={(val) => {
-                    setCustomAmount(val);
-                    const n = parseFloat(val);
-                    if (!isNaN(n) && selectedInitiative.cost_per_tree > 0) {
-                      setTreeCount(Math.max(1, Math.round(n / selectedInitiative.cost_per_tree)));
-                    }
-                  }}
-                  keyboardType="numeric"
-                  style={[styles.amountInput, { color: colors.text }]}
-                />
-              </View>
-            </View>
+                {selectedInitiative && (
+                  <>
+                    <Text style={[styles.modalSub, { color: colors.textSecondary }]}>
+                      Sponsoring trees for <Text style={{ fontWeight: FontWeight.bold, color: colors.text }}>{selectedInitiative.title}</Text> at ฿{selectedInitiative.cost_per_tree} per tree.
+                    </Text>
 
-            {/* Message / Dedication */}
-            <View style={styles.amountWrap}>
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Tree Dedication / Note (Optional)</Text>
-              <TextInput
-                value={donorMessage}
-                onChangeText={setDonorMessage}
-                placeholder="e.g. In honor of Class 2026 green campus drive"
-                placeholderTextColor={colors.textTertiary}
-                style={[styles.noteInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
-              />
-            </View>
+                    {/* Tree Tier Presets */}
+                    <Text style={[styles.inputLabel, { color: colors.text }]}>Select How Many Trees to Plant</Text>
+                    <View style={styles.tierGrid}>
+                      {TREE_TIERS.map((t) => {
+                        const isSelected = treeCount === t.trees;
+                        return (
+                          <TouchableOpacity
+                            key={t.trees}
+                            style={[
+                              styles.tierCard,
+                              {
+                                backgroundColor: isSelected ? '#05966914' : colors.surfaceHighlight,
+                                borderColor: isSelected ? '#059669' : colors.border,
+                              },
+                            ]}
+                            onPress={() => handleSelectTier(t)}
+                          >
+                            <Text style={[styles.tierLabel, { color: isSelected ? '#059669' : colors.text }]}>{t.label}</Text>
+                            <Text style={[styles.tierPrice, { color: '#059669' }]}>฿{t.trees * selectedInitiative.cost_per_tree}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
 
-            {/* Modal Actions */}
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalCancelBtn, { borderColor: colors.border }]}
-                onPress={() => setSelectedInitiative(null)}
-              >
-                <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalSubmitBtn, { backgroundColor: '#059669' }]}
-                onPress={handleProceedToQR}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.modalSubmitText}>Proceed to QR (฿{customAmount}) →</Text>
-              </TouchableOpacity>
+                    {/* Total Amount Input */}
+                    <View style={styles.amountWrap}>
+                      <Text style={[styles.inputLabel, { color: colors.text }]}>Total Contribution (฿ THB)</Text>
+                      <View style={[styles.amountInputRow, { borderColor: colors.border, backgroundColor: colors.background }]}>
+                        <Text style={[styles.currPrefix, { color: '#059669' }]}>฿</Text>
+                        <TextInput
+                          value={customAmount}
+                          onChangeText={(val) => {
+                            setCustomAmount(val);
+                            const n = parseFloat(val);
+                            if (!isNaN(n) && selectedInitiative.cost_per_tree > 0) {
+                              setTreeCount(Math.max(1, Math.round(n / selectedInitiative.cost_per_tree)));
+                            }
+                          }}
+                          keyboardType="numeric"
+                          style={[styles.amountInput, { color: colors.text }]}
+                        />
+                      </View>
+                    </View>
+
+                    {/* Message / Dedication */}
+                    <View style={styles.amountWrap}>
+                      <Text style={[styles.inputLabel, { color: colors.text }]}>Tree Dedication / Note (Optional)</Text>
+                      <TextInput
+                        value={donorMessage}
+                        onChangeText={setDonorMessage}
+                        placeholder="e.g. In honor of Class 2026 green campus drive"
+                        placeholderTextColor={colors.textTertiary}
+                        style={[styles.noteInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                      />
+                    </View>
+
+                    {/* Modal Actions */}
+                    <View style={styles.modalActions}>
+                      <TouchableOpacity
+                        style={[styles.modalCancelBtn, { borderColor: colors.border }]}
+                        onPress={() => setSelectedInitiative(null)}
+                      >
+                        <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.modalSubmitBtn, { backgroundColor: '#059669' }]}
+                        onPress={handleProceedToQR}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={styles.modalSubmitText}>Proceed to QR (฿{customAmount}) →</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+              </ScrollView>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </View>
-      )}
+      </Modal>
 
       {/* Step 2: PromptPay QR Modal with Slip Auto-OCR */}
       {selectedInitiative && (
@@ -436,19 +447,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  rkShortcutBtn: {
+  ecoPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
   },
-  rkShortcutText: {
+  ecoPillText: {
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
-    color: '#10B981',
   },
   scrollContent: {
     padding: Spacing.lg,
@@ -643,61 +653,55 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
   },
-  crossCard: {
+  ecoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     padding: Spacing.md,
     marginTop: Spacing.lg,
     gap: 12,
   },
-  crossIconBg: {
+  ecoIconBg: {
     width: 44,
     height: 44,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  crossTitle: {
+  ecoCardTitle: {
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
   },
-  crossSub: {
+  ecoCardSub: {
     fontSize: FontSize.xs,
-    lineHeight: 16,
+    lineHeight: 18,
     marginTop: 2,
   },
-  crossBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.md,
-  },
-  crossBtnText: {
-    color: '#FFF',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-  },
   modalBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.lg,
+    padding: Spacing.md,
+  },
+  keyboardWrap: {
+    width: '100%',
+    maxWidth: 440,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalCard: {
     width: '100%',
-    maxWidth: 440,
+    maxHeight: '90%',
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
+    overflow: 'hidden',
+    ...Shadow.lg,
+  },
+  modalScrollContent: {
     padding: Spacing.lg,
     gap: 12,
-    ...Shadow.lg,
   },
   modalHeader: {
     flexDirection: 'row',

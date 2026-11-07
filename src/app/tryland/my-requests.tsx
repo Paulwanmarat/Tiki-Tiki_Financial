@@ -1,1 +1,6 @@
-export { default } from '../rk/my-requests';
+import { Redirect } from 'expo-router';
+
+export default function TrylandMyRequestsRedirect() {
+  return <Redirect href="/tryland" />;
+}
+

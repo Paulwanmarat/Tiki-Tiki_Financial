@@ -563,7 +563,7 @@ export default function AdminPaymentsScreen() {
                   onPress={() => setTypeFilter(t)}
                 >
                   <Text style={[styles.chipText, { color: typeFilter === t ? colors.primary : colors.textSecondary }]}>
-                    {t === 'all' ? 'All Types' : t === 'tryland' ? 'RK (Rich Kid)' : t === 'tree' ? '🌳 Plant Trees' : 'Donate'}
+                    {t === 'all' ? 'All Types' : t === 'tryland' ? 'RK Bills' : t === 'tree' ? '🌳 TRYLAND Trees' : 'Donate'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -608,7 +608,7 @@ export default function AdminPaymentsScreen() {
                 <Text style={[styles.typeBadgeText, { 
                   color: payment.type === 'tree' ? '#10B981' : payment.type === 'tryland' ? '#2563EB' : '#F59E0B' 
                 }]}>
-                  {payment.type === 'tree' ? '🌳 Plant Trees' : payment.type === 'tryland' ? 'RK (Rich Kid)' : '♥ Donate'}
+                  {payment.type === 'tree' ? '🌳 TRYLAND Trees' : payment.type === 'tryland' ? 'RK Bill' : '♥ Donate'}
                 </Text>
               </View>
               <View style={[styles.statusPill, { backgroundColor: statusColor(payment.status) + '20' }]}>
@@ -790,7 +790,7 @@ export default function AdminPaymentsScreen() {
               <View style={{ alignItems: 'flex-end' }}>
                 <Text style={[styles.cardAmountLabel, { color: colors.textTertiary }]}>Category</Text>
                 <Text style={[styles.refMono, { color: colors.text }]}>
-                  {approveTarget?.type === 'tree' ? '🌳 Tree Planting' : approveTarget?.type === 'tryland' ? 'RK Bill' : '♥ Donate'}
+                  {approveTarget?.type === 'tree' ? '🌳 TRYLAND Tree Planting' : approveTarget?.type === 'tryland' ? 'RK Bill' : '♥ Donate'}
                 </Text>
               </View>
             </View>

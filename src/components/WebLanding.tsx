@@ -1848,7 +1848,7 @@ function StudioEcosystemSection({
       eyebrow: 'SAVE THE PLANET INITIATIVE',
       badge: 'Plant Trees',
       badgeColor: '#059669',
-      title: '🌳RYLAND',
+      title: '🌳 TRYLAND',
       desc: 'Save the Planet initiative — donate to plant trees! Turn spare student allowances into living trees on campus and coastal mangrove belts with verified student stewardship.',
       features: ['฿50 plants 1 native tree', 'Live verified tree counter', 'Campus green canopy & mangroves'],
       icon: 'leaf-outline',

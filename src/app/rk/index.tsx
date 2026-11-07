@@ -11,6 +11,8 @@ import {
   Alert,
   useWindowDimensions,
   Platform,
+  Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,7 +23,7 @@ import { RKWordmark } from '@/components/ui/RKWordmark';
 import { QRPaymentModal } from '@/components/ui/QRPaymentModal';
 import { getTrylandRequests, sponsorTrylandBill } from '@/services/database/tryland';
 import { TrylandRequest, TrylandCategory } from '@/types/tryland';
-import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
+import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
 import { formatDate } from '@/utils/formatters';
 
 const CATEGORIES: ('All' | TrylandCategory)[] = [
@@ -33,7 +35,7 @@ const CATEGORIES: ('All' | TrylandCategory)[] = [
   'Essential student bills',
 ];
 
-export default function TrylandHomeScreen() {
+export default function RKHomeScreen() {
   const { colors, isDark } = useTheme();
   const { formatCurrency, currency, convertToBase } = useCurrency();
   const router = useRouter();
@@ -301,82 +303,100 @@ export default function TrylandHomeScreen() {
       {/* ───────────────────────────────────────────────────────────── */}
       {/* STEP 1: Amount selection modal                                */}
       {/* ───────────────────────────────────────────────────────────── */}
-      {activeRequest && !showQR && (
+      <Modal
+        visible={!!activeRequest && !showQR}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActiveRequest(null)}
+      >
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={styles.modalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="happy" size={22} color="#10B981" />
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Pay Student Bill · Rich Kid</Text>
-              </View>
-              <TouchableOpacity onPress={() => setActiveRequest(null)}>
-                <Ionicons name="close" size={22} color={colors.textSecondary} />
-              </TouchableOpacity>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.keyboardWrap}
+          >
+            <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.modalScrollContent}
+                keyboardShouldPersistTaps="handled"
+              >
+                <View style={styles.modalHeader}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="happy" size={22} color="#10B981" />
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>Pay Student Bill · Rich Kid</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setActiveRequest(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="close" size={22} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+
+                {activeRequest && (
+                  <>
+                    <Text style={[styles.modalDesc, { color: colors.textSecondary }]}>
+                      Sponsoring bill for <Text style={{ fontWeight: FontWeight.bold, color: colors.text }}>{activeRequest.student_alias}</Text> ({activeRequest.bill_category}).
+                      Remaining needed: {formatCurrency(activeRequest.amount_requested - activeRequest.amount_funded)}.
+                    </Text>
+
+                    <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                      Pledge Amount ({currency.symbol})
+                    </Text>
+                    <View style={[styles.amountInputWrap, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}>
+                      <Text style={[styles.currPrefix, { color: colors.textTertiary }]}>{currency.symbol}</Text>
+                      <TextInput
+                        style={[styles.amountInput, { color: colors.text }]}
+                        value={sponsorAmount}
+                        onChangeText={setSponsorAmount}
+                        keyboardType="numeric"
+                      />
+                    </View>
+
+                    {/* Quick Presets */}
+                    <View style={styles.presetsRow}>
+                      {[100, 250, 500, 1000].map((amt) => (
+                        <TouchableOpacity
+                          key={amt}
+                          style={[styles.presetBtn, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}
+                          onPress={() => setSponsorAmount(amt.toString())}
+                        >
+                          <Text style={[styles.presetText, { color: colors.text }]}>+{currency.symbol}{amt}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    <Text style={[styles.inputLabel, { color: colors.textSecondary, marginTop: 8 }]}>
+                      Encouragement Message for Student (Optional)
+                    </Text>
+                    <TextInput
+                      style={[styles.modalInput, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border, color: colors.text }]}
+                      value={sponsorNote}
+                      onChangeText={setSponsorNote}
+                      placeholder="e.g. Keep up the good work!"
+                      placeholderTextColor={colors.textTertiary}
+                    />
+
+                    <View style={styles.modalActions}>
+                      <TouchableOpacity
+                        style={[styles.modalCancelBtn, { borderColor: colors.border }]}
+                        onPress={() => setActiveRequest(null)}
+                      >
+                        <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.modalSubmitBtn, { backgroundColor: '#10B981' }]}
+                        onPress={handleProceedToQR}
+                      >
+                        <Ionicons name="qr-code-outline" size={16} color="#fff" />
+                        <Text style={styles.modalSubmitText}>Scan to Pay →</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+              </ScrollView>
             </View>
-
-            {activeRequest && (
-              <>
-                <Text style={[styles.modalDesc, { color: colors.textSecondary }]}>
-                  Sponsoring bill for <Text style={{ fontWeight: FontWeight.bold, color: colors.text }}>{activeRequest.student_alias}</Text> ({activeRequest.bill_category}).
-                  Remaining needed: {formatCurrency(activeRequest.amount_requested - activeRequest.amount_funded)}.
-                </Text>
-
-                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                  Pledge Amount ({currency.symbol})
-                </Text>
-                <View style={[styles.amountInputWrap, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}>
-                  <Text style={[styles.currPrefix, { color: colors.textTertiary }]}>{currency.symbol}</Text>
-                  <TextInput
-                    style={[styles.amountInput, { color: colors.text }]}
-                    value={sponsorAmount}
-                    onChangeText={setSponsorAmount}
-                    keyboardType="numeric"
-                  />
-                </View>
-
-                {/* Quick Presets */}
-                <View style={styles.presetsRow}>
-                  {[100, 250, 500, 1000].map((amt) => (
-                    <TouchableOpacity
-                      key={amt}
-                      style={[styles.presetBtn, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}
-                      onPress={() => setSponsorAmount(amt.toString())}
-                    >
-                      <Text style={[styles.presetText, { color: colors.text }]}>+{currency.symbol}{amt}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <Text style={[styles.inputLabel, { color: colors.textSecondary, marginTop: 8 }]}>
-                  Encouragement Message for Student (Optional)
-                </Text>
-                <TextInput
-                  style={[styles.modalInput, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border, color: colors.text }]}
-                  value={sponsorNote}
-                  onChangeText={setSponsorNote}
-                />
-
-                <View style={styles.modalActions}>
-                  <TouchableOpacity
-                    style={[styles.modalCancelBtn, { borderColor: colors.border }]}
-                    onPress={() => setActiveRequest(null)}
-                  >
-                    <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.modalSubmitBtn, { backgroundColor: '#10B981' }]}
-                    onPress={handleProceedToQR}
-                  >
-                    <Ionicons name="qr-code-outline" size={16} color="#fff" />
-                    <Text style={styles.modalSubmitText}>Scan to Pay →</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
+          </KeyboardAvoidingView>
         </View>
-      )}
+      </Modal>
 
       {/* STEP 2: QR Payment Modal */}
       {activeRequest && (
@@ -643,13 +663,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.65)',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.lg,
+    padding: Spacing.md,
+  },
+  keyboardWrap: {
+    width: '100%',
+    maxWidth: 460,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalCard: {
     width: '100%',
-    maxWidth: 460,
+    maxHeight: '90%',
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
+    overflow: 'hidden',
+    ...Shadow.lg,
+  },
+  modalScrollContent: {
     padding: Spacing.lg,
     gap: 12,
   },

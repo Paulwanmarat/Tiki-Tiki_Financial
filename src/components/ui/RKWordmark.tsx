@@ -48,8 +48,6 @@ export function RKWordmark({ size = 'md', showSubtitle = false }: RKWordmarkProp
   );
 }
 
-// Backwards compatibility alias
-export const TrylandWordmark = RKWordmark;
 export default RKWordmark;
 
 const styles = StyleSheet.create({

@@ -1,6 +1,6 @@
 /**
  * SPR Impact — Live Money Totals
- * Displays real, database-backed funding totals for TRYLAND and SPR Donate.
+ * Displays real, database-backed funding totals for 🌳 TRYLAND Trees, 👦 RK Bills, and ♥ SPR Donate.
  * Only verified payments count toward any total.
  * Data is fetched fresh every time this screen mounts.
  */

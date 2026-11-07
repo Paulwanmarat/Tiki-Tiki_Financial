@@ -250,7 +250,7 @@ router.post('/:type/:id/verify', requireAuth, requireAdmin, async (req: Request,
 
         return res.json({
           success: true,
-          message: '🌳RYLAND sponsorship verified successfully. Student bill funding progress updated.',
+          message: 'RK student bill sponsorship verified successfully. Funding progress updated.',
           status: 'verified',
         });
       } else {

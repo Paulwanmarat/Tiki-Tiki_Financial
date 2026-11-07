@@ -24,7 +24,7 @@ import { TrylandRequest, TrylandSponsorship } from '@/types/tryland';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { formatDate } from '@/utils/formatters';
 
-export default function MyTrylandRequestsScreen() {
+export default function MyRKRequestsScreen() {
   const { colors, isDark } = useTheme();
   const { formatCurrency } = useCurrency();
   const router = useRouter();
