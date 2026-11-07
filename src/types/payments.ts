@@ -1,6 +1,6 @@
 export interface PaymentSubmission {
   id: string;
-  type: 'tryland' | 'donate';
+  type: 'tryland' | 'donate' | 'tree';
   payment_reference: string;
   payment_method: string;
   amount: number;
@@ -61,6 +61,10 @@ export interface LiveImpactTotals {
     combinedSuccessfulTransactions: number;
     successfullyFundedRequestsCount: number;
     completedCampaignsCount: number;
+    totalTreesPlanted?: number;
+    totalTreeFunding?: number;
+    totalVerifiedTreeDonations?: number;
+    successfulTreeDonationsCount?: number;
   };
   tryland: {
     totalFundingReceived: number;
@@ -77,6 +81,21 @@ export interface LiveImpactTotals {
     activeCampaignsCount: number;
     completedCampaignsCount: number;
     campaignsProgress: CampaignProgress[];
+  };
+  trees?: {
+    totalTreesPlanted: number;
+    totalFundingReceived: number;
+    totalTargetTrees: number;
+    activeInitiativesCount: number;
+    initiativesProgress: {
+      id: string;
+      title: string;
+      treesPlanted: number;
+      targetTrees: number;
+      amountRaised: number;
+      costPerTree: number;
+      percentage: number;
+    }[];
   };
 }
 

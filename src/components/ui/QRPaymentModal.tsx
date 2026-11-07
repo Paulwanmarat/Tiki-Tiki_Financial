@@ -37,10 +37,11 @@ interface QRPaymentModalProps {
   onClose: () => void;
   /**
    * What flow is this for?
-   * tryland: RK (Rich Kid) student bill sponsorship
-   * donate: Donation campaign
+   * tryland: 🌳 TRYLAND Save the planet initiative (Plant Trees)
+   * rk: RK (Rich Kid) student bill sponsorship
+   * donate: SPR Donate campaign
    */
-  mode: 'tryland' | 'donate';
+  mode: 'tryland' | 'rk' | 'donate';
   targetTitle: string;
   amountTHB: number;
   paymentReference: string;
@@ -193,8 +194,13 @@ export function QRPaymentModal({
   const isQR = PAYMENT_QR;
   const qrSize = Math.min(SCREEN_W - 96, 280);
 
-  const badgeColor = mode === 'tryland' ? '#10B981' : '#F59E0B';
-  const badgeLabel = mode === 'tryland' ? 'RK (Rich Kid) Sponsorship' : '♥ SPR Donate';
+  const badgeColor = mode === 'tryland' ? '#059669' : mode === 'rk' ? '#10B981' : '#F59E0B';
+  const badgeLabel =
+    mode === 'tryland'
+      ? '🌳 TRYLAND · Plant Trees'
+      : mode === 'rk'
+      ? 'RK (Rich Kid) Sponsorship'
+      : '♥ SPR Donate';
 
   return (
     <Modal
@@ -211,6 +217,9 @@ export function QRPaymentModal({
             <View style={styles.headerLeft}>
               <View style={[styles.badge, { backgroundColor: badgeColor + '18', flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
                 {mode === 'tryland' && (
+                  <Text style={{ fontSize: 13, lineHeight: 16 }}>🌳</Text>
+                )}
+                {mode === 'rk' && (
                   <Ionicons name="happy" size={13} color={badgeColor} />
                 )}
                 <Text style={[styles.badgeText, { color: badgeColor }]}>{badgeLabel}</Text>

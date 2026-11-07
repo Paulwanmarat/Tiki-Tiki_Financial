@@ -19,7 +19,7 @@ export async function getAdminPayments(params?: {
 }
 
 export async function verifyAdminPayment(
-  type: 'tryland' | 'donate',
+  type: 'tryland' | 'donate' | 'tree',
   id: string,
   action: 'approve' | 'reject',
   rejection_reason?: string

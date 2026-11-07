@@ -140,9 +140,53 @@ router.get('/live-totals', optionalAuth, async (req: Request, res: Response) => 
 
     const totalDonateRemainingNeeded = Math.max(0, totalDonateTargets - totalDonateRaised);
 
+    // 5. TRYLAND Tree Planting Verified Totals
+    let verifiedTreeAmount = 0;
+    let verifiedTreeCount = 0;
+    let verifiedTreesPlanted = 0;
+    let treeInitiativesProgress: any[] = [];
+    let totalTargetTrees = 0;
+
+    try {
+      const treeDonResult = await db.query(`
+        SELECT 
+          COALESCE(SUM(amount), 0) as verified_amount,
+          COALESCE(SUM(tree_count), 0) as verified_trees,
+          COUNT(*) as verified_count
+        FROM tryland_tree_donations
+        WHERE status = 'verified'
+      `);
+      verifiedTreeAmount = Number(treeDonResult.rows[0]?.verified_amount || 0);
+      verifiedTreeCount = parseInt(treeDonResult.rows[0]?.verified_count || '0', 10);
+      verifiedTreesPlanted = parseInt(treeDonResult.rows[0]?.verified_trees || '0', 10);
+
+      const treeInitsResult = await db.query(`
+        SELECT id, title, target_trees, trees_planted, amount_raised, cost_per_tree
+        FROM tryland_trees
+        ORDER BY created_at ASC
+      `);
+      treeInitiativesProgress = treeInitsResult.rows.map((row: any) => {
+        const target = Number(row.target_trees);
+        const planted = Number(row.trees_planted);
+        totalTargetTrees += target;
+        const percentage = target > 0 ? Math.min(100, Math.round((planted / target) * 100)) : 0;
+        return {
+          id: row.id,
+          title: row.title,
+          treesPlanted: planted,
+          targetTrees: target,
+          amountRaised: Number(row.amount_raised),
+          costPerTree: Number(row.cost_per_tree),
+          percentage,
+        };
+      });
+    } catch {
+      // safe fallback if tables not yet queried
+    }
+
     // Combined Overall Totals
-    const combinedTotalRaised = verifiedTrylandAmount + verifiedDonateAmount;
-    const combinedSuccessfulTransactions = verifiedTrylandCount + verifiedDonateCount;
+    const combinedTotalRaised = verifiedTrylandAmount + verifiedDonateAmount + verifiedTreeAmount;
+    const combinedSuccessfulTransactions = verifiedTrylandCount + verifiedDonateCount + verifiedTreeCount;
 
     res.json({
       currency: 'THB',
@@ -152,8 +196,11 @@ router.get('/live-totals', optionalAuth, async (req: Request, res: Response) => 
         totalMoneyRaised: combinedTotalRaised,
         totalVerifiedDonations: verifiedDonateAmount,
         totalVerifiedSponsorships: verifiedTrylandAmount,
+        totalVerifiedTreeDonations: verifiedTreeAmount,
+        totalTreesPlanted: verifiedTreesPlanted,
         successfulDonationsCount: verifiedDonateCount,
         successfulSponsorshipsCount: verifiedTrylandCount,
+        successfulTreeDonationsCount: verifiedTreeCount,
         combinedSuccessfulTransactions,
         successfullyFundedRequestsCount,
         completedCampaignsCount,
@@ -173,6 +220,13 @@ router.get('/live-totals', optionalAuth, async (req: Request, res: Response) => 
         activeCampaignsCount: donateCampaignsProgress.length,
         completedCampaignsCount,
         campaignsProgress: donateCampaignsProgress,
+      },
+      trees: {
+        totalTreesPlanted: verifiedTreesPlanted,
+        totalFundingReceived: verifiedTreeAmount,
+        totalTargetTrees,
+        activeInitiativesCount: treeInitiativesProgress.length,
+        initiativesProgress: treeInitiativesProgress,
       },
     });
   } catch (error) {

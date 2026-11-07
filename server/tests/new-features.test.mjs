@@ -378,3 +378,72 @@ test('Donate: Completed or cancelled campaigns reject further donations (400)', 
   assert.equal(errorMsg, 'Campaign is already completed');
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FEATURE 5: 🌳 TRYLAND SAVE THE PLANET (TREE PLANTING) TESTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('🌳 TRYLAND Tree Planting: Donation records tree count, amount, and pending status with TREE- prefix', () => {
+  const treeInitiative = {
+    id: 'tree_canopy_1',
+    title: 'Saipanyarangsit Campus Canopy Expansion',
+    target_trees: 500,
+    trees_planted: 120,
+    cost_per_tree: 100,
+    amount_raised: 12000,
+  };
+
+  const treeCount = 5;
+  const donationAmount = treeCount * treeInitiative.cost_per_tree;
+  const payRef = `TREE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+  const treeDonation = {
+    id: 'tree_don_1',
+    initiative_id: treeInitiative.id,
+    tree_count: treeCount,
+    amount: donationAmount,
+    payment_reference: payRef,
+    status: 'pending',
+    created_at: new Date().toISOString(),
+  };
+
+  assert.equal(treeDonation.status, 'pending');
+  assert.equal(treeDonation.amount, 500);
+  assert.equal(treeDonation.tree_count, 5);
+  assert.match(treeDonation.payment_reference, /^TREE-[A-Z0-9]{6}$/);
+  // Initiative must NOT increment while pending
+  assert.equal(treeInitiative.trees_planted, 120);
+});
+
+test('🌳 TRYLAND Tree Planting: Admin verification increments trees_planted, amount_raised and updates live CO2 offset', () => {
+  const treeInitiative = {
+    id: 'tree_canopy_1',
+    title: 'Saipanyarangsit Campus Canopy Expansion',
+    target_trees: 500,
+    trees_planted: 120,
+    cost_per_tree: 100,
+    amount_raised: 12000,
+  };
+
+  const treeDonation = {
+    id: 'tree_don_1',
+    initiative_id: treeInitiative.id,
+    tree_count: 10,
+    amount: 1000,
+    status: 'pending',
+  };
+
+  // Admin approves payment
+  treeDonation.status = 'verified';
+  treeDonation.verified_at = new Date().toISOString();
+  treeInitiative.trees_planted += treeDonation.tree_count;
+  treeInitiative.amount_raised += treeDonation.amount;
+
+  const co2OffsetKgPerYear = treeInitiative.trees_planted * 22;
+
+  assert.equal(treeDonation.status, 'verified');
+  assert.equal(treeInitiative.trees_planted, 130);
+  assert.equal(treeInitiative.amount_raised, 13000);
+  assert.equal(co2OffsetKgPerYear, 130 * 22); // 2860 kg
+});
+
+

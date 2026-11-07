@@ -23,6 +23,7 @@ import { getLiveImpactTotals } from '@/services/database/payments';
 import { LiveImpactTotals, RequestProgress, CampaignProgress } from '@/types/payments';
 import { Card } from '@/components/ui/Card';
 import { RKWordmark } from '@/components/ui/RKWordmark';
+import { TrylandWordmark } from '@/components/ui/TrylandWordmark';
 import { PIGGY_LOGO, SCHOOL_LOGO } from '@/constants/assets';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
 
@@ -178,14 +179,21 @@ export default function ImpactTotalsScreen() {
                 </Text>
                 <View style={[styles.heroSplit, { borderTopColor: colors.border }]}>
                   <View style={styles.heroSplitItem}>
-                    <Text style={[styles.heroSplitLabel, { color: '#10B981' }]}>RK (Rich Kid)</Text>
+                    <Text style={[styles.heroSplitLabel, { color: '#10B981' }]}>🌳 TRYLAND Trees</Text>
                     <Text style={[styles.heroSplitValue, { color: '#10B981' }]}>
+                      {THB(data.overall.totalVerifiedTreeDonations || 0)}
+                    </Text>
+                  </View>
+                  <View style={[styles.heroSplitDivider, { backgroundColor: colors.border }]} />
+                  <View style={styles.heroSplitItem}>
+                    <Text style={[styles.heroSplitLabel, { color: '#3B82F6' }]}>👦 RK Bills</Text>
+                    <Text style={[styles.heroSplitValue, { color: '#3B82F6' }]}>
                       {THB(data.overall.totalVerifiedSponsorships)}
                     </Text>
                   </View>
                   <View style={[styles.heroSplitDivider, { backgroundColor: colors.border }]} />
                   <View style={styles.heroSplitItem}>
-                    <Text style={[styles.heroSplitLabel, { color: '#F59E0B' }]}>SPR Donate</Text>
+                    <Text style={[styles.heroSplitLabel, { color: '#F59E0B' }]}>♥ SPR Donate</Text>
                     <Text style={[styles.heroSplitValue, { color: '#F59E0B' }]}>
                       {THB(data.overall.totalVerifiedDonations)}
                     </Text>
@@ -214,6 +222,77 @@ export default function ImpactTotalsScreen() {
                   color="#F59E0B"
                 />
               </View>
+
+              {/* ═══ 🌳 TRYLAND (Save The Planet) SECTION ══════════════════ */}
+              <View style={styles.sectionHeader}>
+                <TrylandWordmark size="sm" />
+                <Text style={[styles.sectionTitleSecondary, { color: colors.textSecondary }]}>
+                  Save The Planet · Tree Planting
+                </Text>
+              </View>
+
+              <Card style={{ marginBottom: Spacing.md }}>
+                <View style={styles.biRow}>
+                  <View style={styles.biItem}>
+                    <Text style={[styles.biLabel, { color: colors.textTertiary }]}>Trees Planted</Text>
+                    <Text style={[styles.biValue, { color: '#10B981' }]}>
+                      {data.trees?.totalTreesPlanted || 0}
+                    </Text>
+                  </View>
+                  <View style={[styles.biDivider, { backgroundColor: colors.border }]} />
+                  <View style={styles.biItem}>
+                    <Text style={[styles.biLabel, { color: colors.textTertiary }]}>Green Funding</Text>
+                    <Text style={[styles.biValue, { color: colors.text }]}>
+                      {THB(data.trees?.totalFundingReceived || 0)}
+                    </Text>
+                  </View>
+                  <View style={[styles.biDivider, { backgroundColor: colors.border }]} />
+                  <View style={styles.biItem}>
+                    <Text style={[styles.biLabel, { color: colors.textTertiary }]}>CO₂ Offset</Text>
+                    <Text style={[styles.biValue, { color: '#34D399' }]}>
+                      {((data.trees?.totalTreesPlanted || 0) * 22).toLocaleString('th-TH')} kg
+                    </Text>
+                  </View>
+                </View>
+              </Card>
+
+              {data.trees?.initiativesProgress && data.trees.initiativesProgress.length > 0 && (
+                <View style={{ marginBottom: Spacing.lg }}>
+                  <Text style={[styles.subSectionLabel, { color: colors.textSecondary }]}>
+                    Active Tree Planting Initiatives ({data.trees.activeInitiativesCount} initiatives)
+                  </Text>
+                  {data.trees.initiativesProgress.map(init => (
+                    <Card key={init.id} style={styles.progressCard}>
+                      <View style={styles.progressCardRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.progressCardTitle, { color: colors.text }]}>
+                            🌳 {init.title}
+                          </Text>
+                          <Text style={[styles.progressCardSub, { color: colors.textTertiary }]}>
+                            {init.treesPlanted} / {init.targetTrees} trees planted · {THB(init.costPerTree)} / tree
+                          </Text>
+                        </View>
+                        <Text style={[styles.progressPctBadge, {
+                          color: init.percentage >= 100 ? '#10B981' : colors.textSecondary,
+                          backgroundColor: init.percentage >= 100 ? '#10B98118' : colors.surfaceHighlight,
+                        }]}>
+                          {init.percentage}%
+                        </Text>
+                      </View>
+                      <ProgressBar
+                        percentage={init.percentage}
+                        color="#10B981"
+                      />
+                      <View style={styles.progressAmounts}>
+                        <Text style={[styles.progressFunded, { color: '#10B981' }]}>{THB(init.amountRaised)} raised</Text>
+                        <Text style={[styles.progressRemaining, { color: colors.textTertiary }]}>
+                          Goal: {init.targetTrees} trees ({THB(init.targetTrees * init.costPerTree)})
+                        </Text>
+                      </View>
+                    </Card>
+                  ))}
+                </View>
+              )}
 
               {/* ═══ RK (Rich Kid) SECTION ══════════════════════════════════════ */}
               <View style={styles.sectionHeader}>

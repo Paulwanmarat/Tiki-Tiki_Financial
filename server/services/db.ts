@@ -215,6 +215,42 @@ export async function initDb(): Promise<Pool> {
       CREATE INDEX IF NOT EXISTS idx_tryland_sponsorships_req ON tryland_sponsorships(request_id);
       CREATE INDEX IF NOT EXISTS idx_tryland_sponsorships_sponsor ON tryland_sponsorships(sponsor_id);
 
+      -- ─── Feature 3B: 🌳 TRYLAND (Save the Planet - Plant More Trees) ─────
+      CREATE TABLE IF NOT EXISTS tryland_trees (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        location TEXT NOT NULL DEFAULT 'Saipanyarangsit Campus',
+        description TEXT NOT NULL DEFAULT '',
+        cost_per_tree REAL NOT NULL DEFAULT 50,
+        target_trees INTEGER NOT NULL DEFAULT 500,
+        trees_planted INTEGER NOT NULL DEFAULT 0,
+        amount_raised REAL NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'completed')),
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS tryland_tree_donations (
+        id TEXT PRIMARY KEY,
+        initiative_id TEXT NOT NULL REFERENCES tryland_trees(id) ON DELETE CASCADE,
+        donor_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+        donor_name TEXT,
+        donor_email TEXT,
+        tree_count INTEGER NOT NULL CHECK(tree_count > 0),
+        amount REAL NOT NULL CHECK(amount > 0),
+        message TEXT NOT NULL DEFAULT '',
+        payment_reference TEXT UNIQUE,
+        slip_reference TEXT,
+        slip_url TEXT,
+        transfer_time TIMESTAMP WITH TIME ZONE,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'verified', 'rejected')),
+        verified_by TEXT REFERENCES users(id),
+        verified_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_tree_donations_init ON tryland_tree_donations(initiative_id);
+      CREATE INDEX IF NOT EXISTS idx_tree_donations_status ON tryland_tree_donations(status);
+      CREATE INDEX IF NOT EXISTS idx_tree_donations_ref ON tryland_tree_donations(payment_reference);
+
       -- ─── Feature 4: SPR Donate (Donations & Fundraising) ─────────────────
       CREATE TABLE IF NOT EXISTS donate_campaigns (
         id TEXT PRIMARY KEY,
@@ -369,6 +405,12 @@ export async function initDb(): Promise<Pool> {
     const reqCount = await client.query('SELECT COUNT(*) FROM tryland_requests');
     if (parseInt(reqCount.rows[0].count, 10) === 0) {
       await seedTrylandRequests(client);
+    }
+
+    // Seed initial 🌳 TRYLAND tree planting initiatives if empty
+    const treeCount = await client.query('SELECT COUNT(*) FROM tryland_trees');
+    if (parseInt(treeCount.rows[0].count, 10) === 0) {
+      await seedTreeInitiatives(client);
     }
   } finally {
     client.release();
@@ -732,6 +774,53 @@ async function seedTrylandRequests(client: any) {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT (id) DO NOTHING
     `, [r.id, r.user_id, r.bill_category, r.amount_requested, r.amount_funded, r.explanation, r.due_date, r.status]);
+  }
+}
+
+async function seedTreeInitiatives(client: any) {
+  const sampleTrees = [
+    {
+      id: 'tree_spr_campus',
+      title: 'Saipanyarangsit Campus Green Canopy',
+      location: 'Saipanyarangsit School Ground Walkways',
+      description: 'Planting native shade trees along campus pathways to lower classroom ambient temperatures, create outdoor student study zones, and green our school.',
+      cost_per_tree: 50,
+      target_trees: 500,
+      trees_planted: 0,
+      amount_raised: 0,
+      status: 'active',
+    },
+    {
+      id: 'tree_mangrove_restoration',
+      title: 'Gulf of Thailand Coastal Mangrove Drive',
+      location: 'Samut Prakan Coastal Wetland',
+      description: 'Student-led conservation project planting coastal mangroves that shield shorelines against erosion and capture up to 4 times more atmospheric carbon than dry-land forests.',
+      cost_per_tree: 50,
+      target_trees: 1000,
+      trees_planted: 0,
+      amount_raised: 0,
+      status: 'active',
+    },
+    {
+      id: 'tree_bio_garden',
+      title: 'Urban Student Bio-Garden & Micro-Forest',
+      location: 'Saipanyarangsit Science Courtyard',
+      description: 'Creating a biodiverse micro-forest of fruit-bearing trees, flowering pollinator plants, and native Thai flora for hands-on student botanical and environmental research.',
+      cost_per_tree: 50,
+      target_trees: 300,
+      trees_planted: 0,
+      amount_raised: 0,
+      status: 'active',
+    },
+  ];
+
+  for (const t of sampleTrees) {
+    await client.query(
+      `INSERT INTO tryland_trees (id, title, location, description, cost_per_tree, target_trees, trees_planted, amount_raised, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (id) DO NOTHING`,
+      [t.id, t.title, t.location, t.description, t.cost_per_tree, t.target_trees, t.trees_planted, t.amount_raised, t.status]
+    );
   }
 }
 

@@ -19,6 +19,127 @@ function sanitizeStudentName(username?: string, email?: string): string {
   return 'Verified Student';
 }
 
+// ─── Feature 3B: 🌳 TRYLAND Tree Planting Initiatives ─────────────────────────
+router.get('/trees', optionalAuth, async (req: Request, res: Response) => {
+  try {
+    const db = getDb();
+    const initiativesRes = await db.query(`
+      SELECT 
+        i.*,
+        (SELECT COUNT(*) FROM tryland_tree_donations WHERE initiative_id = i.id AND status = 'verified') as donor_count,
+        (SELECT COALESCE(SUM(tree_count), 0) FROM tryland_tree_donations WHERE initiative_id = i.id AND status = 'verified') as total_verified_trees
+      FROM tryland_trees i
+      ORDER BY i.created_at ASC
+    `);
+
+    const statsRes = await db.query(`
+      SELECT 
+        COALESCE(SUM(tree_count), 0) as total_trees_planted,
+        COALESCE(SUM(amount), 0) as total_money_raised,
+        COUNT(DISTINCT donor_id) + COUNT(CASE WHEN donor_id IS NULL THEN 1 END) as total_contributors
+      FROM tryland_tree_donations
+      WHERE status = 'verified'
+    `);
+
+    const totalTrees = Number(statsRes.rows[0]?.total_trees_planted || 0);
+    const totalRaised = Number(statsRes.rows[0]?.total_money_raised || 0);
+    const totalContributors = Number(statsRes.rows[0]?.total_contributors || 0);
+    const co2OffsetKg = Math.round(totalTrees * 22);
+
+    res.json({
+      initiatives: initiativesRes.rows.map((row: any) => ({
+        id: row.id,
+        title: row.title,
+        location: row.location,
+        description: row.description,
+        cost_per_tree: Number(row.cost_per_tree),
+        target_trees: parseInt(row.target_trees, 10),
+        trees_planted: parseInt(row.total_verified_trees, 10) || 0,
+        amount_raised: Number(row.amount_raised) || 0,
+        status: row.status,
+        donor_count: parseInt(row.donor_count, 10) || 0,
+      })),
+      stats: {
+        total_trees_planted: totalTrees,
+        total_money_raised: totalRaised,
+        total_contributors: totalContributors,
+        co2_offset_kg: co2OffsetKg,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching tree initiatives:', error);
+    res.status(500).json({ error: 'Failed to fetch tree initiatives' });
+  }
+});
+
+router.post('/trees/:id/donate', optionalAuth, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const {
+      tree_count,
+      amount,
+      message = '',
+      slip_reference,
+      slip_url,
+      transfer_time,
+      payment_reference,
+      guest_name,
+      guest_email,
+    } = req.body;
+
+    const db = getDb();
+    const initRes = await db.query('SELECT * FROM tryland_trees WHERE id = $1', [id]);
+    if (initRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Tree initiative not found' });
+    }
+
+    const initData = initRes.rows[0];
+    const numTrees = parseInt(tree_count, 10) || 1;
+    const numAmount = parseFloat(amount) || (numTrees * Number(initData.cost_per_tree));
+
+    if (numTrees <= 0 || numAmount <= 0) {
+      return res.status(400).json({ error: 'Invalid tree count or amount' });
+    }
+
+    const payRef = payment_reference || `TRY-TREE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const donationId = generateId();
+    const donorId = req.user?.id || null;
+
+    await db.query(
+      `INSERT INTO tryland_tree_donations
+       (id, initiative_id, donor_id, donor_name, donor_email, tree_count, amount, message, payment_reference, slip_reference, slip_url, transfer_time, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending')`,
+      [
+        donationId,
+        id,
+        donorId,
+        guest_name || req.user?.email?.split('@')[0] || 'Tree Supporter',
+        guest_email || req.user?.email || null,
+        numTrees,
+        numAmount,
+        message,
+        payRef,
+        slip_reference || null,
+        slip_url || null,
+        transfer_time ? new Date(transfer_time) : new Date(),
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: `🌳 Sponsoring ${numTrees} tree(s) submitted for verification.`,
+      donationId,
+      paymentReference: payRef,
+      amount: numAmount,
+      treeCount: numTrees,
+      status: 'pending',
+    });
+  } catch (error) {
+    console.error('Error creating tree donation:', error);
+    res.status(500).json({ error: 'Failed to record tree donation' });
+  }
+});
+
 // ─── GET /api/tryland (Browse sanitized verified requests) ───────────────────
 router.get('/', optionalAuth, async (req: Request, res: Response) => {
   try {

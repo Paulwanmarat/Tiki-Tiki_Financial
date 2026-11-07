@@ -1845,11 +1845,23 @@ function StudioEcosystemSection({
     {
       id: 'tryland',
       route: '/tryland',
+      eyebrow: 'SAVE THE PLANET INITIATIVE',
+      badge: 'Plant Trees',
+      badgeColor: '#059669',
+      title: '🌳RYLAND',
+      desc: 'Save the Planet initiative — donate to plant trees! Turn spare student allowances into living trees on campus and coastal mangrove belts with verified student stewardship.',
+      features: ['฿50 plants 1 native tree', 'Live verified tree counter', 'Campus green canopy & mangroves'],
+      icon: 'leaf-outline',
+      cta: 'Plant Trees Now',
+    },
+    {
+      id: 'rk',
+      route: '/rk',
       eyebrow: 'STUDENT BILL SPONSORSHIP',
       badge: 'PromptPay QR',
       badgeColor: '#10B981',
       title: 'RK (Rich Kid)',
-      isTrylandWordmark: true,
+      isRkWordmark: true,
       desc: 'Where students upload their bills and Rich Kids can pay them! A transparent safety net connecting verified student academic bills with generous supporters.',
       features: ['Students upload bills for review', 'Static PromptPay QR (฿ THB)', 'Admin manual verification against bank records'],
       icon: 'card-outline',
@@ -1881,7 +1893,7 @@ function StudioEcosystemSection({
         </Text>
         <Text style={ecoStyles.subhead}>
           SPR bridges individual allowance discipline with real peer-to-peer campus commerce,
-          computational project guides, and transparent mutual financial assistance.
+          tree-planting planet initiatives, and transparent mutual financial assistance.
         </Text>
 
         <View style={[ecoStyles.grid, isMobile && ecoStyles.gridMobile]}>
@@ -1894,7 +1906,7 @@ function StudioEcosystemSection({
             >
               <View style={ecoStyles.cardTopRow}>
                 <View style={[ecoStyles.iconWrap, { backgroundColor: p.badgeColor + '18' }]}>
-                  {p.isTrylandWordmark ? (
+                  {p.isRkWordmark ? (
                     <Ionicons name="happy" size={22} color={p.badgeColor} />
                   ) : (
                     <Ionicons name={p.icon as any} size={22} color={p.badgeColor} />
@@ -1908,7 +1920,7 @@ function StudioEcosystemSection({
 
               <Text style={ecoStyles.eyebrow}>{p.eyebrow}</Text>
 
-              {p.isTrylandWordmark ? (
+              {p.isRkWordmark ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
                   <Ionicons name="happy" size={20} color="#10B981" />
                   <Text style={[ecoStyles.cardTitle, { color: S.textLight, letterSpacing: 1 }]}>RK</Text>

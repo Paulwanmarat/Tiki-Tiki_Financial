@@ -42,7 +42,7 @@ function formatDate(iso: string): string {
 }
 
 type StatusFilter = 'pending' | 'verified' | 'rejected' | 'all';
-type TypeFilter = 'all' | 'tryland' | 'donate';
+type TypeFilter = 'all' | 'tryland' | 'donate' | 'tree';
 
 export default function AdminPaymentsScreen() {
   const { colors } = useTheme();
@@ -556,14 +556,14 @@ export default function AdminPaymentsScreen() {
                 </TouchableOpacity>
               ))}
               <View style={{ width: Spacing.sm }} />
-              {(['all', 'tryland', 'donate'] as TypeFilter[]).map(t => (
+              {(['all', 'tryland', 'donate', 'tree'] as TypeFilter[]).map(t => (
                 <TouchableOpacity
                   key={t}
                   style={[styles.chip, { backgroundColor: typeFilter === t ? colors.primary + '22' : colors.surface, borderColor: typeFilter === t ? colors.primary : colors.border }]}
                   onPress={() => setTypeFilter(t)}
                 >
                   <Text style={[styles.chipText, { color: typeFilter === t ? colors.primary : colors.textSecondary }]}>
-                    {t === 'all' ? 'All Types' : t === 'tryland' ? 'RK (Rich Kid)' : 'Donate'}
+                    {t === 'all' ? 'All Types' : t === 'tryland' ? 'RK (Rich Kid)' : t === 'tree' ? '🌳 Plant Trees' : 'Donate'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -602,9 +602,13 @@ export default function AdminPaymentsScreen() {
           <Card key={payment.id} style={[styles.paymentCard, { borderColor: colors.border }]}>
             {/* Type + Status Row */}
             <View style={styles.cardTopRow}>
-              <View style={[styles.typeBadge, { backgroundColor: payment.type === 'tryland' ? '#10B98118' : '#F59E0B18' }]}>
-                <Text style={[styles.typeBadgeText, { color: payment.type === 'tryland' ? '#10B981' : '#F59E0B' }]}>
-                  {payment.type === 'tryland' ? 'RK (Rich Kid)' : '♥ Donate'}
+              <View style={[styles.typeBadge, { 
+                backgroundColor: payment.type === 'tree' ? '#10B98118' : payment.type === 'tryland' ? '#3B82F618' : '#F59E0B18' 
+              }]}>
+                <Text style={[styles.typeBadgeText, { 
+                  color: payment.type === 'tree' ? '#10B981' : payment.type === 'tryland' ? '#2563EB' : '#F59E0B' 
+                }]}>
+                  {payment.type === 'tree' ? '🌳 Plant Trees' : payment.type === 'tryland' ? 'RK (Rich Kid)' : '♥ Donate'}
                 </Text>
               </View>
               <View style={[styles.statusPill, { backgroundColor: statusColor(payment.status) + '20' }]}>
@@ -786,7 +790,7 @@ export default function AdminPaymentsScreen() {
               <View style={{ alignItems: 'flex-end' }}>
                 <Text style={[styles.cardAmountLabel, { color: colors.textTertiary }]}>Category</Text>
                 <Text style={[styles.refMono, { color: colors.text }]}>
-                  {approveTarget?.type === 'tryland' ? 'RK Bill' : '♥ Donate'}
+                  {approveTarget?.type === 'tree' ? '🌳 Tree Planting' : approveTarget?.type === 'tryland' ? 'RK Bill' : '♥ Donate'}
                 </Text>
               </View>
             </View>

@@ -75,3 +75,57 @@ export async function verifyTrylandRequest(
   });
 }
 
+// ─── 🌳 TRYLAND Tree Planting Services ──────────────────────────────────────
+export interface TreeInitiative {
+  id: string;
+  title: string;
+  location: string;
+  description: string;
+  cost_per_tree: number;
+  target_trees: number;
+  trees_planted: number;
+  amount_raised: number;
+  status: 'active' | 'completed';
+  donor_count: number;
+}
+
+export interface TreeStats {
+  total_trees_planted: number;
+  total_money_raised: number;
+  total_contributors: number;
+  co2_offset_kg: number;
+}
+
+export async function getTreeInitiatives(): Promise<{ initiatives: TreeInitiative[]; stats: TreeStats }> {
+  return fetchWithAuth('/api/tryland/trees');
+}
+
+export async function donatePlantTrees(
+  initiativeId: string,
+  payload: {
+    tree_count: number;
+    amount: number;
+    message?: string;
+    slip_url?: string;
+    slip_reference?: string;
+    transfer_time?: string;
+    payment_reference?: string;
+    guest_name?: string;
+    guest_email?: string;
+  }
+): Promise<{
+  success: boolean;
+  message: string;
+  donationId: string;
+  paymentReference: string;
+  amount: number;
+  treeCount: number;
+  status: string;
+}> {
+  return fetchWithAuth(`/api/tryland/trees/${initiativeId}/donate`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+

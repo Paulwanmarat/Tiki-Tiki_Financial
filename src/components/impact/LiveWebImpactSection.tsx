@@ -8,20 +8,18 @@
  *
  * Strict Rule: Only verified payments count toward these totals!
  */
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  Platform,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { LOCAL_API_URL } from '@/services/ai/client';
-import { LiveImpactTotals, RequestProgress, CampaignProgress } from '@/types/payments';
-import { TrylandWordmark } from '@/components/ui/TrylandWordmark';
+import { CampaignProgress, LiveImpactTotals, RequestProgress } from '@/types/payments';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 interface LiveWebImpactSectionProps {
   isMobile: boolean;
@@ -37,7 +35,7 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overall' | 'tryland' | 'donate'>('overall');
+  const [activeTab, setActiveTab] = useState<'overall' | 'trees' | 'rk' | 'donate'>('overall');
   const [lastRefreshed, setLastRefreshed] = useState<string>('');
 
   const fetchTotals = useCallback(async (isManual = false) => {
@@ -114,12 +112,23 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.tabBtn, activeTab === 'tryland' && styles.tabBtnActive]}
-            onPress={() => setActiveTab('tryland')}
+            style={[styles.tabBtn, activeTab === 'trees' && styles.tabBtnActive]}
+            onPress={() => setActiveTab('trees')}
             activeOpacity={0.8}
           >
-            <Ionicons name="happy" size={15} color={activeTab === 'tryland' ? '#10B981' : '#8A7B91'} />
-            <Text style={[styles.tabBtnText, activeTab === 'tryland' && styles.tabBtnTextActive]}>
+            <Text style={{ fontSize: 14 }}>🌳</Text>
+            <Text style={[styles.tabBtnText, activeTab === 'trees' && styles.tabBtnTextActive]}>
+              TRYLAND Trees
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'rk' && styles.tabBtnActive]}
+            onPress={() => setActiveTab('rk')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="happy" size={15} color={activeTab === 'rk' ? '#3B82F6' : '#8A7B91'} />
+            <Text style={[styles.tabBtnText, activeTab === 'rk' && styles.tabBtnTextActive]}>
               RK (Rich Kid) Bills
             </Text>
           </TouchableOpacity>
@@ -175,10 +184,25 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
                   <View style={[styles.splitRow, isMobile && { flexDirection: 'column', gap: 14 }]}>
                     <View style={styles.splitCol}>
                       <View style={styles.splitHeader}>
-                        <Ionicons name="happy" size={16} color="#10B981" />
-                        <Text style={[styles.splitTitle, { color: '#10B981' }]}>RK (RICH KID) BILLS</Text>
+                        <Text style={{ fontSize: 15 }}>🌳</Text>
+                        <Text style={[styles.splitTitle, { color: '#10B981' }]}>TRYLAND TREES</Text>
                       </View>
                       <Text style={[styles.splitValue, { color: '#10B981' }]}>
+                        {THB(data.overall.totalVerifiedTreeDonations || 0)}
+                      </Text>
+                      <Text style={styles.splitSub}>
+                        {data.trees?.totalTreesPlanted || 0} trees planted
+                      </Text>
+                    </View>
+
+                    <View style={[styles.splitDivider, isMobile && { width: '100%', height: 1 }]} />
+
+                    <View style={styles.splitCol}>
+                      <View style={styles.splitHeader}>
+                        <Ionicons name="happy" size={16} color="#3B82F6" />
+                        <Text style={[styles.splitTitle, { color: '#3B82F6' }]}>RK (RICH KID) BILLS</Text>
+                      </View>
+                      <Text style={[styles.splitValue, { color: '#3B82F6' }]}>
                         {THB(data.overall.totalVerifiedSponsorships)}
                       </Text>
                       <Text style={styles.splitSub}>
@@ -235,13 +259,103 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
               </View>
             )}
 
-            {/* 2. 🌳RYLAND TAB */}
-            {activeTab === 'tryland' && (
+            {/* 2. 🌳 TRYLAND TREES TAB */}
+            {activeTab === 'trees' && (
               <View style={styles.tabContent}>
                 <View style={[styles.statsOverviewRow, isMobile && { flexDirection: 'column' }]}>
                   <View style={[styles.statOverviewBox, { borderColor: '#10B981' }]}>
-                    <Text style={styles.statOverviewLabel}>TOTAL SPONSORSHIP RECEIVED</Text>
+                    <Text style={styles.statOverviewLabel}>TOTAL TREES PLANTED</Text>
                     <Text style={[styles.statOverviewValue, { color: '#10B981' }]}>
+                      {data.trees?.totalTreesPlanted || 0} Trees
+                    </Text>
+                    <Text style={styles.statOverviewSub}>Verified community plantings</Text>
+                  </View>
+
+                  <View style={[styles.statOverviewBox, { borderColor: '#059669' }]}>
+                    <Text style={styles.statOverviewLabel}>TOTAL GREEN FUNDING</Text>
+                    <Text style={[styles.statOverviewValue, { color: '#059669' }]}>
+                      {THB(data.trees?.totalFundingReceived || 0)}
+                    </Text>
+                    <Text style={styles.statOverviewSub}>Save the planet tree initiative</Text>
+                  </View>
+
+                  <View style={[styles.statOverviewBox, { borderColor: '#2E223B' }]}>
+                    <Text style={styles.statOverviewLabel}>EST. CO₂ OFFSET</Text>
+                    <Text style={[styles.statOverviewValue, { color: '#34D399' }]}>
+                      {((data.trees?.totalTreesPlanted || 0) * 22).toLocaleString('th-TH')} kg/yr
+                    </Text>
+                    <Text style={styles.statOverviewSub}>~22 kg CO₂/tree/year</Text>
+                  </View>
+                </View>
+
+                {/* Tree initiatives */}
+                {data.trees?.initiativesProgress && data.trees.initiativesProgress.length > 0 && (
+                  <View style={styles.progressListWrap}>
+                    <Text style={styles.progressListTitle}>Active Campus Tree Planting Initiatives</Text>
+                    {data.trees.initiativesProgress.map(init => (
+                      <View key={init.id} style={styles.progressItemCard}>
+                        <View style={styles.progressItemTop}>
+                          <View style={{ flex: 1 }}>
+                            <View style={styles.studentBadgeRow}>
+                              <Text style={styles.studentAliasText}>🌳 {init.title}</Text>
+                            </View>
+                            <Text style={styles.progressItemSub}>
+                              {init.treesPlanted} of {init.targetTrees} trees planted · {THB(init.costPerTree)} / tree
+                            </Text>
+                          </View>
+                          <View style={[styles.pctBadge, { backgroundColor: '#10B98120' }]}>
+                            <Text style={[styles.pctBadgeText, { color: '#10B981' }]}>
+                              {init.percentage}%
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.barTrack}>
+                          <View
+                            style={[
+                              styles.barFill,
+                              {
+                                width: `${Math.min(100, init.percentage)}%`,
+                                backgroundColor: '#10B981',
+                              },
+                            ]}
+                          />
+                        </View>
+
+                        <View style={styles.barBottomRow}>
+                          <Text style={[styles.barAmountFunded, { color: '#10B981' }]}>
+                            {THB(init.amountRaised)} raised
+                          </Text>
+                          <Text style={styles.barAmountNeeded}>
+                            Goal: {THB(init.targetTrees * init.costPerTree)}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* CTA */}
+                <View style={styles.tabCtaBox}>
+                  <TouchableOpacity
+                    style={[styles.primaryCtaBtn, { backgroundColor: '#10B981' }]}
+                    onPress={() => router.push('/tryland')}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={{ fontSize: 16 }}>🌳</Text>
+                    <Text style={styles.primaryCtaBtnText}>Plant Trees with TRYLAND →</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* 3. RK (RICH KID) BILLS TAB */}
+            {activeTab === 'rk' && (
+              <View style={styles.tabContent}>
+                <View style={[styles.statsOverviewRow, isMobile && { flexDirection: 'column' }]}>
+                  <View style={[styles.statOverviewBox, { borderColor: '#3B82F6' }]}>
+                    <Text style={styles.statOverviewLabel}>TOTAL SPONSORSHIP RECEIVED</Text>
+                    <Text style={[styles.statOverviewValue, { color: '#3B82F6' }]}>
                       {THB(data.tryland.totalFundingReceived)}
                     </Text>
                     <Text style={styles.statOverviewSub}>Verified donor transfers</Text>
@@ -295,14 +409,14 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
                             styles.barFill,
                             {
                               width: `${Math.min(100, req.percentage)}%`,
-                              backgroundColor: req.percentage >= 100 ? '#10B981' : '#10B981',
+                              backgroundColor: req.percentage >= 100 ? '#10B981' : '#3B82F6',
                             },
                           ]}
                         />
                       </View>
 
                       <View style={styles.barBottomRow}>
-                        <Text style={[styles.barAmountFunded, { color: '#10B981' }]}>
+                        <Text style={[styles.barAmountFunded, { color: '#3B82F6' }]}>
                           {THB(req.amountFunded)} funded
                         </Text>
                         <Text style={styles.barAmountNeeded}>
@@ -316,12 +430,12 @@ export function LiveWebImpactSection({ isMobile, isTablet }: LiveWebImpactSectio
                 {/* CTA */}
                 <View style={styles.tabCtaBox}>
                   <TouchableOpacity
-                    style={[styles.primaryCtaBtn, { backgroundColor: '#10B981' }]}
-                    onPress={() => router.push('/tryland')}
+                    style={[styles.primaryCtaBtn, { backgroundColor: '#3B82F6' }]}
+                    onPress={() => router.push('/rk' as any)}
                     activeOpacity={0.85}
                   >
-                    <Text style={{ fontSize: 16 }}>🌳</Text>
-                    <Text style={styles.primaryCtaBtnText}>Browse & Sponsor Bills on 🌳RYLAND →</Text>
+                    <Ionicons name="happy" size={18} color="#fff" />
+                    <Text style={styles.primaryCtaBtnText}>Browse & Sponsor Bills on RK →</Text>
                   </TouchableOpacity>
                 </View>
               </View>

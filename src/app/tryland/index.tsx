@@ -17,380 +17,392 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
-import { RKWordmark } from '@/components/ui/RKWordmark';
+import { TrylandWordmark } from '@/components/ui/TrylandWordmark';
 import { QRPaymentModal } from '@/components/ui/QRPaymentModal';
-import { getTrylandRequests, sponsorTrylandBill } from '@/services/database/tryland';
-import { TrylandRequest, TrylandCategory } from '@/types/tryland';
-import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
-import { formatDate } from '@/utils/formatters';
+import { getTreeInitiatives, donatePlantTrees, TreeInitiative, TreeStats } from '@/services/database/tryland';
+import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
 
-const CATEGORIES: ('All' | TrylandCategory)[] = [
-  'All',
-  'Educational expenses',
-  'School supplies',
-  'Learning equipment',
-  'School-related activities',
-  'Essential student bills',
+const TREE_TIERS = [
+  { trees: 1, amount: 50, label: '🌱 1 Tree', sub: 'Sapling Starter' },
+  { trees: 5, amount: 250, label: '🌿 5 Trees', sub: 'School Garden Patch' },
+  { trees: 10, amount: 500, label: '🌳 10 Trees', sub: 'Green Corridor Grove' },
+  { trees: 20, amount: 1000, label: '🌲 20 Trees', sub: 'Forest Patron' },
 ];
 
-export default function TrylandHomeScreen() {
+export default function TrylandTreePlantingScreen() {
   const { colors, isDark } = useTheme();
-  const { formatCurrency, currency, convertToBase } = useCurrency();
+  const { formatCurrency, convertToBase } = useCurrency();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = Platform.OS === 'web' && width >= 768;
 
-  const [requests, setRequests] = useState<TrylandRequest[]>([]);
+  const [initiatives, setInitiatives] = useState<TreeInitiative[]>([]);
+  const [stats, setStats] = useState<TreeStats>({
+    total_trees_planted: 0,
+    total_money_raised: 0,
+    total_contributors: 0,
+    co2_offset_kg: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<'All' | TrylandCategory>('All');
 
-  // Sponsorship modal
-  const [activeRequest, setActiveRequest] = useState<TrylandRequest | null>(null);
-  const [sponsorAmount, setSponsorAmount] = useState('');
-  const [sponsorNote, setSponsorNote] = useState('Keep studying hard! You got this.');
+  // Tree Donation Modal state
+  const [selectedInitiative, setSelectedInitiative] = useState<TreeInitiative | null>(null);
+  const [treeCount, setTreeCount] = useState<number>(5);
+  const [customAmount, setCustomAmount] = useState<string>('250');
+  const [donorMessage, setDonorMessage] = useState<string>('For a greener future and campus shade!');
   const [showQR, setShowQR] = useState(false);
   const [pendingPayRef, setPendingPayRef] = useState('');
-  const [submittingPledge, setSubmittingPledge] = useState(false);
 
-  const loadRequests = useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getTrylandRequests({
-        category: selectedCategory === 'All' ? undefined : selectedCategory,
-      });
-      setRequests(data);
+      const res = await getTreeInitiatives();
+      if (res) {
+        setInitiatives(res.initiatives || []);
+        if (res.stats) setStats(res.stats);
+      }
     } catch (err) {
-      console.error('Failed to load Tryland requests:', err);
+      console.error('Failed to load Tryland tree initiatives:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedCategory]);
+  }, []);
 
   useEffect(() => {
-    loadRequests();
-  }, [loadRequests]);
+    loadData();
+  }, [loadData]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadRequests();
+    loadData();
   };
 
-  const handleOpenSponsorModal = (req: TrylandRequest) => {
-    setActiveRequest(req);
-    const needed = Math.max(0, req.amount_requested - req.amount_funded);
-    setSponsorAmount(Math.min(needed, 500).toString());
+  const handleOpenDonate = (init: TreeInitiative) => {
+    setSelectedInitiative(init);
+    setTreeCount(5);
+    setCustomAmount((5 * init.cost_per_tree).toString());
+    setDonorMessage('Planting trees for our campus and planet!');
   };
 
-  // Step 1: User enters amount → generate pay reference → show QR
-  const handleProceedToQR = useCallback(() => {
-    if (!activeRequest) return;
-    const numAmt = parseFloat(sponsorAmount);
+  const handleSelectTier = (t: typeof TREE_TIERS[0]) => {
+    setTreeCount(t.trees);
+    if (selectedInitiative) {
+      setCustomAmount((t.trees * selectedInitiative.cost_per_tree).toString());
+    } else {
+      setCustomAmount(t.amount.toString());
+    }
+  };
+
+  const handleProceedToQR = () => {
+    if (!selectedInitiative) return;
+    const numAmt = parseFloat(customAmount);
     if (isNaN(numAmt) || numAmt <= 0) {
-      Alert.alert('Invalid Amount', 'Please enter a valid sponsorship amount.');
+      Alert.alert('Invalid Amount', 'Please select or enter a valid donation amount.');
       return;
     }
-    // Generate a unique payment reference for this sponsorship
-    const ref = `RK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const ref = `TRY-TREE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     setPendingPayRef(ref);
     setShowQR(true);
-  }, [activeRequest, sponsorAmount]);
+  };
 
-  // Step 2: User confirms transfer — submit with pending status
-  const handleQRConfirm = useCallback(async (confirmData: {
+  const handleQRConfirm = async (confirmData: {
     slip_reference: string;
     transfer_time: string;
     note?: string;
     guest_name?: string;
+    guest_email?: string;
+    slip_url?: string;
   }) => {
-    if (!activeRequest) return;
-    const numAmt = parseFloat(sponsorAmount);
+    if (!selectedInitiative) return;
+    const numAmt = parseFloat(customAmount);
     const baseAmt = convertToBase(numAmt);
-    await sponsorTrylandBill(activeRequest.id, {
+
+    await donatePlantTrees(selectedInitiative.id, {
+      tree_count: treeCount,
       amount: baseAmt,
-      note: confirmData.note || sponsorNote,
+      message: confirmData.note || donorMessage,
       slip_reference: confirmData.slip_reference,
+      slip_url: confirmData.slip_url,
       transfer_time: confirmData.transfer_time,
       payment_reference: pendingPayRef,
       guest_name: confirmData.guest_name,
+      guest_email: confirmData.guest_email,
     });
-    loadRequests();
-  }, [activeRequest, sponsorAmount, sponsorNote, pendingPayRef, convertToBase, loadRequests]);
+
+    loadData();
+  };
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* 1. Header with stylized RK wordmark */}
+      {/* Header */}
       <View style={[styles.topHeader, { borderBottomColor: colors.border }]}>
         <View style={styles.topHeaderLeft}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <RKWordmark size="md" showSubtitle />
+          <TrylandWordmark size="md" showSubtitle />
         </View>
 
         <View style={styles.topHeaderRight}>
           <TouchableOpacity
-            style={[styles.myRequestsBtn, { borderColor: colors.border, backgroundColor: colors.surface }]}
-            onPress={() => router.push('/tryland/my-requests' as any)}
+            style={[styles.rkShortcutBtn, { backgroundColor: '#10B98118', borderColor: '#10B981' }]}
+            onPress={() => router.push('/rk' as any)}
+            activeOpacity={0.8}
           >
-            <Ionicons name="receipt-outline" size={15} color={colors.text} />
-            <Text style={[styles.myRequestsText, { color: colors.text }]}>My Bills</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.newRequestBtn, { backgroundColor: '#10B981' }]}
-            onPress={() => router.push('/tryland/request' as any)}
-          >
-            <Ionicons name="cloud-upload-outline" size={16} color="#FFF" />
-            <Text style={styles.newRequestBtnText}>Upload Bill</Text>
+            <Ionicons name="happy-outline" size={16} color="#10B981" />
+            <Text style={styles.rkShortcutText}>RK Bills</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* 2. Mission Card */}
-      <View style={[styles.missionBanner, { backgroundColor: '#10B981' + '12', borderColor: '#10B981' + '30' }]}>
-        <Ionicons name="shield-checkmark" size={20} color="#10B981" />
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.missionTitle, { color: colors.text }]}>RK · Rich Kid Bill Sponsorship</Text>
-          <Text style={[styles.missionDesc, { color: colors.textSecondary }]}>
-            Where students upload their bills and Rich Kids can pay them! Verified student bills sponsored directly via PromptPay QR. All requests are verified by administrators.
-          </Text>
-        </View>
-      </View>
-
-      {/* 3. Category Carousel */}
-      <View style={[styles.categoryBar, { borderBottomColor: colors.border }]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
-          {CATEGORIES.map((cat) => {
-            const isSelected = selectedCategory === cat;
-            return (
-              <TouchableOpacity
-                key={cat}
-                style={[
-                  styles.categoryPill,
-                  { borderColor: isSelected ? '#10B981' : colors.border },
-                  isSelected && { backgroundColor: '#10B981' + '18' },
-                ]}
-                onPress={() => setSelectedCategory(cat)}
-              >
-                <Text
-                  style={[
-                    styles.categoryText,
-                    { color: isSelected ? '#10B981' : colors.textSecondary },
-                    isSelected && { fontWeight: FontWeight.bold },
-                  ]}
-                >
-                  {cat}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* 4. Requests Stream */}
       <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10B981" />}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#059669" />}
       >
+        {/* Save The Planet Hero Banner */}
+        <View style={[styles.heroCard, { backgroundColor: isDark ? '#064E3B' : '#ECFDF5', borderColor: '#059669' }]}>
+          <View style={styles.heroBadgeRow}>
+            <View style={styles.heroPill}>
+              <Text style={{ fontSize: 13 }}>🌳</Text>
+              <Text style={styles.heroPillText}>SAVE THE PLANET INITIATIVE</Text>
+            </View>
+            <Text style={[styles.heroSubDate, { color: isDark ? '#A7F3D0' : '#047857' }]}>SPR Green Earth</Text>
+          </View>
+
+          <Text style={[styles.heroHeading, { color: isDark ? '#FFFFFF' : '#064E3B' }]}>
+            Donate to Plant More Trees
+          </Text>
+          <Text style={[styles.heroBody, { color: isDark ? '#D1FAE5' : '#065F46' }]}>
+            Transform spare allowances into verified living trees. Just ฿50 plants 1 native tree on campus or along coastal mangrove zones with tracked student stewardship.
+          </Text>
+
+          {/* Impact Tally Cards */}
+          <View style={styles.statsRow}>
+            <View style={[styles.statBox, { backgroundColor: isDark ? '#04785740' : '#FFFFFF', borderColor: '#05966930' }]}>
+              <Text style={[styles.statValue, { color: '#059669' }]}>{stats.total_trees_planted.toLocaleString()}</Text>
+              <Text style={[styles.statLabel, { color: isDark ? '#A7F3D0' : '#065F46' }]}>Trees Funded</Text>
+            </View>
+            <View style={[styles.statBox, { backgroundColor: isDark ? '#04785740' : '#FFFFFF', borderColor: '#05966930' }]}>
+              <Text style={[styles.statValue, { color: '#059669' }]}>฿{stats.total_money_raised.toLocaleString()}</Text>
+              <Text style={[styles.statLabel, { color: isDark ? '#A7F3D0' : '#065F46' }]}>Raised in ฿</Text>
+            </View>
+            <View style={[styles.statBox, { backgroundColor: isDark ? '#04785740' : '#FFFFFF', borderColor: '#05966930' }]}>
+              <Text style={[styles.statValue, { color: '#059669' }]}>{stats.co2_offset_kg.toLocaleString()} kg</Text>
+              <Text style={[styles.statLabel, { color: isDark ? '#A7F3D0' : '#065F46' }]}>Est. CO2 Offset</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Section Heading */}
+        <View style={styles.sectionHeaderRow}>
+          <View>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Active Tree Planting Initiatives</Text>
+            <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
+              Choose a project to plant trees on campus walkways or coastal mangrove reserves
+            </Text>
+          </View>
+        </View>
+
         {loading ? (
           <View style={styles.centerBox}>
-            <ActivityIndicator size="large" color="#10B981" />
-            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading student support requests...</Text>
+            <ActivityIndicator size="large" color="#059669" />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading tree initiatives...</Text>
           </View>
-        ) : requests.length === 0 ? (
+        ) : initiatives.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Ionicons name="happy" size={52} color="#10B981" />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No student bills in this category</Text>
-            <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
-              All submitted student requests in this category are fully funded or undergoing review.
-            </Text>
-            <TouchableOpacity
-              style={[styles.emptyBtn, { backgroundColor: '#10B981' }]}
-              onPress={() => router.push('/tryland/request' as any)}
-            >
-              <Text style={styles.emptyBtnText}>Upload a Student Bill</Text>
-            </TouchableOpacity>
+            <Text style={{ fontSize: 44 }}>🌳</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No initiatives currently open</Text>
+            <Text style={[styles.emptySub, { color: colors.textSecondary }]}>Check back soon for the next campus planting drive.</Text>
           </View>
         ) : (
           <View style={[styles.grid, isDesktop && styles.desktopGrid]}>
-            {requests.map((req) => {
-              const isFullyFunded = req.amount_funded >= req.amount_requested;
-              const pct = Math.min(100, Math.round((req.amount_funded / req.amount_requested) * 100));
-              const remaining = Math.max(0, req.amount_requested - req.amount_funded);
+            {initiatives.map((init) => {
+              const pct = Math.min(100, Math.round((init.trees_planted / init.target_trees) * 100));
+              const remaining = Math.max(0, init.target_trees - init.trees_planted);
 
               return (
                 <View
-                  key={req.id}
+                  key={init.id}
                   style={[
-                    styles.requestCard,
-                    { backgroundColor: colors.surface, borderColor: colors.border },
+                    styles.initCard,
                     isDesktop && styles.desktopCard,
+                    { backgroundColor: colors.surface, borderColor: colors.border },
                   ]}
                 >
-                  {/* Card Header: Category & Student Alias */}
-                  <View style={styles.reqCardHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.categoryBadge, { color: '#10B981', backgroundColor: '#10B981' + '18' }]}>
-                        {req.bill_category.toUpperCase()}
-                      </Text>
-                      <Text style={[styles.studentAlias, { color: colors.text }]}>
-                        👤 {req.student_alias}
-                      </Text>
+                  <View style={styles.initTop}>
+                    <View style={styles.initBadge}>
+                      <Ionicons name="location-outline" size={13} color="#059669" />
+                      <Text style={styles.initLocation}>{init.location}</Text>
                     </View>
-
-                    <View style={[styles.statusBadge, { backgroundColor: isFullyFunded ? colors.success + '20' : '#10B981' + '18' }]}>
-                      <Text style={[styles.statusBadgeText, { color: isFullyFunded ? colors.success : '#10B981' }]}>
-                        {isFullyFunded ? 'FULLY FUNDED' : `${pct}% FUNDED`}
-                      </Text>
+                    <View style={styles.costBadge}>
+                      <Text style={styles.costText}>฿{init.cost_per_tree} / Tree</Text>
                     </View>
                   </View>
 
-                  {/* Explanation */}
-                  <Text style={[styles.explanationText, { color: colors.text }]} numberOfLines={3}>
-                    "{req.explanation || 'Verified educational bill assistance needed before term deadline.'}"
-                  </Text>
+                  <Text style={[styles.initTitle, { color: colors.text }]}>{init.title}</Text>
+                  <Text style={[styles.initDesc, { color: colors.textSecondary }]}>{init.description}</Text>
 
-                  {/* Funding Progress Bar */}
+                  {/* Progress bar */}
                   <View style={styles.progressSection}>
-                    <View style={[styles.progressTrack, { backgroundColor: colors.surfaceHighlight }]}>
-                      <View style={[styles.progressFill, { width: `${pct}%`, backgroundColor: '#10B981' }]} />
-                    </View>
                     <View style={styles.progressRow}>
-                      <Text style={[styles.progressNum, { color: colors.text }]}>
-                        Raised: <Text style={{ fontWeight: FontWeight.extrabold }}>{formatCurrency(req.amount_funded)}</Text>
-                      </Text>
-                      <Text style={[styles.progressNum, { color: colors.textSecondary }]}>
-                        Goal: {formatCurrency(req.amount_requested)}
+                      <Text style={[styles.progressLabel, { color: colors.textTertiary }]}>Progress</Text>
+                      <Text style={[styles.progressText, { color: '#059669' }]}>
+                        {init.trees_planted} / {init.target_trees} Trees ({pct}%)
                       </Text>
                     </View>
-                  </View>
-
-                  {/* Footer & Due Date */}
-                  <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
-                    <View style={styles.dueDateBox}>
-                      <Ionicons name="calendar-outline" size={14} color={colors.textTertiary} />
-                      <Text style={[styles.dueDateText, { color: colors.textTertiary }]}>
-                        Due {formatDate(req.due_date)}
-                      </Text>
+                    <View style={[styles.progressTrack, { backgroundColor: colors.surfaceHighlight }]}>
+                      <View style={[styles.progressFill, { width: `${Math.max(4, pct)}%`, backgroundColor: '#059669' }]} />
                     </View>
-
-                    {!isFullyFunded ? (
-                      <TouchableOpacity
-                        style={[styles.sponsorBtn, { backgroundColor: '#10B981' }]}
-                        onPress={() => handleOpenSponsorModal(req)}
-                      >
-                        <Ionicons name="card" size={14} color="#FFF" />
-                        <Text style={styles.sponsorBtnText}>Pay Bill (Rich Kid)</Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <View style={styles.completedPill}>
-                        <Ionicons name="checkmark-done" size={14} color={colors.success} />
-                        <Text style={[styles.completedPillText, { color: colors.success }]}>Fully Paid</Text>
-                      </View>
-                    )}
+                    <Text style={[styles.remainingText, { color: colors.textTertiary }]}>
+                      {remaining > 0 ? `${remaining} trees still needed` : 'Goal Reached! Thank you!'}
+                    </Text>
                   </View>
+
+                  <TouchableOpacity
+                    style={[styles.plantBtn, { backgroundColor: '#059669' }]}
+                    onPress={() => handleOpenDonate(init)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={{ fontSize: 16 }}>🌳</Text>
+                    <Text style={styles.plantBtnText}>Plant Trees</Text>
+                  </TouchableOpacity>
                 </View>
               );
             })}
           </View>
         )}
+
+        {/* Cross Promotion: Rich Kid (RK) feature */}
+        <View style={[styles.crossCard, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+            <View style={[styles.crossIconBg, { backgroundColor: '#10B98118' }]}>
+              <Ionicons name="happy" size={24} color="#10B981" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.crossTitle, { color: colors.text }]}>RK (Rich Kid) Bill Sponsorship</Text>
+              <Text style={[styles.crossSub, { color: colors.textSecondary }]}>
+                Have student bills to sponsor or educational expenses to upload? Visit Rich Kid!
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[styles.crossBtn, { backgroundColor: '#10B981' }]}
+            onPress={() => router.push('/rk' as any)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.crossBtnText}>Go to Rich Kid →</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
-      {/* ───────────────────────────────────────────────────────────── */}
-      {/* STEP 1: Amount selection modal                                */}
-      {/* ───────────────────────────────────────────────────────────── */}
-      {activeRequest && !showQR && (
+      {/* Step 1: Tree Quantity Selection Modal */}
+      {selectedInitiative && !showQR && (
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="happy" size={22} color="#10B981" />
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Pay Student Bill · Rich Kid</Text>
+                <Text style={{ fontSize: 20 }}>🌳</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Plant Trees · TRYLAND</Text>
               </View>
-              <TouchableOpacity onPress={() => setActiveRequest(null)}>
+              <TouchableOpacity onPress={() => setSelectedInitiative(null)}>
                 <Ionicons name="close" size={22} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
-            {activeRequest && (
-              <>
-                <Text style={[styles.modalDesc, { color: colors.textSecondary }]}>
-                  Sponsoring bill for <Text style={{ fontWeight: FontWeight.bold, color: colors.text }}>{activeRequest.student_alias}</Text> ({activeRequest.bill_category}).
-                  Remaining needed: {formatCurrency(activeRequest.amount_requested - activeRequest.amount_funded)}.
-                </Text>
+            <Text style={[styles.modalSub, { color: colors.textSecondary }]}>
+              Sponsoring trees for <Text style={{ fontWeight: FontWeight.bold, color: colors.text }}>{selectedInitiative.title}</Text> at ฿{selectedInitiative.cost_per_tree} per tree.
+            </Text>
 
-                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                  Pledge Amount ({currency.symbol})
-                </Text>
-                <View style={[styles.amountInputWrap, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}>
-                  <Text style={[styles.currPrefix, { color: colors.textTertiary }]}>{currency.symbol}</Text>
-                  <TextInput
-                    style={[styles.amountInput, { color: colors.text }]}
-                    value={sponsorAmount}
-                    onChangeText={setSponsorAmount}
-                    keyboardType="numeric"
-                  />
-                </View>
+            {/* Tree Tier Presets */}
+            <Text style={[styles.inputLabel, { color: colors.text }]}>Select How Many Trees to Plant</Text>
+            <View style={styles.tierGrid}>
+              {TREE_TIERS.map((t) => {
+                const isSelected = treeCount === t.trees;
+                return (
+                  <TouchableOpacity
+                    key={t.trees}
+                    style={[
+                      styles.tierCard,
+                      {
+                        backgroundColor: isSelected ? '#05966914' : colors.surfaceHighlight,
+                        borderColor: isSelected ? '#059669' : colors.border,
+                      },
+                    ]}
+                    onPress={() => handleSelectTier(t)}
+                  >
+                    <Text style={[styles.tierLabel, { color: isSelected ? '#059669' : colors.text }]}>{t.label}</Text>
+                    <Text style={[styles.tierPrice, { color: '#059669' }]}>฿{t.trees * selectedInitiative.cost_per_tree}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
-                {/* Quick Presets */}
-                <View style={styles.presetsRow}>
-                  {[100, 250, 500, 1000].map((amt) => (
-                    <TouchableOpacity
-                      key={amt}
-                      style={[styles.presetBtn, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}
-                      onPress={() => setSponsorAmount(amt.toString())}
-                    >
-                      <Text style={[styles.presetText, { color: colors.text }]}>+{currency.symbol}{amt}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <Text style={[styles.inputLabel, { color: colors.textSecondary, marginTop: 8 }]}>
-                  Encouragement Message for Student (Optional)
-                </Text>
+            {/* Total Amount Input */}
+            <View style={styles.amountWrap}>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Total Contribution (฿ THB)</Text>
+              <View style={[styles.amountInputRow, { borderColor: colors.border, backgroundColor: colors.background }]}>
+                <Text style={[styles.currPrefix, { color: '#059669' }]}>฿</Text>
                 <TextInput
-                  style={[styles.modalInput, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border, color: colors.text }]}
-                  value={sponsorNote}
-                  onChangeText={setSponsorNote}
+                  value={customAmount}
+                  onChangeText={(val) => {
+                    setCustomAmount(val);
+                    const n = parseFloat(val);
+                    if (!isNaN(n) && selectedInitiative.cost_per_tree > 0) {
+                      setTreeCount(Math.max(1, Math.round(n / selectedInitiative.cost_per_tree)));
+                    }
+                  }}
+                  keyboardType="numeric"
+                  style={[styles.amountInput, { color: colors.text }]}
                 />
+              </View>
+            </View>
 
-                <View style={styles.modalActions}>
-                  <TouchableOpacity
-                    style={[styles.modalCancelBtn, { borderColor: colors.border }]}
-                    onPress={() => setActiveRequest(null)}
-                  >
-                    <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
-                  </TouchableOpacity>
+            {/* Message / Dedication */}
+            <View style={styles.amountWrap}>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Tree Dedication / Note (Optional)</Text>
+              <TextInput
+                value={donorMessage}
+                onChangeText={setDonorMessage}
+                placeholder="e.g. In honor of Class 2026 green campus drive"
+                placeholderTextColor={colors.textTertiary}
+                style={[styles.noteInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+              />
+            </View>
 
-                  <TouchableOpacity
-                    style={[styles.modalSubmitBtn, { backgroundColor: '#10B981' }]}
-                    onPress={handleProceedToQR}
-                  >
-                    <Ionicons name="qr-code-outline" size={16} color="#fff" />
-                    <Text style={styles.modalSubmitText}>Scan to Pay →</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
+            {/* Modal Actions */}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalCancelBtn, { borderColor: colors.border }]}
+                onPress={() => setSelectedInitiative(null)}
+              >
+                <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSubmitBtn, { backgroundColor: '#059669' }]}
+                onPress={handleProceedToQR}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.modalSubmitText}>Proceed to QR (฿{customAmount}) →</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       )}
 
-      {/* STEP 2: QR Payment Modal */}
-      {activeRequest && (
+      {/* Step 2: PromptPay QR Modal with Slip Auto-OCR */}
+      {selectedInitiative && (
         <QRPaymentModal
           visible={showQR}
           onClose={() => {
             setShowQR(false);
-            setActiveRequest(null);
-            setSponsorAmount('');
-            loadRequests();
+            setSelectedInitiative(null);
+            loadData();
           }}
           mode="tryland"
-          targetTitle={`${activeRequest.student_alias} · ${activeRequest.bill_category}`}
-          amountTHB={convertToBase(parseFloat(sponsorAmount) || 0)}
+          targetTitle={`🌳 ${treeCount} Trees · ${selectedInitiative.title}`}
+          amountTHB={parseFloat(customAmount) || 50}
           paymentReference={pendingPayRef}
           onConfirmPayment={handleQRConfirm}
         />
@@ -408,13 +420,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
     borderBottomWidth: 1,
   },
   topHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   backBtn: {
     padding: 4,
@@ -424,72 +436,96 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  myRequestsBtn: {
+  rkShortcutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-  },
-  myRequestsText: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.semibold,
-  },
-  newRequestBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.md,
-  },
-  newRequestBtnText: {
-    color: '#FFF',
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-  },
-  missionBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
-    padding: 12,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-  },
-  missionTitle: {
-    fontSize: FontSize.xs + 1,
-    fontWeight: FontWeight.bold,
-  },
-  missionDesc: {
-    fontSize: 10,
-    lineHeight: 14,
-    marginTop: 2,
-  },
-  categoryBar: {
-    borderBottomWidth: 1,
-    paddingVertical: 8,
-    marginTop: Spacing.xs,
-  },
-  categoryScroll: {
-    paddingHorizontal: Spacing.lg,
-    gap: 8,
-  },
-  categoryPill: {
+    gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
   },
-  categoryText: {
+  rkShortcutText: {
     fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+    color: '#10B981',
   },
-  content: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xxl,
+  scrollContent: {
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xxl + 20,
+  },
+  heroCard: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    padding: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  heroBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xs,
+  },
+  heroPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#05966922',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+  },
+  heroPillText: {
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    color: '#059669',
+  },
+  heroSubDate: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+  },
+  heroHeading: {
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.extrabold,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  heroBody: {
+    fontSize: FontSize.xs + 1,
+    lineHeight: 19,
+    marginBottom: Spacing.md,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statBox: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.extrabold,
+  },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: FontWeight.medium,
+    marginTop: 2,
+  },
+  sectionHeaderRow: {
+    marginBottom: Spacing.md,
+  },
+  sectionTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.bold,
+  },
+  sectionSub: {
+    fontSize: FontSize.xs,
+    marginTop: 2,
   },
   centerBox: {
     paddingVertical: 60,
@@ -502,7 +538,7 @@ const styles = StyleSheet.create({
   emptyBox: {
     alignItems: 'center',
     paddingVertical: 60,
-    gap: 10,
+    gap: 8,
   },
   emptyTitle: {
     fontSize: FontSize.md,
@@ -511,147 +547,157 @@ const styles = StyleSheet.create({
   emptySub: {
     fontSize: FontSize.xs,
     textAlign: 'center',
-    maxWidth: 280,
-  },
-  emptyBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: BorderRadius.md,
-    marginTop: 8,
-  },
-  emptyBtnText: {
-    color: '#FFF',
-    fontSize: FontSize.xs + 1,
-    fontWeight: FontWeight.bold,
   },
   grid: {
-    gap: 12,
+    gap: Spacing.md,
   },
   desktopGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    maxWidth: 1100,
-    alignSelf: 'center',
-    width: '100%',
   },
-  requestCard: {
-    padding: Spacing.lg,
+  initCard: {
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    marginBottom: 4,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   desktopCard: {
     width: '48.5%',
   },
-  reqCardHeader: {
+  initTop: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  categoryBadge: {
-    fontSize: 9,
-    fontWeight: FontWeight.extrabold,
-    letterSpacing: 0.8,
+  initBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  initLocation: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+    color: '#059669',
+  },
+  costBadge: {
+    backgroundColor: '#05966914',
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-    alignSelf: 'flex-start',
-    marginBottom: 4,
-  },
-  studentAlias: {
-    fontSize: FontSize.sm + 1,
-    fontWeight: FontWeight.bold,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 2,
     borderRadius: 6,
   },
-  statusBadgeText: {
-    fontSize: 9,
-    fontWeight: FontWeight.extrabold,
-    letterSpacing: 0.5,
+  costText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+    color: '#059669',
   },
-  explanationText: {
-    fontSize: FontSize.xs + 1,
-    lineHeight: 20,
-    fontStyle: 'italic',
-    marginBottom: 12,
+  initTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+    marginBottom: 4,
+  },
+  initDesc: {
+    fontSize: FontSize.xs,
+    lineHeight: 18,
+    marginBottom: Spacing.md,
   },
   progressSection: {
-    marginBottom: 12,
-  },
-  progressTrack: {
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-    width: '100%',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
+    marginBottom: Spacing.md,
   },
   progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 6,
+    marginBottom: 4,
   },
-  progressNum: {
-    fontSize: 11,
+  progressLabel: {
+    fontSize: FontSize.xs,
   },
-  cardFooter: {
+  progressText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  remainingText: {
+    fontSize: 10,
+    marginTop: 4,
+  },
+  plantBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.md,
+  },
+  plantBtnText: {
+    color: '#FFF',
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+  },
+  crossCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    padding: Spacing.md,
+    marginTop: Spacing.lg,
+    gap: 12,
   },
-  dueDateBox: {
-    flexDirection: 'row',
+  crossIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
-    gap: 5,
+    justifyContent: 'center',
   },
-  dueDateText: {
-    fontSize: 10,
+  crossTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
   },
-  sponsorBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
+  crossSub: {
+    fontSize: FontSize.xs,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  crossBtn: {
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderRadius: BorderRadius.md,
   },
-  sponsorBtnText: {
+  crossBtnText: {
     color: '#FFF',
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
   },
-  completedPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  completedPillText: {
-    fontSize: 11,
-    fontWeight: FontWeight.bold,
-  },
   modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.lg,
   },
   modalCard: {
     width: '100%',
-    maxWidth: 460,
+    maxWidth: 440,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     padding: Spacing.lg,
     gap: 12,
+    ...Shadow.lg,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -662,21 +708,46 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
   },
-  modalDesc: {
+  modalSub: {
     fontSize: FontSize.xs,
-    lineHeight: 18,
+    lineHeight: 17,
   },
   inputLabel: {
     fontSize: FontSize.xs,
     fontWeight: FontWeight.semibold,
   },
-  amountInputWrap: {
+  tierGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tierCard: {
+    flex: 1,
+    minWidth: '45%',
+    padding: 10,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    alignItems: 'center',
+  },
+  tierLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  tierPrice: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.extrabold,
+    marginTop: 2,
+  },
+  amountWrap: {
+    gap: 4,
+  },
+  amountInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 44,
-    borderRadius: BorderRadius.md,
     borderWidth: 1,
+    borderRadius: BorderRadius.md,
     paddingHorizontal: 12,
+    height: 42,
     gap: 6,
   },
   currPrefix: {
@@ -685,29 +756,14 @@ const styles = StyleSheet.create({
   },
   amountInput: {
     flex: 1,
-    height: '100%',
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
   },
-  presetsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  presetBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: BorderRadius.sm,
+  noteInput: {
     borderWidth: 1,
-  },
-  presetText: {
-    fontSize: 11,
-    fontWeight: FontWeight.semibold,
-  },
-  modalInput: {
-    height: 40,
     borderRadius: BorderRadius.md,
-    borderWidth: 1,
     paddingHorizontal: 10,
+    height: 38,
     fontSize: FontSize.xs + 1,
   },
   modalActions: {
@@ -715,7 +771,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 10,
-    marginTop: 8,
+    marginTop: 4,
   },
   modalCancelBtn: {
     paddingHorizontal: 14,
@@ -730,8 +786,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: BorderRadius.md,
-    minWidth: 90,
-    alignItems: 'center',
   },
   modalSubmitText: {
     color: '#FFF',
@@ -739,4 +793,3 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.bold,
   },
 });
-

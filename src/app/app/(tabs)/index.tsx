@@ -24,6 +24,7 @@ import { SavingPig } from '@/components/ui/SavingPig';
 import { DailyLimitCard } from '@/components/ui/DailyLimitCard';
 import { TransactionItem } from '@/components/transactions/TransactionItem';
 import { RKWordmark } from '@/components/ui/RKWordmark';
+import { TrylandWordmark } from '@/components/ui/TrylandWordmark';
 import { formatPercentage, getUserDisplayName } from '@/utils/formatters';
 import { Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '@/constants/theme';
 import { PIGGY_LOGO, SCHOOL_LOGO } from '@/constants/assets';
@@ -287,9 +288,28 @@ export default function DashboardScreen() {
               <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
             </TouchableOpacity>
 
+            {/* 🌳 TRYLAND */}
             <TouchableOpacity
               style={[styles.hubCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
               onPress={() => router.push('/tryland')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.hubIconBg, { backgroundColor: '#05966918' }]}>
+                <Text style={{ fontSize: 18 }}>🌳</Text>
+              </View>
+              <View style={styles.hubTextCol}>
+                <TrylandWordmark size="sm" />
+                <Text style={[styles.hubDesc, { color: colors.textSecondary, marginTop: 2 }]} numberOfLines={1}>
+                  Plant trees · Save the planet
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+            </TouchableOpacity>
+
+            {/* RK (Rich Kid) */}
+            <TouchableOpacity
+              style={[styles.hubCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => router.push('/rk' as any)}
               activeOpacity={0.7}
             >
               <View style={[styles.hubIconBg, { backgroundColor: '#10B98118' }]}>

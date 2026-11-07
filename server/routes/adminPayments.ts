@@ -70,10 +70,41 @@ router.get('/', requireAuth, requireAdmin, async (req: Request, res: Response) =
       LEFT JOIN users v ON d.verified_by = v.id
     `;
 
-    const trylandRows = (type === 'donate') ? [] : (await db.query(trylandQuery)).rows;
-    const donateRows = (type === 'tryland') ? [] : (await db.query(donateQuery)).rows;
+    // 3. Fetch 🌳 TRYLAND Tree Donations
+    let treeQuery = `
+      SELECT 
+        t.id,
+        'tree' as type,
+        t.payment_reference,
+        'promptpay_qr' as payment_method,
+        t.amount,
+        t.status,
+        t.message,
+        t.slip_url,
+        t.slip_reference,
+        t.transfer_time,
+        t.created_at,
+        t.verified_at,
+        NULL as rejection_reason,
+        t.initiative_id as target_id,
+        ('🌳 ' || i.title || ' (' || t.tree_count || ' Trees)') as target_title,
+        (i.target_trees * i.cost_per_tree) as target_total,
+        i.amount_raised as target_current,
+        COALESCE(u.email, t.donor_email, 'guest@spr.app') as submitter_email,
+        COALESCE(u.username, t.donor_name, 'Tree Supporter') as submitter_name,
+        v.email as verifier_email,
+        v.username as verifier_name
+      FROM tryland_tree_donations t
+      JOIN tryland_trees i ON t.initiative_id = i.id
+      LEFT JOIN users u ON t.donor_id = u.id
+      LEFT JOIN users v ON t.verified_by = v.id
+    `;
 
-    let combined = [...trylandRows, ...donateRows];
+    const trylandRows = (type === 'donate' || type === 'tree') ? [] : (await db.query(trylandQuery)).rows;
+    const donateRows = (type === 'tryland' || type === 'tree') ? [] : (await db.query(donateQuery)).rows;
+    const treeRows = (type === 'tryland' || type === 'donate') ? [] : (await db.query(treeQuery)).rows;
+
+    let combined = [...trylandRows, ...donateRows, ...treeRows];
 
     // Filter by status if specified
     if (status && status !== 'all') {
@@ -130,8 +161,8 @@ router.post('/:type/:id/verify', requireAuth, requireAdmin, async (req: Request,
     const { action, rejection_reason = '' } = req.body;
 
     if (!adminId) return res.status(401).json({ error: 'Unauthorized' });
-    if (!type || !['tryland', 'donate'].includes(type)) {
-      return res.status(400).json({ error: 'Invalid payment type. Must be tryland or donate.' });
+    if (!type || !['tryland', 'donate', 'tree'].includes(type)) {
+      return res.status(400).json({ error: 'Invalid payment type. Must be tryland, donate, or tree.' });
     }
     if (!['approve', 'reject'].includes(action)) {
       return res.status(400).json({ error: 'Invalid action. Must be approve or reject.' });
@@ -139,7 +170,52 @@ router.post('/:type/:id/verify', requireAuth, requireAdmin, async (req: Request,
 
     const db = getDb();
 
-    if (type === 'tryland') {
+    if (type === 'tree') {
+      const treeRes = await db.query('SELECT * FROM tryland_tree_donations WHERE id = $1', [id]);
+      if (treeRes.rows.length === 0) {
+        return res.status(404).json({ error: 'Tree donation payment not found' });
+      }
+
+      const donation = treeRes.rows[0];
+      if (donation.status === 'verified') {
+        return res.status(400).json({ error: 'Tree donation is already verified' });
+      }
+
+      if (action === 'approve') {
+        await db.query(
+          `UPDATE tryland_tree_donations 
+           SET status = 'verified', verified_by = $1, verified_at = CURRENT_TIMESTAMP 
+           WHERE id = $2`,
+          [adminId, id]
+        );
+
+        await db.query(
+          `UPDATE tryland_trees 
+           SET trees_planted = trees_planted + $1, amount_raised = amount_raised + $2 
+           WHERE id = $3`,
+          [donation.tree_count, donation.amount, donation.initiative_id]
+        );
+
+        return res.json({
+          success: true,
+          message: `🌳 TRYLAND tree donation verified! Planted ${donation.tree_count} trees.`,
+          status: 'verified',
+        });
+      } else {
+        await db.query(
+          `UPDATE tryland_tree_donations 
+           SET status = 'rejected', verified_by = $1, verified_at = CURRENT_TIMESTAMP 
+           WHERE id = $2`,
+          [adminId, id]
+        );
+
+        return res.json({
+          success: true,
+          message: 'Tree donation rejected.',
+          status: 'rejected',
+        });
+      }
+    } else if (type === 'tryland') {
       const sponRes = await db.query('SELECT * FROM tryland_sponsorships WHERE id = $1', [id]);
       if (sponRes.rows.length === 0) {
         return res.status(404).json({ error: 'Sponsorship payment not found' });
