@@ -57,9 +57,21 @@ export default function GoogleSignInButton({
   const handleGoogleAuth = async () => {
     setLoading(true);
     try {
-      // 1. Check if backend has Google OAuth configured
-      const configRes = await fetch(`${LOCAL_API_URL}/api/auth/google/config`);
-      const config = configRes.ok ? await configRes.json() : { configured: false };
+      // 1. Check if backend has Google OAuth configured with timeout
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      let config = { configured: false, clientId: '' };
+      try {
+        const configRes = await fetch(`${LOCAL_API_URL}/api/auth/google/config`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if (configRes.ok) {
+          config = await configRes.json();
+        }
+      } catch {
+        clearTimeout(timer);
+      }
 
       if (config.configured) {
         // Live Google OAuth flow

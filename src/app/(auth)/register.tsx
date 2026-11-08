@@ -28,6 +28,7 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
@@ -45,28 +46,37 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!email || !password) {
+      setErrorMessage('Please fill in all fields.');
       Alert.alert('Missing Fields', 'Please fill in all fields.');
       return;
     }
 
     if (password !== confirmPassword) {
+      setErrorMessage('Your passwords do not match.');
       Alert.alert('Password Mismatch', 'Your passwords do not match.');
       return;
     }
 
     if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters.');
       Alert.alert('Weak Password', 'Password must be at least 6 characters.');
       return;
     }
 
     setLoading(true);
+    setErrorMessage(null);
+    const controller = new AbortController();
+    const timeoutTimer = setTimeout(() => controller.abort(), 20000);
+
     try {
       const response = await fetch(`${LOCAL_API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutTimer);
       const data = await response.json();
 
       if (!response.ok) {
@@ -76,11 +86,15 @@ export default function RegisterScreen() {
       await login(data.token, data.user);
       router.replace('/app' as any);
     } catch (error: any) {
-      Alert.alert(
-        'Registration Failed',
-        error.message || 'Unable to connect to the server. Check your connection and try again.'
-      );
+      clearTimeout(timeoutTimer);
+      const isTimeout = error.name === 'AbortError' || error.message?.includes('aborted');
+      const msg = isTimeout
+        ? 'Connection timed out. Please check your backend connection and try again.'
+        : error.message || 'Unable to connect to the server. Check your connection and try again.';
+      setErrorMessage(msg);
+      Alert.alert('Registration Failed', msg);
     } finally {
+      clearTimeout(timeoutTimer);
       setLoading(false);
     }
   };
@@ -186,6 +200,14 @@ export default function RegisterScreen() {
                 />
               </View>
             </View>
+
+            {/* Inline Error Banner */}
+            {errorMessage && (
+              <View style={[styles.errorBanner, { backgroundColor: colors.expense + '18', borderColor: colors.expense + '50' }]}>
+                <Ionicons name="alert-circle" size={18} color={colors.expense} />
+                <Text style={[styles.errorBannerText, { color: colors.expense }]}>{errorMessage}</Text>
+              </View>
+            )}
 
             {/* Register Button */}
             <TouchableOpacity
@@ -336,6 +358,22 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSize.md,
     paddingVertical: 0,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    marginBottom: Spacing.sm,
+  },
+  errorBannerText: {
+    fontSize: FontSize.xs + 1,
+    fontWeight: FontWeight.semibold,
+    flex: 1,
+    lineHeight: 18,
   },
   button: {
     height: 54,

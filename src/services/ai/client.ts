@@ -5,7 +5,19 @@ const isAndroid = Platform.OS === 'android';
 // Prefer EXPO_PUBLIC_API_URL from .env. If not set, use 10.0.2.2 for Android Emulator, localhost for iOS/Web.
 // For a physical device, you MUST set EXPO_PUBLIC_API_URL=http://<your-lan-ip>:3000 in your root .env file.
 const DEFAULT_URL = isAndroid ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
-export const LOCAL_API_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_URL;
+
+function resolveApiUrl(): string {
+  // When running on Web locally (localhost/127.0.0.1), route directly to local Express server on port 3000
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://localhost:3000';
+    }
+  }
+  return process.env.EXPO_PUBLIC_API_URL || DEFAULT_URL;
+}
+
+export const LOCAL_API_URL = resolveApiUrl();
 
 export const AI_CONFIG = {
   baseUrl: `${LOCAL_API_URL}/api`,
