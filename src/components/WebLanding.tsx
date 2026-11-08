@@ -668,19 +668,19 @@ function StudioHeroSection({
 
   return (
     <View style={[heroStyles.section, isMobile && heroStyles.sectionMobile]}>
-      {/* Hero Ambient Background - Innovation Logo */}
+      {/* Hero Ambient Background - Official Piggy Logo */}
       <View style={heroStyles.heroBgWrap} pointerEvents="none">
         <Image
           source={LOGO_GLOW}
           style={heroStyles.heroBgGlow}
           resizeMode="contain"
-          alt="Innovation Glow"
+          alt="Piggy Glow"
         />
         <Image
-          source={APP_ICON}
+          source={PIGGY_LOGO}
           style={heroStyles.heroBgLogo}
-          resizeMode="contain"
-          alt="Innovation Logo"
+          resizeMode="cover"
+          alt="Official SPR Piggy Hero Logo"
         />
       </View>
 
@@ -912,7 +912,7 @@ const heroStyles = StyleSheet.create({
   heroBgLogo: {
     width: 300,
     height: 300,
-    borderRadius: 60,
+    borderRadius: 150,
   },
   sectionMobile: {
     paddingTop: 108,
