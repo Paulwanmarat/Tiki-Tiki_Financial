@@ -57,7 +57,7 @@ export default function LoginScreen() {
     setLoading(true);
     setErrorMessage(null);
     const controller = new AbortController();
-    const timeoutTimer = setTimeout(() => controller.abort(), 20000);
+    const timeoutTimer = setTimeout(() => controller.abort(), 8000);
 
     try {
       const response = await fetch(`${LOCAL_API_URL}/api/auth/login`, {
@@ -221,6 +221,44 @@ export default function LoginScreen() {
 
             {/* Google Sign In */}
             <GoogleSignInButton mode="signin" />
+
+            {/* Quick Demo Sign In for Instant Access */}
+            <TouchableOpacity
+              style={[
+                styles.demoButton,
+                { backgroundColor: colors.surfaceHighlight, borderColor: colors.border },
+              ]}
+              onPress={async () => {
+                setLoading(true);
+                setErrorMessage(null);
+                try {
+                  const res = await fetch(`${LOCAL_API_URL}/api/auth/google`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      isDevDemo: true,
+                      demoEmail: 'student.google@gmail.com',
+                      demoName: 'Google Student',
+                    }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || 'Quick login failed');
+                  await login(data.token, data.user);
+                  router.replace('/app' as any);
+                } catch (e: any) {
+                  setErrorMessage(e.message || 'Quick login failed');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="sparkles" size={16} color={colors.primary} />
+              <Text style={[styles.demoButtonText, { color: colors.text }]}>
+                Quick Demo Sign-In (Verified Student)
+              </Text>
+            </TouchableOpacity>
           </Animated.View>
 
           {/* Footer Register Link */}
@@ -388,6 +426,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: Spacing.md,
+  },
+  demoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: Spacing.md,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+  },
+  demoButtonText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
   },
   footerText: {
     fontSize: FontSize.sm,

@@ -6,7 +6,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import Head from 'expo-router/head';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -54,19 +54,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       }
     }
   }, [user, isLoading, segments, isPublicRoute, inAuthGroup, topSegment]);
-
-  // NEVER block public routes, landing page, or auth screens with a full-screen loading spinner
-  if (isPublicRoute) {
-    return <>{children}</>;
-  }
-
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
 
   return <>{children}</>;
 }

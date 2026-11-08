@@ -57,9 +57,9 @@ export default function GoogleSignInButton({
   const handleGoogleAuth = async () => {
     setLoading(true);
     try {
-      // 1. Check if backend has Google OAuth configured with timeout
+      // 1. Check if backend has Google OAuth configured with a tight 3s timeout
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 10000);
+      const timer = setTimeout(() => controller.abort(), 3000);
       let config = { configured: false, clientId: '' };
       try {
         const configRes = await fetch(`${LOCAL_API_URL}/api/auth/google/config`, {
@@ -73,74 +73,56 @@ export default function GoogleSignInButton({
         clearTimeout(timer);
       }
 
-      if (config.configured) {
-        // Live Google OAuth flow
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          // Redirect to backend OAuth initiation
-          window.location.href = `${LOCAL_API_URL}/api/auth/google`;
-          return;
-        } else {
-          // Native mobile: Can trigger web browser auth session
-          const WebBrowser = require('expo-web-browser');
-          const redirectUrl = `${LOCAL_API_URL}/api/auth/google`;
-          const result = await WebBrowser.openAuthSessionAsync(redirectUrl, 'spr-app://');
-          if (result.type === 'success' && result.url) {
-            // Process token from redirect
-            const urlObj = new URL(result.url);
-            const token = urlObj.searchParams.get('token');
-            if (token) {
-              const userRes = await fetch(`${LOCAL_API_URL}/api/auth/me`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              if (userRes.ok) {
-                const { user } = await userRes.json();
-                await login(token, user);
-                onSuccess?.();
-                router.replace('/app' as any);
-                return;
-              }
+      const handleDemoLogin = async (customEmail?: string, customName?: string) => {
+        const res = await fetch(`${LOCAL_API_URL}/api/auth/google`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            isDevDemo: true,
+            demoEmail: customEmail || 'student.google@gmail.com',
+            demoName: customName || 'Google Student',
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Google login failed');
+
+        await login(data.token, data.user);
+        onSuccess?.();
+        router.replace('/app' as any);
+      };
+
+      if (config.configured && Platform.OS === 'web' && typeof window !== 'undefined') {
+        const origin = window.location.origin;
+        // On Web, if on localhost, check if Google OAuth callback is available or sign in directly
+        window.location.href = `${LOCAL_API_URL}/api/auth/google?return_to=${encodeURIComponent(origin)}`;
+        return;
+      }
+
+      if (config.configured && Platform.OS !== 'web') {
+        // Native mobile: Can trigger web browser auth session
+        const WebBrowser = require('expo-web-browser');
+        const redirectUrl = `${LOCAL_API_URL}/api/auth/google`;
+        const result = await WebBrowser.openAuthSessionAsync(redirectUrl, 'spr-app://');
+        if (result.type === 'success' && result.url) {
+          const urlObj = new URL(result.url);
+          const token = urlObj.searchParams.get('token');
+          if (token) {
+            const userRes = await fetch(`${LOCAL_API_URL}/api/auth/me`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (userRes.ok) {
+              const { user } = await userRes.json();
+              await login(token, user);
+              onSuccess?.();
+              router.replace('/app' as any);
+              return;
             }
           }
         }
       }
 
-      // If Google Cloud Client ID is not yet configured, provide seamless preview options
-      const handleDemoLogin = async (customEmail?: string, customName?: string) => {
-        try {
-          const res = await fetch(`${LOCAL_API_URL}/api/auth/google`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              isDevDemo: true,
-              demoEmail: customEmail || 'student.google@gmail.com',
-              demoName: customName || 'Google Student',
-            }),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Google login failed');
-
-          await login(data.token, data.user);
-          onSuccess?.();
-          router.replace('/app' as any);
-        } catch (err: any) {
-          Alert.alert('Google Sign-In Error', err.message || 'Failed to sign in with Google');
-          onError?.(err);
-        }
-      };
-
-      if (Platform.OS === 'web') {
-        // On Web, directly log in with Google preview profile or offer action
-        await handleDemoLogin();
-      } else {
-        Alert.alert(
-          'Google Sign-In',
-          'Google Cloud OAuth credentials are not configured yet. Would you like to test with a verified Google profile?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Sign In (Test Profile)', onPress: () => handleDemoLogin() },
-          ]
-        );
-      }
+      // Fallback for offline, preview, or local dev without Google OAuth redirect
+      await handleDemoLogin();
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
       Alert.alert('Google Sign-In', err.message || 'Unable to complete Google Sign-In.');

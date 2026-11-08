@@ -678,9 +678,26 @@ router.get('/google', (req, res) => {
     });
   }
 
-  const frontendUrl = process.env.FRONTEND_URL || 'https://spr-app.expo.app';
+  let requestedReturnTo: string | null = null;
+  if (typeof req.query.return_to === 'string') {
+    requestedReturnTo = req.query.return_to;
+  } else if (req.headers.referer) {
+    try {
+      requestedReturnTo = new URL(req.headers.referer).origin;
+    } catch {
+      // Ignore URL parse error
+    }
+  }
+
+  const frontendUrl = requestedReturnTo || process.env.FRONTEND_URL || 'https://spr-app.expo.app';
   const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${frontendUrl}/auth-callback`;
-  const state = crypto.randomBytes(16).toString('hex');
+
+  // Encode state as JSON base64url so callback knows where to redirect
+  const stateObj = {
+    nonce: crypto.randomBytes(8).toString('hex'),
+    returnTo: frontendUrl,
+  };
+  const state = Buffer.from(JSON.stringify(stateObj)).toString('base64url');
 
   const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   googleAuthUrl.searchParams.set('client_id', clientId);
@@ -694,7 +711,18 @@ router.get('/google', (req, res) => {
 });
 
 router.get('/google/callback', async (req, res) => {
-  const frontendUrl = process.env.FRONTEND_URL || 'https://spr-app.expo.app';
+  let frontendUrl = process.env.FRONTEND_URL || 'https://spr-app.expo.app';
+  if (typeof req.query.state === 'string') {
+    try {
+      const decoded = JSON.parse(Buffer.from(req.query.state, 'base64url').toString('utf8'));
+      if (decoded.returnTo && typeof decoded.returnTo === 'string') {
+        frontendUrl = decoded.returnTo;
+      }
+    } catch {
+      // Fallback to default frontendUrl
+    }
+  }
+
   try {
     const { code, error } = req.query;
     if (error || !code || typeof code !== 'string') {
