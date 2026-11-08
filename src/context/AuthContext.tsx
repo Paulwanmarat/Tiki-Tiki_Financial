@@ -1,4 +1,4 @@
-import { LOCAL_API_URL } from '@/services/ai/client';
+import { LOCAL_API_URL, isProductionWeb } from '@/services/ai/client';
 import { getTokenSafe, setTokenSafe, removeTokenSafe } from '@/utils/storage';
 import { jwtDecode } from 'jwt-decode';
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
@@ -18,6 +18,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: (token: string, user: User) => Promise<void>;
+  loginOffline: (user: User) => void;
   logout: () => Promise<void>;
   refreshUser: () => Promise<User | null>;
   refreshUserProfile: () => Promise<void>;
@@ -59,6 +60,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState<boolean>(initialData.isLoading);
 
   const fetchUser = async (authToken: string): Promise<User | null> => {
+    // Skip remote fetch on production web — backend may be sleeping, use local JWT claims instead
+    if (isProductionWeb()) return null;
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 4000);
@@ -91,22 +94,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const refreshUserProfile = async () => {
-    if (token) {
-      try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 4000);
-        const response = await fetch(`${LOCAL_API_URL}/api/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: controller.signal,
-        });
-        clearTimeout(timer);
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
-        }
-      } catch (e) {
-        console.error('Failed to fetch user profile', e);
+    if (!token) return;
+    // Skip remote fetch on production web — backend may be sleeping
+    if (isProductionWeb()) return;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 4000);
+      const response = await fetch(`${LOCAL_API_URL}/api/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
       }
+    } catch (e) {
+      console.error('Failed to fetch user profile', e);
     }
   };
 
@@ -119,7 +123,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const restoreSession = async () => {
       try {
         const storedToken = await getTokenSafe('userToken');
-        if (storedToken) {
+        // Skip restoring offline/demo sessions — they don't have valid JWTs
+        if (storedToken && storedToken !== 'OFFLINE_DEMO_SESSION') {
           const decoded = jwtDecode<User & { exp: number }>(storedToken);
           if (decoded.exp * 1000 > Date.now()) {
             setToken(storedToken);
@@ -150,6 +155,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(newUser);
   };
 
+  const loginOffline = (newUser: User) => {
+    // Offline/demo login: set user in context without a server-signed token.
+    // API calls that require auth will fail gracefully, but the app UI loads immediately.
+    const offlineToken = 'OFFLINE_DEMO_SESSION';
+    setToken(offlineToken);
+    setUser({ ...newUser, email_verified: true });
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+      // Don't persist offline token to localStorage so it clears on refresh
+    }
+  };
+
   const logout = async () => {
     await removeTokenSafe('userToken');
     setToken(null);
@@ -157,7 +173,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, refreshUser, refreshUserProfile, markEmailVerified }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, loginOffline, logout, refreshUser, refreshUserProfile, markEmailVerified }}>
       {children}
     </AuthContext.Provider>
   );

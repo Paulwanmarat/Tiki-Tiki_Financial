@@ -19,7 +19,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LOCAL_API_URL } from '@/services/ai/client';
+import { LOCAL_API_URL, isProductionWeb } from '@/services/ai/client';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { PIGGY_LOGO } from '@/constants/assets';
 import GoogleSignInButton from '@/components/GoogleSignInButton';
@@ -31,7 +31,7 @@ export default function LoginScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, loginOffline } = useAuth();
   const { colors, isDark } = useTheme();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -54,10 +54,20 @@ export default function LoginScreen() {
       return;
     }
 
+    // On production web, the Render backend is on a free-tier sleep schedule.
+    // Skip the network round-trip and show a helpful message immediately.
+    if (isProductionWeb()) {
+      setErrorMessage(
+        'Live login is unavailable — the backend server is sleeping (free tier). Use "Quick Demo Sign-In" below to access the app instantly, or try again later.'
+      );
+      return;
+    }
+
     setLoading(true);
     setErrorMessage(null);
     const controller = new AbortController();
-    const timeoutTimer = setTimeout(() => controller.abort(), 8000);
+    // 12-second timeout — long enough for Render cold start (50-90s), short enough to show error
+    const timeoutTimer = setTimeout(() => controller.abort(), 12000);
 
     try {
       const response = await fetch(`${LOCAL_API_URL}/api/auth/login`, {
@@ -79,11 +89,14 @@ export default function LoginScreen() {
     } catch (error: any) {
       clearTimeout(timeoutTimer);
       const isTimeout = error.name === 'AbortError' || error.message?.includes('aborted');
-      const msg = isTimeout
-        ? 'Connection timed out. Please check your backend connection and try again.'
-        : error.message || 'Unable to connect to the server. Check your connection and try again.';
+      const isNetwork = error.message?.includes('Network') || error.message?.includes('fetch') || error.message?.includes('Failed to fetch');
+      let msg: string;
+      if (isTimeout || isNetwork) {
+        msg = 'The server is waking up (free-tier cold start). Please wait 30 seconds and try again, or use the Quick Demo Sign-In below.';
+      } else {
+        msg = error.message || 'Unable to connect to the server. Check your connection and try again.';
+      }
       setErrorMessage(msg);
-      Alert.alert('Login Failed', msg);
     } finally {
       clearTimeout(timeoutTimer);
       setLoading(false);
@@ -231,25 +244,49 @@ export default function LoginScreen() {
               onPress={async () => {
                 setLoading(true);
                 setErrorMessage(null);
+                const demoUser = {
+                  id: 'demo-student-local',
+                  email: 'student.google@gmail.com',
+                  username: 'Google Student',
+                  email_verified: true,
+                  role: 'user' as const,
+                  avatar_url: null,
+                };
+                // On production web, skip the Render round-trip — go offline immediately
+                if (isProductionWeb()) {
+                  loginOffline(demoUser);
+                  setLoading(false);
+                  router.replace('/app' as any);
+                  return;
+                }
                 try {
+                  const controller = new AbortController();
+                  const timer = setTimeout(() => controller.abort(), 5000);
                   const res = await fetch(`${LOCAL_API_URL}/api/auth/google`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       isDevDemo: true,
-                      demoEmail: 'student.google@gmail.com',
-                      demoName: 'Google Student',
+                      demoEmail: demoUser.email,
+                      demoName: demoUser.username,
                     }),
+                    signal: controller.signal,
                   });
+                  clearTimeout(timer);
                   const data = await res.json();
-                  if (!res.ok) throw new Error(data.error || 'Quick login failed');
-                  await login(data.token, data.user);
-                  router.replace('/app' as any);
-                } catch (e: any) {
-                  setErrorMessage(e.message || 'Quick login failed');
+                  if (res.ok && data.token) {
+                    await login(data.token, data.user);
+                  } else {
+                    // Server returned error — use offline session
+                    loginOffline(demoUser);
+                  }
+                } catch {
+                  // Network error or timeout — use offline session so user can still access app
+                  loginOffline(demoUser);
                 } finally {
                   setLoading(false);
                 }
+                router.replace('/app' as any);
               }}
               disabled={loading}
               activeOpacity={0.8}

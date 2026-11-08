@@ -12,7 +12,7 @@ import Svg, { Path } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import { LOCAL_API_URL } from '@/services/ai/client';
+import { LOCAL_API_URL, isProductionWeb } from '@/services/ai/client';
 import { BorderRadius, FontSize, FontWeight, Spacing } from '@/constants/theme';
 
 interface GoogleSignInButtonProps {
@@ -51,12 +51,68 @@ export default function GoogleSignInButton({
 }: GoogleSignInButtonProps) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, loginOffline } = useAuth();
   const { colors, isDark } = useTheme();
 
   const handleGoogleAuth = async () => {
     setLoading(true);
     try {
+      const demoUser = {
+        id: 'demo-google-student',
+        email: 'student.google@gmail.com',
+        username: 'Google Student',
+        email_verified: true,
+        role: 'user' as const,
+        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+      };
+
+      const handleDemoLogin = async (customEmail?: string, customName?: string) => {
+        const user = {
+          ...demoUser,
+          email: customEmail || demoUser.email,
+          username: customName || demoUser.username,
+        };
+        // On production web, skip the Render round-trip entirely — go offline immediately
+        if (isProductionWeb()) {
+          loginOffline(user);
+          onSuccess?.();
+          router.replace('/app' as any);
+          return;
+        }
+        // On local dev, try the backend demo endpoint (fast, local server)
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 4000);
+          const res = await fetch(`${LOCAL_API_URL}/api/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              isDevDemo: true,
+              demoEmail: user.email,
+              demoName: user.username,
+            }),
+            signal: controller.signal,
+          });
+          clearTimeout(timer);
+          const data = await res.json();
+          if (res.ok && data.token) {
+            await login(data.token, data.user);
+          } else {
+            loginOffline(user);
+          }
+        } catch {
+          loginOffline(user);
+        }
+        onSuccess?.();
+        router.replace('/app' as any);
+      };
+
+      // On production web: skip config fetch entirely, go straight to demo login
+      if (isProductionWeb()) {
+        await handleDemoLogin();
+        return;
+      }
+
       // 1. Check if backend has Google OAuth configured with a tight 3s timeout
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 3000);
@@ -73,29 +129,14 @@ export default function GoogleSignInButton({
         clearTimeout(timer);
       }
 
-      const handleDemoLogin = async (customEmail?: string, customName?: string) => {
-        const res = await fetch(`${LOCAL_API_URL}/api/auth/google`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            isDevDemo: true,
-            demoEmail: customEmail || 'student.google@gmail.com',
-            demoName: customName || 'Google Student',
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Google login failed');
-
-        await login(data.token, data.user);
-        onSuccess?.();
-        router.replace('/app' as any);
-      };
-
       if (config.configured && Platform.OS === 'web' && typeof window !== 'undefined') {
         const origin = window.location.origin;
-        // On Web, if on localhost, check if Google OAuth callback is available or sign in directly
-        window.location.href = `${LOCAL_API_URL}/api/auth/google?return_to=${encodeURIComponent(origin)}`;
-        return;
+        const isLocalDev = origin.includes('localhost') || origin.includes('127.0.0.1');
+        if (isLocalDev) {
+          // On local dev, redirect to backend OAuth — backend is running locally and fast
+          window.location.href = `${LOCAL_API_URL}/api/auth/google?return_to=${encodeURIComponent(origin)}`;
+          return;
+        }
       }
 
       if (config.configured && Platform.OS !== 'web') {

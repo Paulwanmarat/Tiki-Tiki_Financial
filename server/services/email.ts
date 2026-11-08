@@ -11,7 +11,7 @@ export async function sendVerificationEmail(email: string, verificationToken: st
   // Use a configured sender if available, otherwise default to Resend's onboarding address
   const sender = process.env.RESEND_FROM_EMAIL || 'SPR App <onboarding@resend.dev>';
   
-  const verificationUrl = `https://tiki-tiki-financial.onrender.com/api/auth/verify-email?token=${verificationToken}`;
+  const verificationUrl = `${process.env.FRONTEND_URL || 'https://spr-app.expo.app'}/verify-email?token=${verificationToken}`;
 
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
