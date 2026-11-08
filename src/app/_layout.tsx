@@ -13,39 +13,52 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
   const router = useRouter();
 
+  const topSegment = segments[0] as string | undefined;
+  const isRoot = !topSegment || topSegment === 'index';
+  const isWebPublicLanding = Platform.OS === 'web' && isRoot;
+  const inAuthGroup = topSegment === '(auth)' || topSegment === 'auth-callback';
+  const isPublicRoute =
+    isWebPublicLanding ||
+    inAuthGroup ||
+    topSegment === 'donate' ||
+    topSegment === 'rk' ||
+    topSegment === 'tryland' ||
+    topSegment === 'projects' ||
+    topSegment === 'marketplace' ||
+    topSegment === 'simulator' ||
+    topSegment === 'feedback';
+
   useEffect(() => {
     if (isLoading) return;
 
-    const topSegment = segments[0] as string | undefined;
-    const isRoot = !topSegment || topSegment === 'index';
-    const inAuthGroup = topSegment === '(auth)';
     const isVerifyEmail = topSegment === 'verify-email';
-    const isAuthCallback = topSegment === 'auth-callback';
 
-    // Allow auth-callback to process tokens before redirecting
-    if (isAuthCallback) {
-      return;
-    }
-
-    // On Web, '/' is the public marketing landing page, which is always accessible
-    if (Platform.OS === 'web' && isRoot) {
+    // Public routes are always accessible
+    if (isPublicRoute) {
+      // If user is already verified and logged in, redirect them away from auth screens to /app
+      if (user && user.email_verified && inAuthGroup) {
+        router.replace('/app' as any);
+      }
       return;
     }
 
     if (!user) {
-      if (!inAuthGroup) {
-        router.replace('/(auth)/login' as any);
-      }
+      router.replace('/(auth)/login' as any);
     } else {
       if (!user.email_verified && !isVerifyEmail) {
         // Redirect unverified users to verify-email
         router.replace('/verify-email' as any);
-      } else if (user.email_verified && (inAuthGroup || isVerifyEmail)) {
-        // Redirect verified users away from auth and verify-email to /app
+      } else if (user.email_verified && isVerifyEmail) {
+        // Redirect verified users away from verify-email to /app
         router.replace('/app' as any);
       }
     }
-  }, [user, isLoading, segments]);
+  }, [user, isLoading, segments, isPublicRoute, inAuthGroup, topSegment]);
+
+  // NEVER block public routes, landing page, or auth screens with a full-screen loading spinner
+  if (isPublicRoute) {
+    return <>{children}</>;
+  }
 
   if (isLoading) {
     return (

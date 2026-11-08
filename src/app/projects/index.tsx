@@ -14,7 +14,7 @@ import {
   Alert,
   Modal,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
@@ -106,7 +106,10 @@ export default function ProjectsScreen() {
       setNewBudget('');
       setNewDesc('');
       setNewOutcome('');
-      Alert.alert('Success', 'Project added to catalog successfully!');
+      // Reset active filters so the newly launched project is immediately visible
+      setSelectedCategory('All');
+      setSelectedDifficulty('All');
+      setSearch('');
       await loadData();
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Failed to create project');
@@ -136,9 +139,11 @@ export default function ProjectsScreen() {
     }
   }, [selectedCategory, selectedDifficulty, search]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);

@@ -79,16 +79,7 @@ export default function RKRequestScreen() {
         document_url: documentUrl.trim(),
       });
 
-      Alert.alert(
-        'Bill Uploaded',
-        result.message || 'Your bill was submitted for verification. Random Kindness supporters will be able to sponsor it once verified by an admin.',
-        [
-          {
-            text: 'Track My Bills',
-            onPress: () => router.replace('/rk/my-requests' as any),
-          },
-        ]
-      );
+      router.replace('/rk/my-requests' as any);
     } catch (err: any) {
       setErrors([err.message || 'Failed to submit request']);
     } finally {

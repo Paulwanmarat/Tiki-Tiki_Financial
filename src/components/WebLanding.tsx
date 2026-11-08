@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { SurveyResults } from './SurveyResults';
 import { LiveWebImpactSection } from './impact/LiveWebImpactSection';
-import { PIGGY_LOGO, SCHOOL_LOGO, ANTHONY_PHOTO } from '@/constants/assets';
+import { PIGGY_LOGO, SCHOOL_LOGO, ANTHONY_PHOTO, APP_ICON, LOGO_GLOW } from '@/constants/assets';
 
 /* ───────────────────────────────────────────────────────────────── */
 /*  FadeInSection — Scroll-triggered fade + slide-up transition     */
@@ -668,6 +668,22 @@ function StudioHeroSection({
 
   return (
     <View style={[heroStyles.section, isMobile && heroStyles.sectionMobile]}>
+      {/* Hero Ambient Background - Innovation Logo */}
+      <View style={heroStyles.heroBgWrap} pointerEvents="none">
+        <Image
+          source={LOGO_GLOW}
+          style={heroStyles.heroBgGlow}
+          resizeMode="contain"
+          alt="Innovation Glow"
+        />
+        <Image
+          source={APP_ICON}
+          style={heroStyles.heroBgLogo}
+          resizeMode="contain"
+          alt="Innovation Logo"
+        />
+      </View>
+
       <View style={[heroStyles.grid, isMobile && heroStyles.gridMobile]}>
         {/* Left Editorial Text Column */}
         <View style={[heroStyles.leftCol, isMobile && heroStyles.leftColMobile]}>
@@ -753,26 +769,6 @@ function StudioHeroSection({
               Saipanyarangsit MEP Project · Advised by{' '}
               <Text style={{ fontWeight: '700', color: S.textLight }}>Mr. Anthony Jose B. Ferrer</Text>
             </Text>
-          </View>
-
-          {/* Studio Upgrade Highlights */}
-          <View style={heroStyles.featurePillsRow}>
-            <View style={heroStyles.featurePill}>
-              <Ionicons name="flash-outline" size={12} color={S.mintCash} />
-              <Text style={heroStyles.featurePillText}>Instant Live Data Sync</Text>
-            </View>
-            <View style={heroStyles.featurePill}>
-              <Ionicons name="globe-outline" size={12} color={S.piggyPink} />
-              <Text style={heroStyles.featurePillText}>18 Global Currencies</Text>
-            </View>
-            <View style={heroStyles.featurePill}>
-              <Ionicons name="calendar-outline" size={12} color={S.amberCoin} />
-              <Text style={heroStyles.featurePillText}>Smart Touch Date Picker</Text>
-            </View>
-            <View style={heroStyles.featurePill}>
-              <Ionicons name="sparkles-outline" size={12} color="#A78BFA" />
-              <Text style={heroStyles.featurePillText}>Unified Goals & AI Chats</Text>
-            </View>
           </View>
         </View>
 
@@ -891,6 +887,32 @@ const heroStyles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: S.canvasDarkBorder,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  heroBgWrap: {
+    position: 'absolute',
+    top: 40,
+    left: '50%',
+    marginLeft: -250,
+    width: 500,
+    height: 500,
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.14,
+    zIndex: 0,
+    pointerEvents: 'none',
+  },
+  heroBgGlow: {
+    position: 'absolute',
+    width: 540,
+    height: 540,
+    opacity: 0.75,
+  },
+  heroBgLogo: {
+    width: 300,
+    height: 300,
+    borderRadius: 60,
   },
   sectionMobile: {
     paddingTop: 108,
@@ -903,6 +925,8 @@ const heroStyles = StyleSheet.create({
     width: '100%',
     gap: 48,
     alignItems: 'center',
+    position: 'relative',
+    zIndex: 1,
   },
   gridMobile: {
     flexDirection: 'column',
@@ -1054,30 +1078,6 @@ const heroStyles = StyleSheet.create({
   advisorTagText: {
     fontSize: 12,
     color: S.textLightMuted,
-  },
-  featurePillsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 10,
-    marginBottom: 4,
-  },
-  featurePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: S.canvasDarkCard,
-    borderWidth: 1,
-    borderColor: S.canvasDarkBorder,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 99,
-  },
-  featurePillText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: S.textLight,
-    letterSpacing: 0.2,
   },
   rightCol: {
     flex: 0.95,

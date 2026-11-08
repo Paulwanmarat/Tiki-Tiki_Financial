@@ -14,7 +14,7 @@ import {
   Modal,
   KeyboardAvoidingView,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
@@ -72,9 +72,11 @@ export default function TrylandTreePlantingScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);

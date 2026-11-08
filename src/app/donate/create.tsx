@@ -123,12 +123,7 @@ export default function CreateDonateCampaignScreen() {
         cover_image: coverImage.trim(),
       });
 
-      Alert.alert('Campaign Launched! 🎗️', 'Your fundraising campaign is now live for community support.', [
-        {
-          text: 'View Campaign',
-          onPress: () => router.replace(`/donate/${created.id}` as any),
-        },
-      ]);
+      router.replace(`/donate/${created.id}` as any);
     } catch (err: any) {
       setErrors([err.message || 'Failed to create campaign']);
     } finally {

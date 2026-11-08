@@ -13,7 +13,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
@@ -98,9 +98,11 @@ export default function MarketplaceScreen() {
     }
   }, [search, selectedCategory, selectedCondition, sortBy]);
 
-  useEffect(() => {
-    loadListings();
-  }, [loadListings]);
+  useFocusEffect(
+    useCallback(() => {
+      loadListings();
+    }, [loadListings])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);

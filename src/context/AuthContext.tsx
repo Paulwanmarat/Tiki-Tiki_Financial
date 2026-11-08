@@ -27,22 +27,53 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [initialData] = useState(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const storedToken = window.localStorage.getItem('userToken');
+        if (storedToken) {
+          const decoded = jwtDecode<User & { exp: number }>(storedToken);
+          if (decoded && decoded.exp * 1000 > Date.now()) {
+            return {
+              token: storedToken,
+              user: {
+                id: decoded.id,
+                email: decoded.email,
+                email_verified: Boolean(decoded.email_verified),
+                username: decoded.username || null,
+                role: decoded.role || 'user',
+              },
+              isLoading: false,
+            };
+          }
+        }
+      } catch (err) {
+        console.warn('Sync auth restore error:', err);
+      }
+    }
+    return { token: null, user: null, isLoading: Platform.OS !== 'web' };
+  });
+
+  const [user, setUser] = useState<User | null>(initialData.user);
+  const [token, setToken] = useState<string | null>(initialData.token);
+  const [isLoading, setIsLoading] = useState<boolean>(initialData.isLoading);
 
   const fetchUser = async (authToken: string): Promise<User | null> => {
     try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 4000);
       const response = await fetch(`${LOCAL_API_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${authToken}` },
+        signal: controller.signal,
       });
+      clearTimeout(timer);
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
         return data.user;
       }
     } catch (e) {
-      console.error('Failed to fetch user', e);
+      console.warn('Failed to fetch user session from server, using local session state:', e);
     }
     return null;
   };
@@ -62,9 +93,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshUserProfile = async () => {
     if (token) {
       try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 4000);
         const response = await fetch(`${LOCAL_API_URL}/api/profile`, {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
         });
+        clearTimeout(timer);
         if (response.ok) {
           const data = await response.json();
           setUser(data.user);
@@ -76,6 +111,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) setIsLoading(false);
+    }, 3000);
+
     const restoreSession = async () => {
       try {
         const storedToken = await getTokenSafe('userToken');
@@ -83,7 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const decoded = jwtDecode<User & { exp: number }>(storedToken);
           if (decoded.exp * 1000 > Date.now()) {
             setToken(storedToken);
-            setUser({ id: decoded.id, email: decoded.email, email_verified: false }); // initial state
+            setUser({ id: decoded.id, email: decoded.email, email_verified: false, role: (decoded as any).role });
             await fetchUser(storedToken);
           } else {
             await removeTokenSafe('userToken');
@@ -92,10 +132,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (e) {
         console.error('Session restore failed', e);
       } finally {
-        setIsLoading(false);
+        clearTimeout(safetyTimer);
+        if (isMounted) setIsLoading(false);
       }
     };
     restoreSession();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(safetyTimer);
+    };
   }, []);
 
   const login = async (newToken: string, newUser: User) => {
