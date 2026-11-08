@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, SafeAreaView, Platform } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,34 +12,9 @@ export default function VerifyEmailScreen() {
   const { user, token, refreshUser, logout, markEmailVerified } = useAuth();
   const { colors, isDark } = useTheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ token?: string }>();
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [instantVerifying, setInstantVerifying] = useState(false);
-
-  // If user clicked the verification link with a token param in the URL, verify immediately
-  useEffect(() => {
-    if (params.token) {
-      const verifyToken = async () => {
-        setInstantVerifying(true);
-        try {
-          const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), 4000);
-          await fetch(`${LOCAL_API_URL}/api/auth/verify-email?token=${encodeURIComponent(params.token!)}`, {
-            signal: controller.signal,
-          });
-          clearTimeout(timer);
-        } catch {
-          // Fall through
-        }
-        markEmailVerified();
-        await refreshUser();
-        setInstantVerifying(false);
-        router.replace('/app' as any);
-      };
-      verifyToken();
-    }
-  }, [params.token]);
 
   const handleRefresh = async () => {
     setLoading(true);
@@ -70,8 +45,6 @@ export default function VerifyEmailScreen() {
     setInstantVerifying(true);
     try {
       const activeToken = token || (await getTokenSafe('userToken'));
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 3000);
       const response = await fetch(`${LOCAL_API_URL}/api/auth/instant-verify`, {
         method: 'POST',
         headers: {
@@ -79,9 +52,7 @@ export default function VerifyEmailScreen() {
           ...(activeToken ? { Authorization: `Bearer ${activeToken}` } : {}),
         },
         body: JSON.stringify({ email: user?.email }),
-        signal: controller.signal,
       });
-      clearTimeout(timer);
 
       const data = await response.json().catch(() => ({}));
 

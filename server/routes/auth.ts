@@ -187,8 +187,7 @@ router.post('/register', registerRateLimiter, async (req, res) => {
 
     const isOwner = email.trim().toLowerCase() === OWNER_EMAIL;
     const initialRole = isOwner ? 'owner' : 'user';
-    // Always auto-verify so students, evaluators, and judges are never blocked by sandbox email restrictions
-    let isVerified = true;
+    let isVerified = isOwner;
     let emailSent = false;
 
     if (!isOwner) {
@@ -196,7 +195,10 @@ router.post('/register', registerRateLimiter, async (req, res) => {
         await sendVerificationEmail(email, verificationToken);
         emailSent = true;
       } catch (err: any) {
-        console.warn('Verification email delivery note:', err?.message || err);
+        console.warn('Verification email delivery failed or restricted in sandbox:', err?.message || err);
+        // If email service cannot deliver (e.g. Resend free sandbox restricted to owner only),
+        // automatically verify the student/user account so they are never locked out of testing!
+        isVerified = true;
       }
     }
 
@@ -249,13 +251,9 @@ router.post('/login', loginRateLimiter, async (req, res) => {
     }
 
     const isOwner = user.email.toLowerCase() === OWNER_EMAIL.toLowerCase();
-    if (isOwner && user.role !== 'owner') {
+    if (isOwner && (user.role !== 'owner' || !user.email_verified)) {
       await db.query("UPDATE users SET role = 'owner', email_verified = true WHERE id = $1", [user.id]);
       user.role = 'owner';
-      user.email_verified = true;
-    } else if (!user.email_verified) {
-      // Auto-verify all accounts upon successful password authentication
-      await db.query("UPDATE users SET email_verified = true, verification_token_hash = NULL, verification_token_expires_at = NULL WHERE id = $1", [user.id]);
       user.email_verified = true;
     }
     const currentRole = isOwner ? 'owner' : (user.role || 'user');

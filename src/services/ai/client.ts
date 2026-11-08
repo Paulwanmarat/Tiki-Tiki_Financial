@@ -17,18 +17,6 @@ export function resolveApiUrl(): string {
   return process.env.EXPO_PUBLIC_API_URL || DEFAULT_URL;
 }
 
-/**
- * Returns true when the app is running on the production Expo hosting (spr-app.expo.app)
- * where the Render backend is on a free-tier sleep schedule and may be unreachable.
- * On localhost or native, the backend is expected to be reachable.
- */
-export function isProductionWeb(): boolean {
-  if (Platform.OS !== 'web') return false;
-  if (typeof window === 'undefined') return false;
-  const host = window.location.hostname;
-  return host !== 'localhost' && host !== '127.0.0.1';
-}
-
 export const getApiUrl = resolveApiUrl;
 
 export const LOCAL_API_URL = resolveApiUrl();
