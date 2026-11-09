@@ -92,7 +92,9 @@ export default function RegisterScreen() {
         ? 'Connection timed out. Please check your backend connection and try again.'
         : error.message || 'Unable to connect to the server. Check your connection and try again.';
       setErrorMessage(msg);
-      Alert.alert('Registration Failed', msg);
+      if (Platform.OS !== 'web') {
+        Alert.alert('Registration Failed', msg);
+      }
     } finally {
       clearTimeout(timeoutTimer);
       setLoading(false);

@@ -10,5 +10,21 @@ if (fs.existsSync(distDir)) {
     fs.writeFileSync(p, c, 'utf8');
     console.log('Injected title into', f);
   });
+
+  // Ensure /app directly loads the app screen without 404
+  const appIndex = path.join(distDir, 'app', 'index.html');
+  const appHtml = path.join(distDir, 'app.html');
+  if (fs.existsSync(appIndex)) {
+    fs.copyFileSync(appIndex, appHtml);
+    console.log('Created dist/app.html alias from dist/app/index.html');
+  }
+
+  // Ensure standard web hosting 404 fallback routes to index.html for SPA client-side routing
+  const rootIndex = path.join(distDir, 'index.html');
+  const notFoundHtml = path.join(distDir, '404.html');
+  if (fs.existsSync(rootIndex)) {
+    fs.copyFileSync(rootIndex, notFoundHtml);
+    console.log('Created dist/404.html fallback from dist/index.html');
+  }
 }
 

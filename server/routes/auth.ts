@@ -207,7 +207,16 @@ router.post('/register', registerRateLimiter, async (req, res) => {
       [id, email.trim(), passwordHash, isVerified, isVerified ? null : verificationTokenHash, isVerified ? null : expiresAt, initialRole]
     );
 
-    const token = jwt.sign({ id, email: email.trim() }, secret, { expiresIn: '7d' });
+    const token = jwt.sign(
+      {
+        id,
+        email: email.trim(),
+        email_verified: isVerified,
+        role: initialRole,
+      },
+      secret,
+      { expiresIn: '7d' }
+    );
 
     res.status(201).json({
       message: isVerified
@@ -258,7 +267,17 @@ router.post('/login', loginRateLimiter, async (req, res) => {
     }
     const currentRole = isOwner ? 'owner' : (user.role || 'user');
 
-    const token = jwt.sign({ id: user.id, email: user.email }, secret, { expiresIn: '7d' });
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        email_verified: Boolean(user.email_verified),
+        role: currentRole,
+        username: user.username,
+      },
+      secret,
+      { expiresIn: '7d' }
+    );
 
     res.json({
       message: 'Login successful',
@@ -658,7 +677,17 @@ async function handleGoogleUserPersistence(googleUser: {
     userRow.role = 'owner';
   }
 
-  const token = jwt.sign({ id: userRow.id, email: userRow.email }, secret, { expiresIn: '7d' });
+  const token = jwt.sign(
+    {
+      id: userRow.id,
+      email: userRow.email,
+      email_verified: Boolean(userRow.email_verified),
+      role: userRow.role || 'user',
+      username: userRow.username,
+    },
+    secret,
+    { expiresIn: '7d' }
+  );
   return { token, user: userRow };
 }
 

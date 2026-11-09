@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               user: {
                 id: decoded.id,
                 email: decoded.email,
-                email_verified: Boolean(decoded.email_verified),
+                email_verified: decoded.email_verified !== undefined ? Boolean(decoded.email_verified) : true,
                 username: decoded.username || null,
                 role: decoded.role || 'user',
               },
@@ -123,7 +123,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const decoded = jwtDecode<User & { exp: number }>(storedToken);
           if (decoded.exp * 1000 > Date.now()) {
             setToken(storedToken);
-            setUser({ id: decoded.id, email: decoded.email, email_verified: false, role: (decoded as any).role });
+            setUser({
+              id: decoded.id,
+              email: decoded.email,
+              email_verified: decoded.email_verified !== undefined ? Boolean(decoded.email_verified) : true,
+              username: decoded.username || null,
+              role: (decoded as any).role || 'user',
+            });
             await fetchUser(storedToken);
           } else {
             await removeTokenSafe('userToken');

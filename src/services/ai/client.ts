@@ -7,14 +7,20 @@ const isAndroid = Platform.OS === 'android';
 const DEFAULT_URL = isAndroid ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 
 export function resolveApiUrl(): string {
-  // When running on Web locally (localhost/127.0.0.1), route directly to local Express server on port 3000
+  // If EXPO_PUBLIC_API_URL is configured (e.g. production Render), always honor it first!
+  const configuredUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (configuredUrl && configuredUrl.trim().length > 0) {
+    return configuredUrl.trim();
+  }
+
+  // Fallback for local development when EXPO_PUBLIC_API_URL is unset
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) {
     const host = window.location.hostname;
     if (host === 'localhost' || host === '127.0.0.1') {
       return 'http://localhost:3000';
     }
   }
-  return process.env.EXPO_PUBLIC_API_URL || DEFAULT_URL;
+  return DEFAULT_URL;
 }
 
 export const getApiUrl = resolveApiUrl;

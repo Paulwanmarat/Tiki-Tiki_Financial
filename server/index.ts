@@ -125,6 +125,11 @@ app.use('/api/admin/payments', adminPaymentsRoutes);
 app.use('/api/admin/users', adminUsersRoutes);
 app.use('/api/impact', impactRoutes);
 
+// Root service status route
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', service: 'SPR Backend' });
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'SPR App Server is running' });
