@@ -10,14 +10,16 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { createMarketplaceListing } from '@/services/database/marketplace';
-import { MarketplaceCategory, MarketplaceCondition } from '@/types/marketplace';
+import { MarketplaceCategory, MarketplaceCondition, MarketplaceImageAttachment } from '@/types/marketplace';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 
 const CATEGORIES: MarketplaceCategory[] = [
@@ -49,9 +51,78 @@ export default function CreateMarketplaceListingScreen() {
   const [condition, setCondition] = useState<MarketplaceCondition>('good');
   const [price, setPrice] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [attachedImage, setAttachedImage] = useState<MarketplaceImageAttachment | null>(null);
+  const [pickingImage, setPickingImage] = useState(false);
   const [contactInfo, setContactInfo] = useState('');
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+
+  const handlePickFromGallery = async () => {
+    try {
+      setPickingImage(true);
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission Needed', 'Photo library permission is required to attach an item photo.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const dataUri = asset.base64 ? `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}` : asset.uri;
+        setAttachedImage({
+          uri: dataUri,
+          name: asset.fileName || 'marketplace_item.jpg',
+          type: asset.mimeType || 'image/jpeg',
+          base64: asset.base64 || undefined,
+        });
+      }
+    } catch (e: any) {
+      console.error('Gallery pick error:', e);
+      Alert.alert('Notice', 'Could not open photo gallery. You can still paste an image link if needed.');
+    } finally {
+      setPickingImage(false);
+    }
+  };
+
+  const handlePickFromCamera = async () => {
+    try {
+      setPickingImage(true);
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission Needed', 'Camera permission is required to snap an item photo.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const dataUri = asset.base64 ? `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}` : asset.uri;
+        setAttachedImage({
+          uri: dataUri,
+          name: asset.fileName || 'camera_item.jpg',
+          type: asset.mimeType || 'image/jpeg',
+          base64: asset.base64 || undefined,
+        });
+      }
+    } catch (e: any) {
+      console.error('Camera capture error:', e);
+      Alert.alert('Notice', 'Could not open camera.');
+    } finally {
+      setPickingImage(false);
+    }
+  };
 
   const handlePublish = async () => {
     const errs: string[] = [];
@@ -75,7 +146,9 @@ export default function CreateMarketplaceListingScreen() {
       // Convert entered price to base currency (THB) for canonical storage
       const basePrice = convertToBase(numPrice);
 
-      const images = imageUrl.trim() ? [imageUrl.trim()] : [];
+      // Prioritize attached device image; fallback to manual URL if entered
+      const primaryImage = attachedImage?.uri || imageUrl.trim();
+      const images = primaryImage ? [primaryImage] : [];
 
       const created = await createMarketplaceListing({
         title: title.trim(),
@@ -84,6 +157,7 @@ export default function CreateMarketplaceListingScreen() {
         condition,
         price: basePrice,
         images,
+        attached_image: attachedImage,
         contact_info: contactInfo.trim(),
       });
 
@@ -217,17 +291,110 @@ export default function CreateMarketplaceListingScreen() {
             </View>
           </View>
 
-          {/* Image URL / Link */}
+          {/* Item Photo Attachment (Directly from Device) */}
           <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Cover Image URL (Optional)</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-              placeholder="https://images.unsplash.com/... or cloud image link"
-              placeholderTextColor={colors.textTertiary}
-              value={imageUrl}
-              onChangeText={setImageUrl}
-              autoCapitalize="none"
-            />
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 0 }]}>
+                Item Photo (Attach Directly)
+              </Text>
+              <View style={[styles.attachBadge, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '35' }]}>
+                <Ionicons name="sparkles" size={11} color={colors.primary} />
+                <Text style={[styles.attachBadgeText, { color: colors.primary }]}>No URL Required</Text>
+              </View>
+            </View>
+
+            {attachedImage ? (
+              <View style={[styles.attachedCard, { backgroundColor: colors.surface, borderColor: colors.primary }]}>
+                <Image source={{ uri: attachedImage.uri }} style={styles.attachedPreview} resizeMode="cover" />
+                <View style={styles.attachedInfo}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                    <Text style={[styles.attachedTitle, { color: colors.text }]} numberOfLines={1}>
+                      {attachedImage.name || 'Photo Attached'}
+                    </Text>
+                  </View>
+                  <Text style={[styles.attachedSub, { color: colors.textTertiary }]}>
+                    Ready to publish with your listing
+                  </Text>
+
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                    <TouchableOpacity
+                      style={[styles.smallBtn, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border }]}
+                      onPress={handlePickFromGallery}
+                      disabled={pickingImage}
+                    >
+                      <Ionicons name="images-outline" size={14} color={colors.text} />
+                      <Text style={[styles.smallBtnText, { color: colors.text }]}>Change</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.smallBtn, { backgroundColor: colors.expense + '15', borderColor: colors.expense + '30' }]}
+                      onPress={() => setAttachedImage(null)}
+                    >
+                      <Ionicons name="trash-outline" size={14} color={colors.expense} />
+                      <Text style={[styles.smallBtnText, { color: colors.expense }]}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <View style={[styles.uploadBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={{ alignItems: 'center', marginBottom: 12 }}>
+                  <View style={[styles.uploadIconCircle, { backgroundColor: colors.primary + '15' }]}>
+                    <Ionicons name="camera-outline" size={26} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.uploadBoxTitle, { color: colors.text }]}>
+                    Snap or Attach Item Photo
+                  </Text>
+                  <Text style={[styles.uploadBoxSub, { color: colors.textTertiary }]}>
+                    Pick directly from your camera roll or take a live photo
+                  </Text>
+                </View>
+
+                <View style={styles.uploadBtnRow}>
+                  <TouchableOpacity
+                    style={[styles.attachActionBtn, { backgroundColor: colors.primary }]}
+                    onPress={handlePickFromGallery}
+                    disabled={pickingImage}
+                    activeOpacity={0.85}
+                  >
+                    {pickingImage ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name="images" size={16} color="#fff" />
+                        <Text style={styles.attachActionBtnText}>Choose from Photos</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.attachActionBtnOutline, { borderColor: colors.border, backgroundColor: colors.surfaceHighlight }]}
+                    onPress={handlePickFromCamera}
+                    disabled={pickingImage}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="camera" size={16} color={colors.text} />
+                    <Text style={[styles.attachActionBtnOutlineText, { color: colors.text }]}>Take Photo</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Optional URL Fallback */}
+                <View style={styles.urlFallbackContainer}>
+                  <Text style={[styles.orDividerText, { color: colors.textTertiary }]}>
+                    — or paste web image URL if preferred —
+                  </Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text, marginTop: 6 }]}
+                    placeholder="https://images.unsplash.com/... (optional)"
+                    placeholderTextColor={colors.textTertiary}
+                    value={imageUrl}
+                    onChangeText={setImageUrl}
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Description */}
@@ -420,6 +587,118 @@ const styles = StyleSheet.create({
   hintText: {
     fontSize: 10,
     marginTop: 4,
+  },
+  attachBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  attachBadgeText: {
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+  },
+  attachedCard: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    padding: 12,
+    gap: 12,
+  },
+  attachedPreview: {
+    width: '100%',
+    height: 180,
+    borderRadius: BorderRadius.sm,
+  },
+  attachedInfo: {
+    gap: 2,
+  },
+  attachedTitle: {
+    fontSize: FontSize.xs + 1,
+    fontWeight: FontWeight.bold,
+  },
+  attachedSub: {
+    fontSize: 11,
+  },
+  smallBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+  },
+  smallBtnText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.medium,
+  },
+  uploadBox: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  uploadIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  uploadBoxTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+  },
+  uploadBoxSub: {
+    fontSize: 11,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  uploadBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  attachActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.md,
+  },
+  attachActionBtnText: {
+    color: '#FFF',
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  attachActionBtnOutline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+  },
+  attachActionBtnOutlineText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+  },
+  urlFallbackContainer: {
+    marginTop: 12,
+    width: '100%',
+  },
+  orDividerText: {
+    fontSize: 11,
+    textAlign: 'center',
   },
 });
 

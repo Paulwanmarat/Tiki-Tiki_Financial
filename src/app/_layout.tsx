@@ -1,6 +1,7 @@
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { CurrencyProvider } from '@/context/CurrencyContext';
+import { LanguageProvider } from '@/context/LanguageContext';
 import { FinancialDataProvider } from '@/context/FinancialDataContext';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -16,7 +17,14 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const topSegment = segments[0] as string | undefined;
   const isRoot = !topSegment || topSegment === 'index';
   const isWebPublicLanding = Platform.OS === 'web' && isRoot;
-  const inAuthGroup = topSegment === '(auth)' || topSegment === 'auth-callback';
+  const inAuthGroup =
+    topSegment === '(auth)' ||
+    topSegment === 'login' ||
+    topSegment === 'register' ||
+    topSegment === 'forgot-password' ||
+    topSegment === 'reset-password' ||
+    topSegment === 'auth-callback' ||
+    segments.some((s) => s === '(auth)' || s === 'login' || s === 'register' || s === 'forgot-password' || s === 'reset-password');
   const isPublicRoute =
     isWebPublicLanding ||
     inAuthGroup ||
@@ -148,15 +156,17 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <CurrencyProvider>
-        <AuthProvider>
-          <AuthGuard>
-            <FinancialDataProvider>
-              <AppContent />
-            </FinancialDataProvider>
-          </AuthGuard>
-        </AuthProvider>
-      </CurrencyProvider>
+      <LanguageProvider>
+        <CurrencyProvider>
+          <AuthProvider>
+            <AuthGuard>
+              <FinancialDataProvider>
+                <AppContent />
+              </FinancialDataProvider>
+            </AuthGuard>
+          </AuthProvider>
+        </CurrencyProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

@@ -22,7 +22,7 @@ import { useAuth } from '@/context/AuthContext';
 import { confirmAction } from '@/utils/confirm';
 import { QRPaymentModal } from '@/components/ui/QRPaymentModal';
 import { getDonateCampaignById, submitDonation, deleteDonateCampaign } from '@/services/database/donate';
-import { DonateCampaign } from '@/types/donate';
+import { DonateCampaign, THINKPAD_DONATE_CAMPAIGN } from '@/types/donate';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { formatDate } from '@/utils/formatters';
 
@@ -89,7 +89,11 @@ export default function DonateDetailScreen() {
       const data = await getDonateCampaignById(id);
       setCampaign(data);
     } catch (err: any) {
-      setError(err?.message || 'Failed to load campaign');
+      if (id === THINKPAD_DONATE_CAMPAIGN.id) {
+        setCampaign(THINKPAD_DONATE_CAMPAIGN);
+      } else {
+        setError(err?.message || 'Failed to load campaign');
+      }
     } finally {
       setLoading(false);
     }

@@ -680,34 +680,14 @@ async function seedCampaigns(client: any) {
 
   const sampleCampaigns = [
     {
-      id: 'camp_textbook_bank',
-      title: 'Emergency Student Calculator & Textbook Loan Bank',
-      description: 'Fund purchase of expensive scientific graphing calculators, required engineering math textbooks, and protective lab gear lent completely free of charge to students facing unexpected financial emergencies.',
-      objective: 'Equip over 40 students with semester-long access to essential STEM coursework materials without out-of-pocket costs.',
-      target_amount: 15000,
+      id: 'camp_thinkpad_t14_x1_carbon_aura',
+      title: 'Thinkpad T14 Gen14 X1 Carbon Aura Edition',
+      description: 'High-performance computing laptop workstation for student engineering, academic research, and deep development.',
+      objective: 'Fund a Thinkpad T14 Gen14 X1 Carbon Aura Edition workstation to equip students with top-tier hardware for coursework and innovation simulations.',
+      target_amount: 150000,
       amount_raised: 0,
-      cover_image: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800',
-      category: 'Student Welfare'
-    },
-    {
-      id: 'camp_solar_bench',
-      title: 'Campus Solar Study Bench & Mobile Charging Station',
-      description: 'Install an outdoor weather-resistant solar study table equipped with USB-C fast-charging ports, shaded desk space, and high-efficiency LED reading lamps beside the main student center lawn.',
-      objective: 'Create sustainable outdoor study spaces with free solar charging for student laptops and devices between classes.',
-      target_amount: 28000,
-      amount_raised: 0,
-      cover_image: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?w=800',
-      category: 'Campus Green Initiative'
-    },
-    {
-      id: 'camp_exam_food_share',
-      title: 'End-of-Semester Student Community Food Share',
-      description: 'Collect and distribute wholesome pantry essentials, fresh fruit packs, and late-night exam-week nutritional care packages to dorm residents experiencing tight monthly allowances.',
-      objective: 'Eliminate exam-week food insecurity for more than 100 on-campus student residents during finals.',
-      target_amount: 8000,
-      amount_raised: 0,
-      cover_image: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800',
-      category: 'Emergency Student Aid'
+      cover_image: 'https://p2-ofp.static.pub/ShareResource/optimized/pdp/thinkpad/thinkpad-x1-series/len101t0159/thinkpad-x1-carbon-gen-14-aura-edition-14-intel-hero.png?width=584&height=584',
+      category: 'Student Hardware & Technology'
     }
   ];
 

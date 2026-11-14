@@ -19,6 +19,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useGoals } from '@/hooks/useGoals';
 import { useAuth } from '@/context/AuthContext';
 import { useCurrency, CURRENCIES, CurrencyDef } from '@/context/CurrencyContext';
+import { useLanguage } from '@/context/LanguageContext';
 import * as aiHistoryDb from '@/services/database/aiHistory';
 import { checkAiBackendStatus, AI_CONFIG } from '@/services/ai/client';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
@@ -32,6 +33,7 @@ export default function SettingsScreen() {
   const { transactions } = useTransactions();
   const { goals } = useGoals();
   const { currency, setCurrency, formatCurrency } = useCurrency();
+  const { language, setLanguage, t } = useLanguage();
   const [messageCount, setMessageCount] = useState(0);
   const [isBackendConnected, setIsBackendConnected] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
@@ -240,6 +242,62 @@ export default function SettingsScreen() {
                 ]}
               >
                 Auto / Device
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Card>
+
+        {/* ── Language Setting ───────────────────────── */}
+        <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>{t('settings.language', 'LANGUAGE / ภาษา')}</Text>
+        <Card style={[styles.statsCard, { borderColor: colors.border, padding: Spacing.md }]}>
+          <View style={styles.themeHeaderRow}>
+            <View style={[styles.themeIconCircle, { backgroundColor: colors.primary + '18' }]}>
+              <Ionicons name="globe-outline" size={20} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.statText, { color: colors.text }]}>App Language</Text>
+              <Text style={[styles.statusHint, { color: colors.textTertiary }]}>
+                {language === 'th' ? 'ภาษาไทย (Thai)' : 'English (United States)'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={[styles.themeSegmentTrack, { backgroundColor: colors.surfaceHighlight, borderColor: colors.border, marginTop: Spacing.sm }]}>
+            <TouchableOpacity
+              style={[
+                styles.themeSegmentBtn,
+                language === 'en' && [styles.themeSegmentBtnActive, { backgroundColor: colors.surface, borderColor: colors.border }],
+              ]}
+              onPress={() => setLanguage('en')}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.themeSegmentText,
+                  { color: language === 'en' ? colors.primary : colors.textSecondary },
+                  language === 'en' && { fontWeight: FontWeight.bold },
+                ]}
+              >
+                🇺🇸 English
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.themeSegmentBtn,
+                language === 'th' && [styles.themeSegmentBtnActive, { backgroundColor: colors.surface, borderColor: colors.border }],
+              ]}
+              onPress={() => setLanguage('th')}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.themeSegmentText,
+                  { color: language === 'th' ? colors.primary : colors.textSecondary },
+                  language === 'th' && { fontWeight: FontWeight.bold },
+                ]}
+              >
+                🇹🇭 ภาษาไทย
               </Text>
             </TouchableOpacity>
           </View>

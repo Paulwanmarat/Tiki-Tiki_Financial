@@ -28,6 +28,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isWakingUp, setIsWakingUp] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
@@ -56,8 +57,10 @@ export default function LoginScreen() {
 
     setLoading(true);
     setErrorMessage(null);
+    setIsWakingUp(false);
+    const wakeTimer = setTimeout(() => setIsWakingUp(true), 2500);
     const controller = new AbortController();
-    const timeoutTimer = setTimeout(() => controller.abort(), 8000);
+    const timeoutTimer = setTimeout(() => controller.abort(), 25000);
 
     try {
       const response = await fetch(`${LOCAL_API_URL}/api/auth/login`, {
@@ -67,6 +70,7 @@ export default function LoginScreen() {
         signal: controller.signal,
       });
 
+      clearTimeout(wakeTimer);
       clearTimeout(timeoutTimer);
       const data = await response.json();
 
@@ -77,17 +81,20 @@ export default function LoginScreen() {
       await login(data.token, data.user);
       router.replace('/app' as any);
     } catch (error: any) {
+      clearTimeout(wakeTimer);
       clearTimeout(timeoutTimer);
       const isTimeout = error.name === 'AbortError' || error.message?.includes('aborted');
       const msg = isTimeout
-        ? 'Connection timed out. Please check your backend connection and try again.'
+        ? 'Connection timed out. Cloud server took too long to respond. Please try again.'
         : error.message || 'Unable to connect to the server. Check your connection and try again.';
       setErrorMessage(msg);
       if (Platform.OS !== 'web') {
         Alert.alert('Login Failed', msg);
       }
     } finally {
+      clearTimeout(wakeTimer);
       clearTimeout(timeoutTimer);
+      setIsWakingUp(false);
       setLoading(false);
     }
   };
@@ -194,6 +201,16 @@ export default function LoginScreen() {
               <View style={[styles.errorBanner, { backgroundColor: colors.expense + '18', borderColor: colors.expense + '50' }]}>
                 <Ionicons name="alert-circle" size={18} color={colors.expense} />
                 <Text style={[styles.errorBannerText, { color: colors.expense }]}>{errorMessage}</Text>
+              </View>
+            )}
+
+            {/* Waking Up Cloud Banner */}
+            {isWakingUp && (
+              <View style={[styles.errorBanner, { backgroundColor: colors.primary + '18', borderColor: colors.primary + '50' }]}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.errorBannerText, { color: colors.primary }]}>
+                  Connecting to cloud server... (waking up instance, please wait)
+                </Text>
               </View>
             )}
 

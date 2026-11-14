@@ -48,10 +48,19 @@ export interface CampaignProgress {
   endDate?: string;
 }
 
+export interface AppUsageStats {
+  totalUsers: number;
+  dailyActiveUsers: number;
+  dailyTransactionsLogged: number;
+  totalTransactionsLogged: number;
+  activeGoalsCount: number;
+}
+
 export interface LiveImpactTotals {
   currency: string;
   currencySymbol: string;
   updatedAt: string;
+  appUsage?: AppUsageStats;
   overall: {
     totalMoneyRaised: number;
     totalVerifiedDonations: number;

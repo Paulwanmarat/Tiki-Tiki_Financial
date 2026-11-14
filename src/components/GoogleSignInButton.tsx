@@ -55,11 +55,12 @@ export default function GoogleSignInButton({
   const { colors, isDark } = useTheme();
 
   const handleGoogleAuth = async () => {
+    if (loading) return;
     setLoading(true);
     try {
-      // 1. Check if backend has Google OAuth configured with a tight 3s timeout
+      // 1. Check if backend has Google OAuth configured with 15s timeout for cloud wake-ups
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 3000);
+      const timer = setTimeout(() => controller.abort(), 15000);
       let config = { configured: false, clientId: '' };
       try {
         const configRes = await fetch(`${LOCAL_API_URL}/api/auth/google/config`, {
@@ -74,21 +75,29 @@ export default function GoogleSignInButton({
       }
 
       const handleDemoLogin = async (customEmail?: string, customName?: string) => {
-        const res = await fetch(`${LOCAL_API_URL}/api/auth/google`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            isDevDemo: true,
-            demoEmail: customEmail || 'student.google@gmail.com',
-            demoName: customName || 'Google Student',
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Google login failed');
+        const demoController = new AbortController();
+        const demoTimer = setTimeout(() => demoController.abort(), 15000);
+        try {
+          const res = await fetch(`${LOCAL_API_URL}/api/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              isDevDemo: true,
+              demoEmail: customEmail || 'student.google@gmail.com',
+              demoName: customName || 'Google Student',
+            }),
+            signal: demoController.signal,
+          });
+          clearTimeout(demoTimer);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Google login failed');
 
-        await login(data.token, data.user);
-        onSuccess?.();
-        router.replace('/app' as any);
+          await login(data.token, data.user);
+          onSuccess?.();
+          router.replace('/app' as any);
+        } finally {
+          clearTimeout(demoTimer);
+        }
       };
 
       if (config.configured && Platform.OS === 'web' && typeof window !== 'undefined') {

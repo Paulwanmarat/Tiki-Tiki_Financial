@@ -1,5 +1,5 @@
 import { fetchWithAuth } from '@/services/ai/client';
-import { MarketplaceListing, MarketplaceDetail } from '@/types/marketplace';
+import { MarketplaceListing, MarketplaceDetail, MarketplaceCreateInput } from '@/types/marketplace';
 
 export async function getMarketplaceListings(params?: {
   search?: string;
@@ -31,15 +31,7 @@ export async function getMarketplaceListingById(id: string): Promise<Marketplace
   return fetchWithAuth(`/api/marketplace/${id}`);
 }
 
-export async function createMarketplaceListing(data: {
-  title: string;
-  description?: string;
-  category: string;
-  condition: string;
-  price: number;
-  images?: string[];
-  contact_info?: string;
-}): Promise<MarketplaceListing> {
+export async function createMarketplaceListing(data: MarketplaceCreateInput): Promise<MarketplaceListing> {
   return fetchWithAuth('/api/marketplace', {
     method: 'POST',
     body: JSON.stringify(data),

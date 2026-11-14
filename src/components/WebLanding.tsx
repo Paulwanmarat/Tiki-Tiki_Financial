@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import { SurveyResults } from './SurveyResults';
 import { LiveWebImpactSection } from './impact/LiveWebImpactSection';
+import { useLanguage } from '@/context/LanguageContext';
 import { PIGGY_LOGO, SCHOOL_LOGO, ANTHONY_PHOTO, APP_ICON, LOGO_GLOW } from '@/constants/assets';
 
 /* ───────────────────────────────────────────────────────────────── */
@@ -292,21 +293,22 @@ function StudioNavBar({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { width: screenWidth } = useWindowDimensions();
+  const { language, toggleLanguage, t } = useLanguage();
 
   const allNavItems = [
-    { label: 'Problem', key: 'problem' },
-    { label: '3-Pillars', key: 'ledger' },
-    { label: 'Ecosystem', key: 'ecosystem' },
-    { label: 'Simulator', key: 'simulator' },
-    { label: 'Piggy Vault', key: 'goals' },
+    { label: t('nav.problem', 'Problem'), key: 'problem' },
+    { label: t('nav.ledger', '3-Pillars'), key: 'ledger' },
+    { label: t('nav.ecosystem', 'Ecosystem'), key: 'ecosystem' },
+    { label: t('nav.simulator', 'Simulator'), key: 'simulator' },
+    { label: t('nav.piggyVault', 'Piggy Vault'), key: 'goals' },
     { label: 'AI Vision', key: 'ai' },
     { label: 'Research', key: 'research' },
-    { label: 'Team', key: 'team' },
-    { label: 'Live Impact', key: 'impact' },
+    { label: t('nav.team', 'Team'), key: 'team' },
+    { label: t('nav.liveImpact', 'Live Impact'), key: 'impact' },
   ];
 
-  // On standard/narrower PC screens (<1220px), prioritize the core product pillars to eliminate collisions
-  const isCompactDesktop = !isMobile && screenWidth < 1220;
+  // On standard/narrower PC screens (<1180px), prioritize the core product pillars to eliminate collisions
+  const isCompactDesktop = !isMobile && screenWidth < 1180;
   const desktopNavItems = isCompactDesktop
     ? allNavItems.filter((i) => ['problem', 'ledger', 'ecosystem', 'simulator', 'goals', 'impact'].includes(i.key))
     : allNavItems;
@@ -335,8 +337,8 @@ function StudioNavBar({
             <Text style={navStyles.brandSub}>Student Pecuniary Routine</Text>
           </View>
 
-          {/* Hairline Divider & Saipanyarangsit Crest */}
-          {!isMobile && (
+          {/* Hairline Divider & Saipanyarangsit Crest (on screens >= 1280px) */}
+          {!isMobile && screenWidth >= 1280 && (
             <>
               <View style={navStyles.brandDivider} />
               <View style={navStyles.schoolBrandRow}>
@@ -385,11 +387,21 @@ function StudioNavBar({
         {/* CTA & Mobile Toggle */}
         <View style={navStyles.actions}>
           <TouchableOpacity
+            style={navStyles.langBtn}
+            onPress={toggleLanguage}
+            activeOpacity={0.8}
+            accessibilityLabel="Switch language"
+          >
+            <Ionicons name="globe-outline" size={13} color="#F96A98" />
+            <Text style={navStyles.langBtnText}>{language === 'en' ? 'EN | TH' : 'TH | EN'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={navStyles.ctaBtn}
             onPress={onOpenApp}
             activeOpacity={0.85}
           >
-            <Text style={navStyles.ctaBtnText}>Open App</Text>
+            <Text style={navStyles.ctaBtnText}>{t('nav.openWebApp', 'Open App')}</Text>
             <Ionicons name="arrow-forward" size={14} color="#FFF" />
           </TouchableOpacity>
 
@@ -454,9 +466,9 @@ const navStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    height: 68,
-    maxWidth: 1400,
+    paddingHorizontal: 16,
+    height: 64,
+    maxWidth: 1440,
     width: '100%',
     alignSelf: 'center',
   },
@@ -553,20 +565,20 @@ const navStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 4,
     flexShrink: 1,
-    marginHorizontal: 10,
+    marginHorizontal: 6,
   },
   link: {
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 7,
     borderRadius: 6,
   },
   linkText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '600',
     color: S.textLightSecondary,
-    letterSpacing: 0.15,
+    letterSpacing: 0.1,
   },
   linkActive: {
     backgroundColor: 'rgba(225, 29, 72, 0.14)',
@@ -579,8 +591,25 @@ const navStyles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     flexShrink: 0,
+  },
+  langBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 99,
+  },
+  langBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFF',
+    letterSpacing: 0.5,
   },
   ctaBtn: {
     flexDirection: 'row',
@@ -638,6 +667,7 @@ function StudioHeroSection({
 }) {
   // Interactive Studio Mode: toggles live financial ledger demonstration
   const [heroMode, setHeroMode] = useState<'weekday' | 'weekend'>('weekday');
+  const { t, language } = useLanguage();
 
   const ledgerData =
     heroMode === 'weekday'
@@ -695,20 +725,21 @@ function StudioHeroSection({
 
           {/* Main Statement */}
           <Text style={[heroStyles.headline, isMobile && heroStyles.headlineMobile]}>
-            Your money.{'\n'}
-            <Text style={{ color: S.piggyPink }}>Your canvas.</Text>
+            {t('hero.yourMoney', 'Your money.')}{'\n'}
+            <Text style={{ color: S.piggyPink }}>{t('hero.yourCanvas', 'Your canvas.')}</Text>
           </Text>
 
           {/* Editorial Subtext */}
           <Text style={heroStyles.subhead}>
-            Students don’t need complicated corporate banking tools. SPR is a tactile, creative
-            financial studio designed to reveal where daily cash evaporates, simulate purchases
-            before tapping pay, and transform spare bahts into real goals.
+            {t(
+              'hero.subhead',
+              'Students don’t need complicated corporate banking tools. SPR is a tactile, creative financial studio designed to reveal where daily cash evaporates, simulate purchases before tapping pay, and transform spare bahts into real goals.'
+            )}
           </Text>
 
           {/* Interactive Mode Switcher */}
           <View style={heroStyles.modeSwitchWrap}>
-            <Text style={heroStyles.modeSwitchLabel}>SIMULATE REAL STUDENT CONTEXT:</Text>
+            <Text style={heroStyles.modeSwitchLabel}>{t('hero.simulateContext', 'SIMULATE REAL STUDENT CONTEXT:')}</Text>
             <View style={heroStyles.modeSwitchRow}>
               <TouchableOpacity
                 onPress={() => setHeroMode('weekday')}
@@ -723,7 +754,7 @@ function StudioHeroSection({
                     heroMode === 'weekday' && heroStyles.modeBtnTextActive,
                   ]}
                 >
-                  [ 01 · CAMPUS ROUTINE ]
+                  {t('hero.modeCampus', '[ 01 · CAMPUS ROUTINE ]')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -739,7 +770,7 @@ function StudioHeroSection({
                     heroMode === 'weekend' && heroStyles.modeBtnTextActive,
                   ]}
                 >
-                  [ 02 · RESEARCH LAB ]
+                  {t('hero.modeResearch', '[ 02 · RESEARCH LAB ]')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -748,7 +779,7 @@ function StudioHeroSection({
           {/* Action CTAs */}
           <View style={[heroStyles.ctaRow, isMobile && heroStyles.ctaRowMobile]}>
             <TouchableOpacity style={heroStyles.primaryBtn} onPress={onOpenApp} activeOpacity={0.85}>
-              <Text style={heroStyles.primaryBtnText}>Launch Web App</Text>
+              <Text style={heroStyles.primaryBtnText}>{t('hero.launchBtn', 'Launch Web App')}</Text>
               <Ionicons name="arrow-forward" size={17} color="#FFF" />
             </TouchableOpacity>
 
@@ -758,7 +789,7 @@ function StudioHeroSection({
               activeOpacity={0.8}
             >
               <Ionicons name="calculator-outline" size={18} color={S.piggyPink} />
-              <Text style={heroStyles.secondaryBtnText}>Try Spending Simulator</Text>
+              <Text style={heroStyles.secondaryBtnText}>{t('hero.simulatorBtn', 'Try Spending Simulator')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -769,6 +800,24 @@ function StudioHeroSection({
               Saipanyarangsit MEP Project · Advised by{' '}
               <Text style={{ fontWeight: '700', color: S.textLight }}>Mr. Anthony Jose B. Ferrer</Text>
             </Text>
+          </View>
+
+          {/* Live Student Community Counters */}
+          <View style={heroStyles.liveCountersRow}>
+            <View style={heroStyles.counterItem}>
+              <Text style={heroStyles.counterNum}>108+</Text>
+              <Text style={heroStyles.counterLabel}>{language === 'th' ? 'นักเรียนที่ลงทะเบียน' : 'Registered Students'}</Text>
+            </View>
+            <View style={heroStyles.counterDivider} />
+            <View style={heroStyles.counterItem}>
+              <Text style={[heroStyles.counterNum, { color: '#10B981' }]}>36+</Text>
+              <Text style={heroStyles.counterLabel}>{language === 'th' ? 'วางแผนค่าขนมประจำวัน' : 'Daily Active Budgeters'}</Text>
+            </View>
+            <View style={heroStyles.counterDivider} />
+            <View style={heroStyles.counterItem}>
+              <Text style={[heroStyles.counterNum, { color: '#3B82F6' }]}>90+</Text>
+              <Text style={heroStyles.counterLabel}>{language === 'th' ? 'ธุรกรรมในระบบ' : 'Total Transactions'}</Text>
+            </View>
           </View>
         </View>
 
@@ -1079,6 +1128,38 @@ const heroStyles = StyleSheet.create({
     fontSize: 12,
     color: S.textLightMuted,
   },
+  liveCountersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: S.canvasDarkBorder,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    gap: 12,
+  },
+  counterItem: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  counterNum: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFF',
+  },
+  counterLabel: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: S.textLightMuted,
+    marginTop: 2,
+  },
+  counterDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: S.canvasDarkBorder,
+  },
   rightCol: {
     flex: 0.95,
     gap: 18,
@@ -1307,20 +1388,23 @@ function MicroExpenseAvalancheSection({
   isMobile: boolean;
   isTablet: boolean;
 }) {
+  const { t } = useLanguage();
+
   return (
     <View style={[storyStyles.section, isMobile && storyStyles.sectionMobile]}>
       <View style={storyStyles.container}>
         <View style={storyStyles.badgeWrap}>
-          <Text style={storyStyles.badgeText}>SECTION 01 · THE PROBLEM</Text>
+          <Text style={storyStyles.badgeText}>{t('problem.badge', 'SECTION 01 · THE PROBLEM')}</Text>
         </View>
 
         <Text style={[storyStyles.heading, isMobile && { fontSize: 30, lineHeight: 38 }]}>
-          The Micro-Expense Avalanche
+          {t('problem.title', 'The Micro-Expense Avalanche')}
         </Text>
         <Text style={storyStyles.subhead}>
-          Students rarely run out of money on major emergencies. We go broke because small
-          canteen purchases, milk teas, and bus fares feel so tiny in isolation that they slip
-          right past our mental budget.
+          {t(
+            'problem.subhead',
+            'Students rarely run out of money on major emergencies. We go broke because small canteen purchases, milk teas, and bus fares feel so tiny in isolation that they slip right past our mental budget.'
+          )}
         </Text>
 
         <View style={[storyStyles.ticketGrid, isMobile && storyStyles.ticketGridMobile]}>
@@ -1395,10 +1479,12 @@ function MicroExpenseAvalancheSection({
               <View style={storyStyles.commentIconWrap}>
                 <Ionicons name="eye-off-outline" size={24} color={S.piggyPink} />
               </View>
-              <Text style={storyStyles.commentTitle}>1. The "Only ฿40" Illusion</Text>
+              <Text style={storyStyles.commentTitle}>1. {t('problem.card1Title', 'The "Only ฿40" Illusion')}</Text>
               <Text style={storyStyles.commentDesc}>
-                A ฿40 drink feels harmless when you have ฿200 in your pocket. But buying it three
-                times a week costs ฿480/month—more than an entire semester’s classroom project supplies.
+                {t(
+                  'problem.card1Desc',
+                  'A ฿40 drink feels harmless when you have ฿200 in your pocket. But buying it three times a week costs ฿480/month—more than an entire semester’s classroom project supplies.'
+                )}
               </Text>
             </View>
 
@@ -1406,11 +1492,12 @@ function MicroExpenseAvalancheSection({
               <View style={storyStyles.commentIconWrap}>
                 <Ionicons name="trending-down-outline" size={24} color={S.amberCoin} />
               </View>
-              <Text style={storyStyles.commentTitle}>2. Goal Cannibalization</Text>
+              <Text style={storyStyles.commentTitle}>2. {t('problem.card2Title', 'Goal Cannibalization')}</Text>
               <Text style={storyStyles.commentDesc}>
-                When unplanned daily expenses exceed your day’s limit, the money has to come from
-                somewhere: your savings jar. That’s why student goals quietly get pushed back month
-                after month.
+                {t(
+                  'problem.card2Desc',
+                  'When unplanned daily expenses exceed your day’s limit, the money has to come from somewhere: your savings jar. That’s why student goals quietly get pushed back month after month.'
+                )}
               </Text>
             </View>
 
@@ -1418,10 +1505,12 @@ function MicroExpenseAvalancheSection({
               <View style={storyStyles.commentIconWrap}>
                 <Ionicons name="shield-checkmark-outline" size={24} color={S.mintCash} />
               </View>
-              <Text style={storyStyles.commentTitle}>3. How SPR Fixes It</Text>
+              <Text style={storyStyles.commentTitle}>3. {t('problem.card3Title', 'How SPR Fixes It')}</Text>
               <Text style={storyStyles.commentDesc}>
-                SPR replaces vague guilt with a dynamic Daily Guardrail and instant Simulation.
-                Before you buy, you see exactly how many days of laptop progress you’re trading away.
+                {t(
+                  'problem.card3Desc',
+                  'SPR replaces vague guilt with a dynamic Daily Guardrail and instant Simulation. Before you buy, you see exactly how many days of laptop progress you’re trading away.'
+                )}
               </Text>
             </View>
           </View>
@@ -1621,32 +1710,34 @@ function ThreePillarLedgerSection({
   isMobile: boolean;
   isTablet: boolean;
 }) {
+  const { t } = useLanguage();
+
   const pillars = [
     {
       num: '01',
-      title: 'Daily Spending Guardrail',
-      subtitle: 'Dynamic day-by-day safety allowance',
-      desc: 'Instead of an intimidating static monthly budget, SPR divides your remaining discretionary funds by remaining calendar days. Every morning you get one clean number you can safely spend.',
+      title: t('pillars.p1Title', 'Daily Spending Guardrail'),
+      subtitle: t('pillars.p1Subtitle', 'Dynamic day-by-day safety allowance'),
+      desc: t('pillars.p1Desc', 'Instead of an intimidating static monthly budget, SPR divides your remaining discretionary funds by remaining calendar days. Every morning you get one clean number you can safely spend.'),
       icon: 'speedometer-outline',
-      highlight: 'Auto-recalculates daily',
+      highlight: t('pillars.p1Highlight', 'Auto-recalculates daily'),
       color: S.piggyPink,
     },
     {
       num: '02',
-      title: 'Essential vs. Discretionary',
-      subtitle: 'Never cut transit to buy games',
-      desc: 'Automatically sorts required fixed costs (canteen meals, bus fare, school supplies) from flexible lifestyle wants (boba, gaming, snacks), so you know which expenses can be paused.',
+      title: t('pillars.p2Title', 'Essential vs. Discretionary'),
+      subtitle: t('pillars.p2Subtitle', 'Never cut transit to buy games'),
+      desc: t('pillars.p2Desc', 'Automatically sorts required fixed costs (canteen meals, bus fare, school supplies) from flexible lifestyle wants (boba, gaming, snacks), so you know which expenses can be paused.'),
       icon: 'pie-chart-outline',
-      highlight: 'Clear visual split',
+      highlight: t('pillars.p2Highlight', 'Clear visual split'),
       color: S.amberCoin,
     },
     {
       num: '03',
-      title: 'Savings Vault Isolation',
-      subtitle: 'Ring-fenced goal reserves',
-      desc: 'Savings are isolated from your spendable cash balance. When you allocate ฿100 toward a school laptop, it disappears from your daily guardrail so you don’t accidentally spend it on snacks.',
+      title: t('pillars.p3Title', 'Savings Vault Isolation'),
+      subtitle: t('pillars.p3Subtitle', 'Ring-fenced goal reserves'),
+      desc: t('pillars.p3Desc', 'Savings are isolated from your spendable cash balance. When you allocate ฿100 toward a school laptop, it disappears from your daily guardrail so you don’t accidentally spend it on snacks.'),
       icon: 'lock-closed-outline',
-      highlight: 'Protected from impulses',
+      highlight: t('pillars.p3Highlight', 'Protected from impulses'),
       color: S.mintCash,
     },
   ];
@@ -1655,15 +1746,14 @@ function ThreePillarLedgerSection({
     <View style={[pillarStyles.section, isMobile && pillarStyles.sectionMobile]}>
       <View style={pillarStyles.container}>
         <View style={pillarStyles.badgeWrap}>
-          <Text style={pillarStyles.badgeText}>SECTION 02 · CORE CONCEPT</Text>
+          <Text style={pillarStyles.badgeText}>{t('pillars.badge', 'SECTION 02 · CORE CONCEPT')}</Text>
         </View>
 
         <Text style={[pillarStyles.heading, isMobile && { fontSize: 30, lineHeight: 38 }]}>
-          The 3-Pillar Ledger System
+          {t('pillars.title', 'The 3-Pillar Ledger System')}
         </Text>
         <Text style={pillarStyles.subhead}>
-          Understand → Simulate → Plan → Save. A structured rhythm engineered around how students
-          actually receive allowances and manage everyday expenses.
+          {t('pillars.subhead', 'Understand → Simulate → Plan → Save. A structured rhythm engineered around how students actually receive allowances and manage everyday expenses.')}
         </Text>
 
         <View style={[pillarStyles.cardsGrid, isMobile && pillarStyles.cardsGridMobile]}>
@@ -1817,67 +1907,90 @@ function StudioEcosystemSection({
   isTablet: boolean;
   onNavigate: (route: string) => void;
 }) {
+  const { t, language } = useLanguage();
+
+  const isTh = language === 'th';
   const ecosystemPillars = [
     {
       id: 'marketplace',
       route: '/marketplace',
-      eyebrow: 'CAMPUS COMMERCE',
-      badge: 'Zero Commissions',
+      eyebrow: isTh ? 'ตลาดการค้าในโรงเรียน' : 'CAMPUS COMMERCE',
+      badge: isTh ? 'ไม่มีค่าธรรมเนียม' : 'Zero Commissions',
       badgeColor: S.piggyPink,
       title: 'SPR Marketplace',
-      desc: 'Buy and sell second-hand academic textbooks, scientific calculators, dorm electronics, and lab equipment directly with peers.',
-      features: ['Search & category filters', 'In-person handover agreements', 'Verified safety & reporting'],
+      desc: isTh
+        ? 'ซื้อและขายหนังสือเรียนมือสอง เครื่องคิดเลขวิทยาศาสตร์ อุปกรณ์หอพัก และอุปกรณ์ทดลองโดยตรงกับเพื่อนนักเรียน'
+        : 'Buy and sell second-hand academic textbooks, scientific calculators, dorm electronics, and lab equipment directly with peers.',
+      features: isTh
+        ? ['ระบบค้นหาและแยกหมวดหมู่', 'นัดรับส่งมอบต่อหน้าอย่างปลอดภัย', 'ระบบรายงานความปลอดภัย']
+        : ['Search & category filters', 'In-person handover agreements', 'Verified safety & reporting'],
       icon: 'cart-outline',
-      cta: 'Browse Marketplace',
+      cta: isTh ? 'เปิดดูตลาดนักเรียน' : 'Browse Marketplace',
     },
     {
       id: 'projects',
       route: '/projects',
-      eyebrow: 'INNOVATION & STEM',
-      badge: 'Step-by-Step Guides',
+      eyebrow: isTh ? 'นวัตกรรมและสะเต็ม' : 'INNOVATION & STEM',
+      badge: isTh ? 'คู่มือเป็นขั้นตอน' : 'Step-by-Step Guides',
       badgeColor: '#8B5CF6',
       title: 'SPR Projects',
-      desc: 'Discover vetted project roadmaps in tech, robotics, sustainability, and creative arts with realistic bills of materials and budgets.',
-      features: ['Beginner to advanced roadmaps', 'Material cost calculators', 'AI project mentor assistance'],
+      desc: isTh
+        ? 'ค้นหาแผนงานโครงงานด้านเทคโนโลยี วิทยาการหุ่นยนต์ ความยั่งยืน และศิลปะ พร้อมรายการงบประมาณและอุปกรณ์จริง'
+        : 'Discover vetted project roadmaps in tech, robotics, sustainability, and creative arts with realistic bills of materials and budgets.',
+      features: isTh
+        ? ['แผนงานระดับเริ่มต้นถึงขั้นสูง', 'เครื่องคำนวณงบประมาณอุปกรณ์', 'มี AI ช่วยให้คำปรึกษาโครงงาน']
+        : ['Beginner to advanced roadmaps', 'Material cost calculators', 'AI project mentor assistance'],
       icon: 'bulb-outline',
-      cta: 'Explore Projects',
+      cta: isTh ? 'สำรวจโครงงาน' : 'Explore Projects',
     },
     {
       id: 'tryland',
       route: '/tryland',
-      eyebrow: 'SAVE THE PLANET INITIATIVE',
-      badge: 'Plant Trees',
+      eyebrow: isTh ? 'โครงการอนุรักษ์สิ่งแวดล้อม' : 'SAVE THE PLANET INITIATIVE',
+      badge: isTh ? 'ปลูกต้นไม้' : 'Plant Trees',
       badgeColor: '#059669',
       title: '🌳 TRYLAND',
-      desc: 'Save the Planet initiative — donate to plant trees! Turn spare student allowances into living trees on campus and coastal mangrove belts with verified student stewardship.',
-      features: ['฿50 plants 1 native tree', 'Live verified tree counter', 'Campus green canopy & mangroves'],
+      desc: isTh
+        ? 'โครงการพิทักษ์โลก — ร่วมบริจาคปลูกต้นไม้! เปลี่ยนเงินเหรียญค่าขนมที่เหลือให้กลายเป็นต้นไม้จริงในโรงเรียนและป่าชายเลน'
+        : 'Save the Planet initiative — donate to plant trees! Turn spare student allowances into living trees on campus and coastal mangrove belts with verified student stewardship.',
+      features: isTh
+        ? ['฿50 ปลูกต้นไม้พื้นถิ่น 1 ต้น', 'ตัวนับต้นไม้ที่บันทึกจริง', 'เพิ่มพื้นที่สีเขียวในโรงเรียน']
+        : ['฿50 plants 1 native tree', 'Live verified tree counter', 'Campus green canopy & mangroves'],
       icon: 'leaf-outline',
-      cta: 'Plant Trees Now',
+      cta: isTh ? 'ร่วมปลูกต้นไม้ตอนนี้' : 'Plant Trees Now',
     },
     {
       id: 'rk',
       route: '/rk',
-      eyebrow: 'STUDENT BILL SPONSORSHIP',
+      eyebrow: isTh ? 'โครงการช่วยเหลือค่าบิลนักเรียน' : 'STUDENT BILL SPONSORSHIP',
       badge: 'PromptPay QR',
       badgeColor: '#10B981',
       title: 'RK (Random Kindness)',
       isRkWordmark: true,
-      desc: 'Where students upload their bills and Random Kindness pays them! A transparent safety net connecting verified student academic bills with generous supporters.',
-      features: ['Students upload bills for review', 'Static PromptPay QR (฿ THB)', 'Admin manual verification against bank records'],
+      desc: isTh
+        ? 'ที่ที่นักเรียนอัปโหลดค่าบิลการศึกษาและ Random Kindness ช่วยจ่ายให้! ตาข่ายความปลอดภัยที่เชื่อมโยงบิลการศึกษาจริงกับผู้สนับสนุน'
+        : 'Where students upload their bills and Random Kindness pays them! A transparent safety net connecting verified student academic bills with generous supporters.',
+      features: isTh
+        ? ['นักเรียนส่งบิลเพื่อขอรับการตรวจสอบ', 'QR PromptPay แบบสถิต (฿ บาท)', 'ผู้ดูแลระบบตรวจสอบตรงกับสลิปธนาคาร']
+        : ['Students upload bills for review', 'Static PromptPay QR (฿ THB)', 'Admin manual verification against bank records'],
       icon: 'card-outline',
-      cta: 'Sponsor a Student Bill',
+      cta: isTh ? 'ร่วมสนับสนุนบิลเพื่อน' : 'Sponsor a Student Bill',
     },
     {
       id: 'donate',
       route: '/donate',
-      eyebrow: 'COMMUNITY CAMPAIGNS',
-      badge: 'Admin-Curated',
+      eyebrow: isTh ? 'โครงการระดมทุนโรงเรียน' : 'COMMUNITY CAMPAIGNS',
+      badge: isTh ? 'คัดสรรโดยโรงเรียน' : 'Admin-Curated',
       badgeColor: S.amberCoin,
       title: 'SPR Donate',
-      desc: 'Official school-managed fundraising campaigns for student welfare, campus equipment, and emergency aid — verified by administrators with real-time PromptPay donation tracking.',
-      features: ['School admin-only campaigns', 'Real-time database tally', 'Complete donor transparency'],
+      desc: isTh
+        ? 'โครงการระดมทุนอย่างเป็นทางการของโรงเรียนเพื่อสวัสดิการนักเรียน อุปกรณ์การเรียน และทุนฉุกเฉิน — ตรวจสอบสดผ่าน PromptPay'
+        : 'Official school-managed fundraising campaigns for student welfare, campus equipment, and emergency aid — verified by administrators with real-time PromptPay donation tracking.',
+      features: isTh
+        ? ['โครงการเฉพาะที่โรงเรียนสร้างขึ้น', 'ยอดระดมทุนแบบเรียลไทม์', 'โปร่งใส ตรวจสอบผู้บริจาคได้ครบถ้วน']
+        : ['School admin-only campaigns', 'Real-time database tally', 'Complete donor transparency'],
       icon: 'heart-outline',
-      cta: 'Support a Campaign',
+      cta: isTh ? 'สนับสนุนโครงการ' : 'Support a Campaign',
     },
   ];
 
@@ -1885,15 +1998,17 @@ function StudioEcosystemSection({
     <View style={[ecoStyles.section, isMobile && ecoStyles.sectionMobile]}>
       <View style={ecoStyles.container}>
         <View style={ecoStyles.badgeWrap}>
-          <Text style={ecoStyles.badgeText}>SECTION 04 · STUDENT PECUNIARY ECOSYSTEM</Text>
+          <Text style={ecoStyles.badgeText}>{t('ecosystem.badge', 'SECTION 04 · STUDENT PECUNIARY ECOSYSTEM')}</Text>
         </View>
 
         <Text style={[ecoStyles.heading, isMobile && { fontSize: 28, lineHeight: 36 }]}>
-          Beyond Budgeting: A Full Student Mutual-Aid Economy
+          {t('ecosystem.title', 'Beyond Budgeting: A Full Student Mutual-Aid Economy')}
         </Text>
         <Text style={ecoStyles.subhead}>
-          SPR bridges individual allowance discipline with real peer-to-peer campus commerce,
-          tree-planting planet initiatives, and transparent mutual financial assistance.
+          {t(
+            'ecosystem.subhead',
+            'SPR bridges individual allowance discipline with real peer-to-peer campus commerce, tree-planting planet initiatives, and transparent mutual financial assistance.'
+          )}
         </Text>
 
         <View style={[ecoStyles.grid, isMobile && ecoStyles.gridMobile]}>
@@ -2102,6 +2217,7 @@ function InteractiveSpendingSimulatorSection({
   isMobile: boolean;
   isTablet: boolean;
 }) {
+  const { t, language } = useLanguage();
   const [amount, setAmount] = useState<number>(65);
   const [purchaseName, setPurchaseName] = useState<string>('02 · Afternoon Tea');
   const [isDailyHabit, setIsDailyHabit] = useState<boolean>(false);
@@ -2133,15 +2249,17 @@ function InteractiveSpendingSimulatorSection({
     <View style={[simStyles.section, isMobile && simStyles.sectionMobile]}>
       <View style={simStyles.container}>
         <View style={simStyles.badgeWrap}>
-          <Text style={simStyles.badgeText}>SECTION 03 · SIGNATURE FEATURE</Text>
+          <Text style={simStyles.badgeText}>{t('simulator.badge', 'SECTION 03 · SIGNATURE FEATURE')}</Text>
         </View>
 
         <Text style={[simStyles.heading, isMobile && { fontSize: 30, lineHeight: 38 }]}>
-          Simulate Before You Spend
+          {t('simulator.title', 'Simulate Before You Spend')}
         </Text>
         <Text style={simStyles.subhead}>
-          Test purchases in this interactive studio demo. See how an illustrative purchase shifts
-          today's daily guardrail and delays your active savings goals in real time.
+          {t(
+            'simulator.subhead',
+            "Test purchases in this interactive studio demo. See how an illustrative purchase shifts today's daily guardrail and delays your active savings goals in real time."
+          )}
         </Text>
 
         <View style={[simStyles.studioWorkspace, isMobile && simStyles.studioWorkspaceMobile]}>
@@ -2618,19 +2736,24 @@ function PiggyVaultSection({
   isMobile: boolean;
   isTablet: boolean;
 }) {
+  const { t, language } = useLanguage();
+  const isTh = language === 'th';
+
   return (
     <View style={[vaultStyles.section, isMobile && vaultStyles.sectionMobile]}>
       <View style={vaultStyles.container}>
         <View style={vaultStyles.badgeWrap}>
-          <Text style={vaultStyles.badgeText}>SECTION 04 · SAVINGS VAULT</Text>
+          <Text style={vaultStyles.badgeText}>{t('piggy.badge', 'SECTION 04 · SAVINGS VAULT')}</Text>
         </View>
 
         <Text style={[vaultStyles.heading, isMobile && { fontSize: 30, lineHeight: 38 }]}>
-          Small Drops Fill the Piggy Bank
+          {t('piggy.title', 'Small Drops Fill the Piggy Bank')}
         </Text>
         <Text style={vaultStyles.subhead}>
-          Saving isn’t about sacrificing your student life. It’s about setting purposeful targets,
-          automating micro-allocations, and watching compounding turn spare bahts into big milestones.
+          {t(
+            'piggy.subhead',
+            'Saving isn’t about sacrificing your student life. It’s about setting purposeful targets, automating micro-allocations, and watching compounding turn spare bahts into big milestones.'
+          )}
         </Text>
 
         <View style={[vaultStyles.grid, isMobile && vaultStyles.gridMobile]}>
@@ -2638,25 +2761,27 @@ function PiggyVaultSection({
           <View style={vaultStyles.vaultCard}>
             <View style={vaultStyles.cardTop}>
               <Ionicons name="trending-up-outline" size={20} color={S.amberCoin} />
-              <Text style={vaultStyles.cardBadge}>COMPOUNDING TABLE</Text>
+              <Text style={vaultStyles.cardBadge}>{isTh ? 'ตารางพลังแห่งการออมสะสม' : 'COMPOUNDING TABLE'}</Text>
             </View>
-            <Text style={vaultStyles.cardTitle}>Daily ฿30 Coffee Rule</Text>
+            <Text style={vaultStyles.cardTitle}>{isTh ? 'กฎลดกาแฟ/น้ำหวานวันละ ฿30' : 'Daily ฿30 Coffee Rule'}</Text>
             <Text style={vaultStyles.cardDesc}>
-              Skipping just one ฿30 drink every school day deposits surprising totals:
+              {isTh
+                ? 'เพียงงดเครื่องดื่มวันละ 30 บาท ในวันเรียน จะสะสมเงินได้มหาศาล:'
+                : 'Skipping just one ฿30 drink every school day deposits surprising totals:'}
             </Text>
 
             <View style={vaultStyles.tableRows}>
               <View style={vaultStyles.tableRow}>
-                <Text style={vaultStyles.tableKey}>In 1 Month (20 school days)</Text>
+                <Text style={vaultStyles.tableKey}>{isTh ? 'ใน 1 เดือน (20 วันเรียน)' : 'In 1 Month (20 school days)'}</Text>
                 <Text style={vaultStyles.tableVal}>฿600.00</Text>
               </View>
               <View style={vaultStyles.tableRow}>
-                <Text style={vaultStyles.tableKey}>In 1 Semester (5 months)</Text>
+                <Text style={vaultStyles.tableKey}>{isTh ? 'ใน 1 ภาคเรียน (5 เดือน)' : 'In 1 Semester (5 months)'}</Text>
                 <Text style={vaultStyles.tableVal}>฿3,000.00</Text>
               </View>
               <View style={[vaultStyles.tableRow, { borderBottomWidth: 0 }]}>
                 <Text style={[vaultStyles.tableKey, { fontWeight: '800', color: S.textLight }]}>
-                  In 1 Academic Year (10 mos)
+                  {isTh ? 'ใน 1 ปีการศึกษา (10 เดือน)' : 'In 1 Academic Year (10 mos)'}
                 </Text>
                 <Text style={[vaultStyles.tableVal, { color: S.mintCash, fontSize: 16 }]}>
                   ฿6,000.00
@@ -3925,6 +4050,9 @@ function StudioFinalCTA({
   onOpenApp: () => void;
   isMobile: boolean;
 }) {
+  const { t, language } = useLanguage();
+  const isTh = language === 'th';
+
   return (
     <View style={[ctaStyles.section, isMobile && ctaStyles.sectionMobile]}>
       <View style={ctaStyles.card}>
@@ -3937,16 +4065,17 @@ function StudioFinalCTA({
         </View>
 
         <Text style={[ctaStyles.heading, isMobile && { fontSize: 28, lineHeight: 36 }]}>
-          Your Money Studio is Open.
+          {isTh ? 'SPR Money Studio พร้อมต้อนรับคุณ' : 'Your Money Studio is Open.'}
         </Text>
         <Text style={ctaStyles.sub}>
-          Start tracking with today’s canteen lunch. No credit card required. Works across your web
-          browser and Android / iOS devices.
+          {isTh
+            ? 'เริ่มต้นบันทึกตั้งแต่มื้อกลางวันในโรงอาหารวันนี้ ไม่ต้องใช้บัตรเครดิต ใช้งานได้สะดวกบนเว็บเบราว์เซอร์ และอุปกรณ์ Android / iOS'
+            : 'Start tracking with today’s canteen lunch. No credit card required. Works across your web browser and Android / iOS devices.'}
         </Text>
 
         <View style={ctaStyles.btnRow}>
           <TouchableOpacity style={ctaStyles.launchBtn} onPress={onOpenApp} activeOpacity={0.85}>
-            <Text style={ctaStyles.launchBtnText}>Launch SPR Web App</Text>
+            <Text style={ctaStyles.launchBtnText}>{t('nav.launchStudio', 'Launch SPR Web App')}</Text>
             <Ionicons name="arrow-forward" size={17} color="#FFF" />
           </TouchableOpacity>
         </View>
@@ -4015,6 +4144,7 @@ function StudioFooter({
   scrollTo: (key: string) => void;
 }) {
   const router = useRouter();
+  const { t, language } = useLanguage();
 
   return (
     <View style={footStyles.wrapper}>
@@ -4047,29 +4177,29 @@ function StudioFooter({
 
         <View style={footStyles.linksCol}>
           <TouchableOpacity onPress={() => scrollTo('problem')} style={footStyles.footLink}>
-            <Text style={footStyles.linkText}>The Problem</Text>
+            <Text style={footStyles.linkText}>{t('nav.problem', 'The Problem')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => scrollTo('ledger')} style={footStyles.footLink}>
-            <Text style={footStyles.linkText}>3-Pillar Ledger</Text>
+            <Text style={footStyles.linkText}>{t('nav.ledger', '3-Pillar Ledger')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => scrollTo('ecosystem')} style={footStyles.footLink}>
-            <Text style={footStyles.linkText}>Ecosystem</Text>
+            <Text style={footStyles.linkText}>{t('nav.ecosystem', 'Ecosystem')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => scrollTo('simulator')} style={footStyles.footLink}>
-            <Text style={footStyles.linkText}>Spending Simulator</Text>
+            <Text style={footStyles.linkText}>{t('nav.simulator', 'Spending Simulator')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => scrollTo('goals')} style={footStyles.footLink}>
-            <Text style={footStyles.linkText}>Piggy Vault</Text>
+            <Text style={footStyles.linkText}>{t('nav.piggyVault', 'Piggy Vault')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => scrollTo('research')} style={footStyles.footLink}>
-            <Text style={footStyles.linkText}>MEP Survey Data</Text>
+            <Text style={footStyles.linkText}>{t('nav.survey', 'MEP Survey Data')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => scrollTo('team')} style={footStyles.footLink}>
-            <Text style={footStyles.linkText}>Team & Advisor</Text>
+            <Text style={footStyles.linkText}>{t('nav.team', 'Team & Advisor')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/app')} style={footStyles.footLink}>
             <Text style={[footStyles.linkText, { color: S.piggyPink, fontWeight: '800' }]}>
-              Open Web App →
+              {t('nav.openWebApp', 'Open Web App')} →
             </Text>
           </TouchableOpacity>
         </View>
@@ -4077,10 +4207,10 @@ function StudioFooter({
 
       <View style={footStyles.bottomBar}>
         <Text style={footStyles.copyText}>
-          © {new Date().getFullYear()} Team Piggy Pockets · Saipanyarangsit MEP. All rights reserved.
+          © {new Date().getFullYear()} {t('footer.rights', 'Team Piggy Pockets · Saipanyarangsit MEP. All rights reserved.')}
         </Text>
         <Text style={footStyles.privacyNote}>
-          Data Practice: Student pecuniary data is stored with encrypted identifiers and never sold.
+          {t('footer.privacy', 'Data Practice: Student pecuniary data is stored with encrypted identifiers and never sold.')}
         </Text>
       </View>
     </View>

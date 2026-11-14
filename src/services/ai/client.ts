@@ -40,26 +40,41 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     ...options.headers,
   };
 
-  const apiUrl = getApiUrl();
-  const response = await fetch(`${apiUrl}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
 
-  if (!response.ok) {
-    let errorMsg = 'An error occurred';
-    try {
-      const errorData = await response.json();
-      errorMsg = errorData.error || errorData.message || errorMsg;
-    } catch {
-      // Ignore parsing errors
+  const apiUrl = getApiUrl();
+  try {
+    const response = await fetch(`${apiUrl}${endpoint}`, {
+      ...options,
+      headers,
+      signal: options.signal || controller.signal,
+    });
+    clearTimeout(timer);
+
+    if (!response.ok) {
+      let errorMsg = 'An error occurred';
+      try {
+        const errorData = await response.json();
+        errorMsg = errorData.error || errorData.message || errorMsg;
+      } catch {
+        // Ignore parsing errors
+      }
+      const err = new Error(errorMsg) as any;
+      err.status = response.status;
+      throw err;
     }
-    const err = new Error(errorMsg) as any;
-    err.status = response.status;
+
+    return response.json();
+  } catch (err: any) {
+    clearTimeout(timer);
+    if (err.name === 'AbortError') {
+      const timeoutErr = new Error('Request timed out. Please check your backend connection.') as any;
+      timeoutErr.status = 408;
+      throw timeoutErr;
+    }
     throw err;
   }
-
-  return response.json();
 }
 
 export async function askAiApi(messages: { role: string; content: string }[], systemInstruction?: string): Promise<string> {

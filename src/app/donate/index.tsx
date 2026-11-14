@@ -21,7 +21,7 @@ import { useCurrency } from '@/context/CurrencyContext';
 import { useAuth } from '@/context/AuthContext';
 import { confirmAction } from '@/utils/confirm';
 import { getDonateCampaigns, deleteDonateCampaign } from '@/services/database/donate';
-import { DonateCampaign } from '@/types/donate';
+import { DonateCampaign, DEFAULT_DONATE_CAMPAIGNS } from '@/types/donate';
 import { Spacing, BorderRadius, FontSize, FontWeight } from '@/constants/theme';
 import { PIGGY_LOGO } from '@/constants/assets';
 
@@ -65,9 +65,10 @@ export default function DonateHomeScreen() {
         category: selectedCategory === 'All' ? undefined : selectedCategory,
         search: search.trim() || undefined,
       });
-      setCampaigns(data);
+      setCampaigns(data && data.length > 0 ? data : DEFAULT_DONATE_CAMPAIGNS);
     } catch (err) {
       console.error('Failed to load campaigns:', err);
+      setCampaigns(DEFAULT_DONATE_CAMPAIGNS);
     } finally {
       setLoading(false);
       setRefreshing(false);
