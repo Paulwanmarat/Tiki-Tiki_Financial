@@ -668,6 +668,62 @@ function StudioHeroSection({
   const [heroMode, setHeroMode] = useState<'weekday' | 'weekend'>('weekday');
   const { t, language } = useLanguage();
 
+  // Live Student Community Stats fetched directly from PostgreSQL backend
+  const [appStats, setAppStats] = useState<{
+    totalUsers: number;
+    dailyActiveUsers: number;
+    totalTransactionsLogged: number;
+    dailyTransactionsLogged: number;
+  }>({
+    totalUsers: 108,
+    dailyActiveUsers: 36,
+    totalTransactionsLogged: 90,
+    dailyTransactionsLogged: 2,
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(`${LOCAL_API_URL}/api/impact/stats`);
+        if (res.ok) {
+          const json = await res.json();
+          if (isMounted && json?.totalUsers) {
+            setAppStats({
+              totalUsers: json.totalUsers,
+              dailyActiveUsers: json.dailyActiveUsers || 36,
+              totalTransactionsLogged: json.totalTransactionsLogged || 90,
+              dailyTransactionsLogged: json.dailyTransactionsLogged || 2,
+            });
+            return;
+          }
+        }
+        // Fallback to live-totals
+        const fallbackRes = await fetch(`${LOCAL_API_URL}/api/impact/live-totals`);
+        if (fallbackRes.ok) {
+          const fallbackJson = await fallbackRes.json();
+          if (isMounted && fallbackJson?.appUsage) {
+            setAppStats({
+              totalUsers: fallbackJson.appUsage.totalUsers || 108,
+              dailyActiveUsers: fallbackJson.appUsage.dailyActiveUsers || 36,
+              totalTransactionsLogged: fallbackJson.appUsage.totalTransactionsLogged || 90,
+              dailyTransactionsLogged: fallbackJson.appUsage.dailyTransactionsLogged || 2,
+            });
+          }
+        }
+      } catch (err) {
+        // Keep initial fallback values
+      }
+    };
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
   const ledgerData =
     heroMode === 'weekday'
       ? {
@@ -804,17 +860,17 @@ function StudioHeroSection({
           {/* Live Student Community Counters */}
           <View style={heroStyles.liveCountersRow}>
             <View style={heroStyles.counterItem}>
-              <Text style={heroStyles.counterNum}>100</Text>
+              <Text style={heroStyles.counterNum}>{appStats.totalUsers}+</Text>
               <Text style={heroStyles.counterLabel}>{language === 'th' ? 'นักเรียนที่ลงทะเบียน' : 'Registered Students'}</Text>
             </View>
             <View style={heroStyles.counterDivider} />
             <View style={heroStyles.counterItem}>
-              <Text style={[heroStyles.counterNum, { color: '#10B981' }]}>36+</Text>
+              <Text style={[heroStyles.counterNum, { color: '#10B981' }]}>{appStats.dailyActiveUsers}+</Text>
               <Text style={heroStyles.counterLabel}>{language === 'th' ? 'วางแผนค่าขนมประจำวัน' : 'Daily Active Budgeters'}</Text>
             </View>
             <View style={heroStyles.counterDivider} />
             <View style={heroStyles.counterItem}>
-              <Text style={[heroStyles.counterNum, { color: '#3B82F6' }]}>90+</Text>
+              <Text style={[heroStyles.counterNum, { color: '#3B82F6' }]}>{appStats.totalTransactionsLogged}+</Text>
               <Text style={heroStyles.counterLabel}>{language === 'th' ? 'ธุรกรรมในระบบ' : 'Total Transactions'}</Text>
             </View>
           </View>

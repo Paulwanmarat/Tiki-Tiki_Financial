@@ -414,6 +414,9 @@ export async function initDb(): Promise<Pool> {
     if (parseInt(treeCount.rows[0].count, 10) === 0) {
       await seedTreeInitiatives(client);
     }
+
+    // Seed official SPR Donate campaigns (Thinkpad T14 Gen14 X1 Carbon Aura Edition created by PhanyawatWt)
+    await seedCampaigns(client);
   } finally {
     client.release();
   }
