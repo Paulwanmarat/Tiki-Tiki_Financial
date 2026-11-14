@@ -1,3 +1,5 @@
+import { ANTHONY_PHOTO, LOGO_GLOW, PIGGY_LOGO, SCHOOL_LOGO } from '@/constants/assets';
+import { useLanguage } from '@/context/LanguageContext';
 import { LOCAL_API_URL } from '@/services/ai/client';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -9,19 +11,16 @@ import {
   Easing,
   Image,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   useWindowDimensions,
-  View,
+  View
 } from 'react-native';
 import { SurveyResults } from './SurveyResults';
 import { LiveWebImpactSection } from './impact/LiveWebImpactSection';
-import { useLanguage } from '@/context/LanguageContext';
-import { PIGGY_LOGO, SCHOOL_LOGO, ANTHONY_PHOTO, APP_ICON, LOGO_GLOW } from '@/constants/assets';
 
 /* ───────────────────────────────────────────────────────────────── */
 /*  FadeInSection — Scroll-triggered fade + slide-up transition     */
@@ -672,29 +671,29 @@ function StudioHeroSection({
   const ledgerData =
     heroMode === 'weekday'
       ? {
-          title: 'SESSION 01 · MON-FRI CAMPUS LEDGER',
-          budget: '฿150.00',
-          spent: '฿120.00',
-          remaining: '฿30.00',
-          status: 'SAFE · ON TRACK',
-          items: [
-            { time: '07:45 AM', label: 'Morning Iced Cocoa', amt: '-฿35.00', cat: 'food' },
-            { time: '12:20 PM', label: 'Canteen Chicken Rice', amt: '-฿50.00', cat: 'food' },
-            { time: '16:15 PM', label: 'Post-Class Milk Tea', amt: '-฿35.00', cat: 'discretionary' },
-          ],
-        }
+        title: 'SESSION 01 · MON-FRI CAMPUS LEDGER',
+        budget: '฿150.00',
+        spent: '฿120.00',
+        remaining: '฿30.00',
+        status: 'SAFE · ON TRACK',
+        items: [
+          { time: '07:45 AM', label: 'Morning Iced Cocoa', amt: '-฿35.00', cat: 'food' },
+          { time: '12:20 PM', label: 'Canteen Chicken Rice', amt: '-฿50.00', cat: 'food' },
+          { time: '16:15 PM', label: 'Post-Class Milk Tea', amt: '-฿35.00', cat: 'discretionary' },
+        ],
+      }
       : {
-          title: 'SESSION 02 · RESEARCH LAB SESSION',
-          budget: '฿300.00',
-          spent: '฿230.00',
-          remaining: '฿70.00',
-          status: 'SAFE · PROJECT COVERED',
-          items: [
-            { time: '10:30 AM', label: 'Poster Board & Markers', amt: '-฿95.00', cat: 'education' },
-            { time: '13:00 PM', label: 'Group Project Lunch', amt: '-฿75.00', cat: 'food' },
-            { time: '15:30 PM', label: 'Transit BTS Pass', amt: '-฿60.00', cat: 'transit' },
-          ],
-        };
+        title: 'SESSION 02 · RESEARCH LAB SESSION',
+        budget: '฿300.00',
+        spent: '฿230.00',
+        remaining: '฿70.00',
+        status: 'SAFE · PROJECT COVERED',
+        items: [
+          { time: '10:30 AM', label: 'Poster Board & Markers', amt: '-฿95.00', cat: 'education' },
+          { time: '13:00 PM', label: 'Group Project Lunch', amt: '-฿75.00', cat: 'food' },
+          { time: '15:30 PM', label: 'Transit BTS Pass', amt: '-฿60.00', cat: 'transit' },
+        ],
+      };
 
   return (
     <View style={[heroStyles.section, isMobile && heroStyles.sectionMobile]}>
@@ -805,7 +804,7 @@ function StudioHeroSection({
           {/* Live Student Community Counters */}
           <View style={heroStyles.liveCountersRow}>
             <View style={heroStyles.counterItem}>
-              <Text style={heroStyles.counterNum}>108+</Text>
+              <Text style={heroStyles.counterNum}>100</Text>
               <Text style={heroStyles.counterLabel}>{language === 'th' ? 'นักเรียนที่ลงทะเบียน' : 'Registered Students'}</Text>
             </View>
             <View style={heroStyles.counterDivider} />
@@ -2374,8 +2373,8 @@ function InteractiveSpendingSimulatorSection({
                   isSafe
                     ? 'checkmark-circle'
                     : isCaution
-                    ? 'alert-circle'
-                    : 'warning'
+                      ? 'alert-circle'
+                      : 'warning'
                 }
                 size={22}
                 color={isSafe ? S.mintCash : isCaution ? S.amberCoin : S.coralWarning}
@@ -2388,23 +2387,23 @@ function InteractiveSpendingSimulatorSection({
                       color: isSafe
                         ? S.mintCash
                         : isCaution
-                        ? S.amberCoin
-                        : S.coralWarning,
+                          ? S.amberCoin
+                          : S.coralWarning,
                     },
                   ]}
                 >
                   {isSafe
                     ? 'SAFE ZONE · FITS DAILY BUDGET'
                     : isCaution
-                    ? 'CAUTION · TIGHTENS NEXT 3 DAYS'
-                    : 'BUDGET BREAKER · EXCEEDS DAILY BUFFER'}
+                      ? 'CAUTION · TIGHTENS NEXT 3 DAYS'
+                      : 'BUDGET BREAKER · EXCEEDS DAILY BUFFER'}
                 </Text>
                 <Text style={simStyles.statusNote}>
                   {isSafe
                     ? `Buying "${purchaseName}" (฿${amount}) leaves ฿${dailyAllowanceAfter} in your daily guardrail.`
                     : isCaution
-                    ? `Buying "${purchaseName}" leaves only ฿${dailyAllowanceAfter} left today. Canteen lunch will be tight.`
-                    : `Buying "${purchaseName}" exceeds today's limit by ฿${Math.abs(
+                      ? `Buying "${purchaseName}" leaves only ฿${dailyAllowanceAfter} left today. Canteen lunch will be tight.`
+                      : `Buying "${purchaseName}" exceeds today's limit by ฿${Math.abs(
                         dailyAllowanceAfter
                       )}. Will borrow from savings.`}
                 </Text>

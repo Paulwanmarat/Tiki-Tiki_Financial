@@ -41,8 +41,8 @@ export interface MyDonation {
 
 export const THINKPAD_DONATE_CAMPAIGN: DonateCampaign = {
   id: 'camp_thinkpad_t14_x1_carbon_aura',
-  organizer_id: 'system_organizer',
-  organizer_name: 'SPR Student Union',
+  organizer_id: 'phanyawat_wt',
+  organizer_name: 'PhanyawatWt',
   title: 'Thinkpad T14 Gen14 X1 Carbon Aura Edition',
   description: 'High-performance computing laptop workstation for student engineering, academic research, and deep development.',
   objective: 'Fund a Thinkpad T14 Gen14 X1 Carbon Aura Edition workstation to equip students with top-tier hardware for coursework and innovation simulations.',

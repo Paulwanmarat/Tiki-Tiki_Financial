@@ -9,9 +9,9 @@
  *
  * Strict Rule: Only verified payments count toward these totals!
  */
+import { useLanguage } from '@/context/LanguageContext';
 import { LOCAL_API_URL } from '@/services/ai/client';
 import { CampaignProgress, LiveImpactTotals, RequestProgress } from '@/types/payments';
-import { useLanguage } from '@/context/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';

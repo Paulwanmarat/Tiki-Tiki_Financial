@@ -673,10 +673,10 @@ async function seedProjects(client: any) {
 }
 
 async function seedCampaigns(client: any) {
-  // Find or create an official organizer ID (first user or system organizer)
-  const userRes = await client.query('SELECT id, username FROM users LIMIT 1');
-  const organizerId = userRes.rows.length > 0 ? userRes.rows[0].id : 'system_organizer';
-  const organizerName = userRes.rows.length > 0 ? (userRes.rows[0].username || 'SPR Student Union') : 'SPR Student Union';
+  // Official organizer name strictly PhanyawatWt
+  const userRes = await client.query("SELECT id, username FROM users WHERE username = 'PhanyawatWt' OR email = 'paulwanmarat@gmail.com' LIMIT 1");
+  const organizerId = userRes.rows.length > 0 ? userRes.rows[0].id : 'phanyawat_wt';
+  const organizerName = 'PhanyawatWt';
 
   const sampleCampaigns = [
     {
@@ -696,7 +696,11 @@ async function seedCampaigns(client: any) {
       INSERT INTO donate_campaigns
       (id, organizer_id, organizer_name, title, description, objective, target_amount, amount_raised, cover_image, category, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'active')
-      ON CONFLICT (id) DO NOTHING
+      ON CONFLICT (id) DO UPDATE SET
+        organizer_name = EXCLUDED.organizer_name,
+        title = EXCLUDED.title,
+        target_amount = EXCLUDED.target_amount,
+        cover_image = EXCLUDED.cover_image;
     `, [
       c.id,
       organizerId,
